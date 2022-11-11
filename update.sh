@@ -7,7 +7,7 @@ VERSION="v0.5.1"
 STANDARD_APIS=(
     gatewayclasses
     gateways
-    httproutes # TODO: not working
+    httproutes
     referencegrants
 )
 
