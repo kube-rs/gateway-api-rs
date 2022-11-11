@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -uxo pipefail
+set -eoux pipefail
 
 VERSION="v0.5.1"
 
