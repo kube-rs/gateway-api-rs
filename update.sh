@@ -23,6 +23,13 @@ EXPERIMENTAL_APIS=(
 )
 
 rm -rf src/apis/
+
+mkdir -p src/apis/
+cat << EOF > src/apis/mod.rs
+pub mod experimental;
+pub mod standard;
+EOF
+
 mkdir -p src/apis/standard/
 mkdir -p src/apis/experimental/
 
