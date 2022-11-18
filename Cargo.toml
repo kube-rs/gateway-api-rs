@@ -6,8 +6,8 @@ authors = ["Shane Utt <shaneutt@linux.com>"]
 license = "MIT"
 keywords = ["kubernetes", "gateway-api"]
 categories = ["api-bindings"]
-homepage = "https://github.com/shaneutt/gateway-api-rs"
-repository = "https://github.com/shaneutt/gateway-api-rs"
+homepage = "https://gateway-api.sigs.k8s.io/"
+repository = "https://github.com/kube-rs/gateway-api-rs"
 edition = "2021"
 
 [features]
