@@ -5,8 +5,8 @@
 > **Note**: In [Kubernetes SIG Network][signet] we're evaluating this project
 > as a potential "official" Gateway API library. The goal for this repository
 > currently is to get all the groundwork done so that we have a complete and
-> functional set of APIs, and then try to donate this upstream to Kubernetes.
-> This is considered `alpha` at this time. **Do not use in production**.
+> functional set of APIs. This is considered `alpha` at this time.
+> **Do not use in production**.
 
 [signet]:https://github.com/kubernetes/community/tree/master/sig-network
 
