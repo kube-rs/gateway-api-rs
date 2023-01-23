@@ -12,15 +12,15 @@ use serde::{Serialize, Deserialize};
 #[kube(namespaced)]
 #[kube(status = "GRPCRouteStatus")]
 pub struct GRPCRouteSpec {
-    /// Hostnames defines a set of hostname to match against the GRPC Host header to select a GRPCRoute to process the request. This matches the RFC 1123 definition of a hostname with 2 notable exceptions: 
-    ///  1. IPs are not allowed. 2. A hostname may be prefixed with a wildcard label (`*.`). The wildcard    label MUST appear by itself as the first label. 
+    /// Hostnames defines a set of hostnames to match against the GRPC Host header to select a GRPCRoute to process the request. This matches the RFC 1123 definition of a hostname with 2 notable exceptions: 
+    ///  1. IPs are not allowed. 2. A hostname may be prefixed with a wildcard label (`*.`). The wildcard label MUST appear by itself as the first label. 
     ///  If a hostname is specified by both the Listener and GRPCRoute, there MUST be at least one intersecting hostname for the GRPCRoute to be attached to the Listener. For example: 
-    ///  * A Listener with `test.example.com` as the hostname matches GRPCRoutes   that have either not specified any hostnames, or have specified at   least one of `test.example.com` or `*.example.com`. * A Listener with `*.example.com` as the hostname matches GRPCRoutes   that have either not specified any hostnames or have specified at least   one hostname that matches the Listener hostname. For example,   `test.example.com` and `*.example.com` would both match. On the other   hand, `example.com` and `test.example.net` would not match. 
+    ///  * A Listener with `test.example.com` as the hostname matches GRPCRoutes that have either not specified any hostnames, or have specified at least one of `test.example.com` or `*.example.com`. * A Listener with `*.example.com` as the hostname matches GRPCRoutes that have either not specified any hostnames or have specified at least one hostname that matches the Listener hostname. For example, `test.example.com` and `*.example.com` would both match. On the other hand, `example.com` and `test.example.net` would not match. 
     ///  Hostnames that are prefixed with a wildcard label (`*.`) are interpreted as a suffix match. That means that a match for `*.example.com` would match both `test.example.com`, and `foo.test.example.com`, but not `example.com`. 
     ///  If both the Listener and GRPCRoute have specified hostnames, any GRPCRoute hostnames that do not match the Listener hostname MUST be ignored. For example, if a Listener specified `*.example.com`, and the GRPCRoute specified `test.example.com` and `test.example.net`, `test.example.net` MUST NOT be considered for a match. 
-    ///  If both the Listener and GRPCRoute have specified hostnames, and none match with the criteria above, then the GRPCRoute is not accepted. The implementation MUST raise an 'Accepted' Condition with a status of `False` in the corresponding RouteParentStatus. 
+    ///  If both the Listener and GRPCRoute have specified hostnames, and none match with the criteria above, then the GRPCRoute MUST NOT be accepted by the implementation. The implementation MUST raise an 'Accepted' Condition with a status of `False` in the corresponding RouteParentStatus. 
     ///  If a Route (A) of type HTTPRoute or GRPCRoute is attached to a Listener and that listener already has another Route (B) of the other type attached and the intersection of the hostnames of A and B is non-empty, then the implementation MUST accept exactly one of these two routes, determined by the following criteria, in order: 
-    ///  * The oldest Route based on creation timestamp. * The Route appearing first in alphabetical order by   "{namespace}/{name}". 
+    ///  * The oldest Route based on creation timestamp. * The Route appearing first in alphabetical order by "{namespace}/{name}". 
     ///  The rejected Route MUST raise an 'Accepted' condition with a status of 'False' in the corresponding RouteParentStatus. 
     ///  Support: Core
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -28,7 +28,8 @@ pub struct GRPCRouteSpec {
     /// ParentRefs references the resources (usually Gateways) that a Route wants to be attached to. Note that the referenced parent resource needs to allow this for the attachment to be complete. For Gateways, that means the Gateway needs to allow attachment from Routes of this kind and namespace. 
     ///  The only kind of parent resource with "Core" support is Gateway. This API may be extended in the future to support additional kinds of parent resources such as one of the route kinds. 
     ///  It is invalid to reference an identical parent more than once. It is valid to reference multiple distinct sections within the same parent resource, such as 2 Listeners within a Gateway. 
-    ///  It is possible to separately reference multiple distinct objects that may be collapsed by an implementation. For example, some implementations may choose to merge compatible Gateway Listeners together. If that is the case, the list of routes attached to those resources should also be merged.
+    ///  It is possible to separately reference multiple distinct objects that may be collapsed by an implementation. For example, some implementations may choose to merge compatible Gateway Listeners together. If that is the case, the list of routes attached to those resources should also be merged. 
+    ///  Note that for ParentRefs that cross namespace boundaries, there are specific rules. Cross-namespace references are only valid if they are explicitly allowed by something in the namespace they are referring to. For example, Gateway has the AllowedRoutes field, and ReferenceGrant provides a generic way to enable any other kind of cross-namespace reference.
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "parentRefs")]
     pub parent_refs: Option<Vec<GRPCRouteParentRefs>>,
     /// Rules are a list of GRPC matchers, filters and actions.
@@ -53,6 +54,7 @@ pub struct GRPCRouteParentRefs {
     ///  Support: Core
     pub name: String,
     /// Namespace is the namespace of the referent. When unspecified, this refers to the local namespace of the Route. 
+    ///  Note that there are specific rules for ParentRefs which cross namespace boundaries. Cross-namespace references are only valid if they are explicitly allowed by something in the namespace they are referring to. For example: Gateway has the AllowedRoutes field, and ReferenceGrant provides a generic way to enable any other kind of cross-namespace reference. 
     ///  Support: Core
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub namespace: Option<String>,
@@ -73,7 +75,7 @@ pub struct GRPCRouteParentRefs {
     pub section_name: Option<String>,
 }
 
-/// GRPCRouteRule defines semantics for matching an gRPC request based on conditions (matches), processing it (filters), and forwarding the request to an API object (backendRefs).
+/// GRPCRouteRule defines the semantics for matching an gRPC request based on conditions (matches), processing it (filters), and forwarding the request to an API object (backendRefs).
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub struct GRPCRouteRules {
     /// BackendRefs defines the backend(s) where matching requests should be sent. 
@@ -90,13 +92,13 @@ pub struct GRPCRouteRules {
     /// Filters define the filters that are applied to requests that match this rule. 
     ///  The effects of ordering of multiple behaviors are currently unspecified. This can change in the future based on feedback during the alpha stage. 
     ///  Conformance-levels at this level are defined based on the type of filter: 
-    ///  - ALL core filters MUST be supported by all implementations. - Implementers are encouraged to support extended filters. - Implementation-specific custom filters have no API guarantees across   implementations. 
+    ///  - ALL core filters MUST be supported by all implementations that support GRPCRoute. - Implementers are encouraged to support extended filters. - Implementation-specific custom filters have no API guarantees across implementations. 
     ///  Specifying a core filter multiple times has unspecified or implementation-specific conformance. Support: Core
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub filters: Option<Vec<GRPCRouteRulesFilters>>,
     /// Matches define conditions used for matching the rule against incoming gRPC requests. Each match is independent, i.e. this rule will be matched if **any** one of the matches is satisfied. 
     ///  For example, take the following matches configuration: 
-    ///  ``` matches: - method:     service: foo.bar   headers:     values:       version: 2 - method:     service: foo.bar.v2 ``` 
+    ///  ``` matches: - method: service: foo.bar headers: values: version: 2 - method: service: foo.bar.v2 ``` 
     ///  For a request to match against this rule, it MUST satisfy EITHER of the two conditions: 
     ///  - service of foo.bar AND contains the header `version: 2` - service of foo.bar.v2 
     ///  See the documentation for GRPCRouteMatch on how to specify multiple match conditions to be ANDed together. 
@@ -104,7 +106,7 @@ pub struct GRPCRouteRules {
     ///  Proxy or Load Balancer routing configuration generated from GRPCRoutes MUST prioritize rules based on the following criteria, continuing on ties. Merging MUST not be done between GRPCRoutes and HTTPRoutes. Precedence MUST be given to the rule with the largest number of: 
     ///  * Characters in a matching non-wildcard hostname. * Characters in a matching hostname. * Characters in a matching service. * Characters in a matching method. * Header matches. 
     ///  If ties still exist across multiple Routes, matching precedence MUST be determined in order of the following criteria, continuing on ties: 
-    ///  * The oldest Route based on creation timestamp. * The Route appearing first in alphabetical order by   "{namespace}/{name}". 
+    ///  * The oldest Route based on creation timestamp. * The Route appearing first in alphabetical order by "{namespace}/{name}". 
     ///  If ties still exist within the Route that has been given precedence, matching precedence MUST be granted to the first matching rule meeting the above criteria.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub matches: Option<Vec<GRPCRouteRulesMatches>>,
@@ -161,9 +163,9 @@ pub struct GRPCRouteRulesBackendRefsFilters {
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "responseHeaderModifier")]
     pub response_header_modifier: Option<GRPCRouteRulesBackendRefsFiltersResponseHeaderModifier>,
     /// Type identifies the type of filter to apply. As with other API fields, types are classified into three conformance levels: 
-    ///  - Core: Filter types and their corresponding configuration defined by   "Support: Core" in this package, e.g. "RequestHeaderModifier". All   implementations supporting GRPCRoute MUST support core filters. 
-    ///  - Extended: Filter types and their corresponding configuration defined by   "Support: Extended" in this package, e.g. "RequestMirror". Implementers   are encouraged to support extended filters. 
-    ///  - Implementation-specific: Filters that are defined and supported by specific vendors.   In the future, filters showing convergence in behavior across multiple   implementations will be considered for inclusion in extended or core   conformance levels. Filter-specific configuration for such filters   is specified using the ExtensionRef field. `Type` MUST be set to   "ExtensionRef" for custom filters. 
+    ///  - Core: Filter types and their corresponding configuration defined by "Support: Core" in this package, e.g. "RequestHeaderModifier". All implementations supporting GRPCRoute MUST support core filters. 
+    ///  - Extended: Filter types and their corresponding configuration defined by "Support: Extended" in this package, e.g. "RequestMirror". Implementers are encouraged to support extended filters. 
+    ///  - Implementation-specific: Filters that are defined and supported by specific vendors. In the future, filters showing convergence in behavior across multiple implementations will be considered for inclusion in extended or core conformance levels. Filter-specific configuration for such filters is specified using the ExtensionRef field. `Type` MUST be set to "ExtensionRef" for custom filters. 
     ///  Implementers are encouraged to define custom implementation types to extend the core API with implementation-specific behavior. 
     ///  If a reference to a custom filter type cannot be resolved, the filter MUST NOT be skipped. Instead, requests that would have been processed by that filter MUST receive a HTTP error response. 
     ///  
@@ -188,21 +190,21 @@ pub struct GRPCRouteRulesBackendRefsFiltersExtensionRef {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub struct GRPCRouteRulesBackendRefsFiltersRequestHeaderModifier {
     /// Add adds the given header(s) (name, value) to the request before the action. It appends to any existing values associated with the header name. 
-    ///  Input:   GET /foo HTTP/1.1   my-header: foo 
-    ///  Config:   add:   - name: "my-header"     value: "bar,baz" 
-    ///  Output:   GET /foo HTTP/1.1   my-header: foo,bar,baz
+    ///  Input: GET /foo HTTP/1.1 my-header: foo 
+    ///  Config: add: - name: "my-header" value: "bar,baz" 
+    ///  Output: GET /foo HTTP/1.1 my-header: foo,bar,baz
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub add: Option<Vec<GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd>>,
     /// Remove the given header(s) from the HTTP request before the action. The value of Remove is a list of HTTP header names. Note that the header names are case-insensitive (see https://datatracker.ietf.org/doc/html/rfc2616#section-4.2). 
-    ///  Input:   GET /foo HTTP/1.1   my-header1: foo   my-header2: bar   my-header3: baz 
-    ///  Config:   remove: ["my-header1", "my-header3"] 
-    ///  Output:   GET /foo HTTP/1.1   my-header2: bar
+    ///  Input: GET /foo HTTP/1.1 my-header1: foo my-header2: bar my-header3: baz 
+    ///  Config: remove: ["my-header1", "my-header3"] 
+    ///  Output: GET /foo HTTP/1.1 my-header2: bar
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub remove: Option<Vec<String>>,
     /// Set overwrites the request with the given header (name, value) before the action. 
-    ///  Input:   GET /foo HTTP/1.1   my-header: foo 
-    ///  Config:   set:   - name: "my-header"     value: "bar" 
-    ///  Output:   GET /foo HTTP/1.1   my-header: bar
+    ///  Input: GET /foo HTTP/1.1 my-header: foo 
+    ///  Config: set: - name: "my-header" value: "bar" 
+    ///  Output: GET /foo HTTP/1.1 my-header: bar
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub set: Option<Vec<GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierSet>>,
 }
@@ -273,21 +275,21 @@ pub struct GRPCRouteRulesBackendRefsFiltersRequestMirrorBackendRef {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub struct GRPCRouteRulesBackendRefsFiltersResponseHeaderModifier {
     /// Add adds the given header(s) (name, value) to the request before the action. It appends to any existing values associated with the header name. 
-    ///  Input:   GET /foo HTTP/1.1   my-header: foo 
-    ///  Config:   add:   - name: "my-header"     value: "bar,baz" 
-    ///  Output:   GET /foo HTTP/1.1   my-header: foo,bar,baz
+    ///  Input: GET /foo HTTP/1.1 my-header: foo 
+    ///  Config: add: - name: "my-header" value: "bar,baz" 
+    ///  Output: GET /foo HTTP/1.1 my-header: foo,bar,baz
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub add: Option<Vec<GRPCRouteRulesBackendRefsFiltersResponseHeaderModifierAdd>>,
     /// Remove the given header(s) from the HTTP request before the action. The value of Remove is a list of HTTP header names. Note that the header names are case-insensitive (see https://datatracker.ietf.org/doc/html/rfc2616#section-4.2). 
-    ///  Input:   GET /foo HTTP/1.1   my-header1: foo   my-header2: bar   my-header3: baz 
-    ///  Config:   remove: ["my-header1", "my-header3"] 
-    ///  Output:   GET /foo HTTP/1.1   my-header2: bar
+    ///  Input: GET /foo HTTP/1.1 my-header1: foo my-header2: bar my-header3: baz 
+    ///  Config: remove: ["my-header1", "my-header3"] 
+    ///  Output: GET /foo HTTP/1.1 my-header2: bar
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub remove: Option<Vec<String>>,
     /// Set overwrites the request with the given header (name, value) before the action. 
-    ///  Input:   GET /foo HTTP/1.1   my-header: foo 
-    ///  Config:   set:   - name: "my-header"     value: "bar" 
-    ///  Output:   GET /foo HTTP/1.1   my-header: bar
+    ///  Input: GET /foo HTTP/1.1 my-header: foo 
+    ///  Config: set: - name: "my-header" value: "bar" 
+    ///  Output: GET /foo HTTP/1.1 my-header: bar
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub set: Option<Vec<GRPCRouteRulesBackendRefsFiltersResponseHeaderModifierSet>>,
 }
@@ -342,9 +344,9 @@ pub struct GRPCRouteRulesFilters {
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "responseHeaderModifier")]
     pub response_header_modifier: Option<GRPCRouteRulesFiltersResponseHeaderModifier>,
     /// Type identifies the type of filter to apply. As with other API fields, types are classified into three conformance levels: 
-    ///  - Core: Filter types and their corresponding configuration defined by   "Support: Core" in this package, e.g. "RequestHeaderModifier". All   implementations supporting GRPCRoute MUST support core filters. 
-    ///  - Extended: Filter types and their corresponding configuration defined by   "Support: Extended" in this package, e.g. "RequestMirror". Implementers   are encouraged to support extended filters. 
-    ///  - Implementation-specific: Filters that are defined and supported by specific vendors.   In the future, filters showing convergence in behavior across multiple   implementations will be considered for inclusion in extended or core   conformance levels. Filter-specific configuration for such filters   is specified using the ExtensionRef field. `Type` MUST be set to   "ExtensionRef" for custom filters. 
+    ///  - Core: Filter types and their corresponding configuration defined by "Support: Core" in this package, e.g. "RequestHeaderModifier". All implementations supporting GRPCRoute MUST support core filters. 
+    ///  - Extended: Filter types and their corresponding configuration defined by "Support: Extended" in this package, e.g. "RequestMirror". Implementers are encouraged to support extended filters. 
+    ///  - Implementation-specific: Filters that are defined and supported by specific vendors. In the future, filters showing convergence in behavior across multiple implementations will be considered for inclusion in extended or core conformance levels. Filter-specific configuration for such filters is specified using the ExtensionRef field. `Type` MUST be set to "ExtensionRef" for custom filters. 
     ///  Implementers are encouraged to define custom implementation types to extend the core API with implementation-specific behavior. 
     ///  If a reference to a custom filter type cannot be resolved, the filter MUST NOT be skipped. Instead, requests that would have been processed by that filter MUST receive a HTTP error response. 
     ///  
@@ -369,21 +371,21 @@ pub struct GRPCRouteRulesFiltersExtensionRef {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub struct GRPCRouteRulesFiltersRequestHeaderModifier {
     /// Add adds the given header(s) (name, value) to the request before the action. It appends to any existing values associated with the header name. 
-    ///  Input:   GET /foo HTTP/1.1   my-header: foo 
-    ///  Config:   add:   - name: "my-header"     value: "bar,baz" 
-    ///  Output:   GET /foo HTTP/1.1   my-header: foo,bar,baz
+    ///  Input: GET /foo HTTP/1.1 my-header: foo 
+    ///  Config: add: - name: "my-header" value: "bar,baz" 
+    ///  Output: GET /foo HTTP/1.1 my-header: foo,bar,baz
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub add: Option<Vec<GRPCRouteRulesFiltersRequestHeaderModifierAdd>>,
     /// Remove the given header(s) from the HTTP request before the action. The value of Remove is a list of HTTP header names. Note that the header names are case-insensitive (see https://datatracker.ietf.org/doc/html/rfc2616#section-4.2). 
-    ///  Input:   GET /foo HTTP/1.1   my-header1: foo   my-header2: bar   my-header3: baz 
-    ///  Config:   remove: ["my-header1", "my-header3"] 
-    ///  Output:   GET /foo HTTP/1.1   my-header2: bar
+    ///  Input: GET /foo HTTP/1.1 my-header1: foo my-header2: bar my-header3: baz 
+    ///  Config: remove: ["my-header1", "my-header3"] 
+    ///  Output: GET /foo HTTP/1.1 my-header2: bar
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub remove: Option<Vec<String>>,
     /// Set overwrites the request with the given header (name, value) before the action. 
-    ///  Input:   GET /foo HTTP/1.1   my-header: foo 
-    ///  Config:   set:   - name: "my-header"     value: "bar" 
-    ///  Output:   GET /foo HTTP/1.1   my-header: bar
+    ///  Input: GET /foo HTTP/1.1 my-header: foo 
+    ///  Config: set: - name: "my-header" value: "bar" 
+    ///  Output: GET /foo HTTP/1.1 my-header: bar
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub set: Option<Vec<GRPCRouteRulesFiltersRequestHeaderModifierSet>>,
 }
@@ -454,21 +456,21 @@ pub struct GRPCRouteRulesFiltersRequestMirrorBackendRef {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub struct GRPCRouteRulesFiltersResponseHeaderModifier {
     /// Add adds the given header(s) (name, value) to the request before the action. It appends to any existing values associated with the header name. 
-    ///  Input:   GET /foo HTTP/1.1   my-header: foo 
-    ///  Config:   add:   - name: "my-header"     value: "bar,baz" 
-    ///  Output:   GET /foo HTTP/1.1   my-header: foo,bar,baz
+    ///  Input: GET /foo HTTP/1.1 my-header: foo 
+    ///  Config: add: - name: "my-header" value: "bar,baz" 
+    ///  Output: GET /foo HTTP/1.1 my-header: foo,bar,baz
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub add: Option<Vec<GRPCRouteRulesFiltersResponseHeaderModifierAdd>>,
     /// Remove the given header(s) from the HTTP request before the action. The value of Remove is a list of HTTP header names. Note that the header names are case-insensitive (see https://datatracker.ietf.org/doc/html/rfc2616#section-4.2). 
-    ///  Input:   GET /foo HTTP/1.1   my-header1: foo   my-header2: bar   my-header3: baz 
-    ///  Config:   remove: ["my-header1", "my-header3"] 
-    ///  Output:   GET /foo HTTP/1.1   my-header2: bar
+    ///  Input: GET /foo HTTP/1.1 my-header1: foo my-header2: bar my-header3: baz 
+    ///  Config: remove: ["my-header1", "my-header3"] 
+    ///  Output: GET /foo HTTP/1.1 my-header2: bar
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub remove: Option<Vec<String>>,
     /// Set overwrites the request with the given header (name, value) before the action. 
-    ///  Input:   GET /foo HTTP/1.1   my-header: foo 
-    ///  Config:   set:   - name: "my-header"     value: "bar" 
-    ///  Output:   GET /foo HTTP/1.1   my-header: bar
+    ///  Input: GET /foo HTTP/1.1 my-header: foo 
+    ///  Config: set: - name: "my-header" value: "bar" 
+    ///  Output: GET /foo HTTP/1.1 my-header: bar
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub set: Option<Vec<GRPCRouteRulesFiltersResponseHeaderModifierSet>>,
 }
@@ -504,13 +506,14 @@ pub enum GRPCRouteRulesFiltersType {
 
 /// GRPCRouteMatch defines the predicate used to match requests to a given action. Multiple match types are ANDed together, i.e. the match will evaluate to true only if all conditions are satisfied. 
 ///  For example, the match below will match a gRPC request only if its service is `foo` AND it contains the `version: v1` header: 
-///  ``` matches: - method:    type: Exact    service: "foo"   headers:   - name: "version"     value "v1" ```
+///  ``` matches: - method: type: Exact service: "foo" headers: - name: "version" value "v1" 
+///  ```
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub struct GRPCRouteRulesMatches {
     /// Headers specifies gRPC request header matchers. Multiple match values are ANDed together, meaning, a request MUST match all the specified headers to select the route.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub headers: Option<Vec<GRPCRouteRulesMatchesHeaders>>,
-    /// Path specifies a gRPC request service/method matcher. If this field is not specified, all services and methods will match.
+    /// Method specifies a gRPC request service/method matcher. If this field is not specified, all services and methods will match.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub method: Option<GRPCRouteRulesMatchesMethod>,
 }
@@ -535,15 +538,17 @@ pub enum GRPCRouteRulesMatchesHeadersType {
     RegularExpression,
 }
 
-/// Path specifies a gRPC request service/method matcher. If this field is not specified, all services and methods will match.
+/// Method specifies a gRPC request service/method matcher. If this field is not specified, all services and methods will match.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub struct GRPCRouteRulesMatchesMethod {
     /// Value of the method to match against. If left empty or omitted, will match all services. 
-    ///  At least one of Service and Method MUST be a non-empty string.
+    ///  At least one of Service and Method MUST be a non-empty string. 
+    ///  A GRPC Method must be a valid Protobuf Method (https://protobuf.com/docs/language-spec#methods).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub method: Option<String>,
-    /// Value of the service to match against. If left empty or omitted, will match all services. 
-    ///  At least one of Service and Method MUST be a non-empty string.
+    /// Value of the service to match against. If left empty or omitted, will match any service. 
+    ///  At least one of Service and Method MUST be a non-empty string. 
+    ///  A GRPC Service must be a valid Protobuf Type Name (https://protobuf.com/docs/language-spec#type-references).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub service: Option<String>,
     /// Type specifies how to match against the service and/or method. Support: Core (Exact with service and method specified) 
@@ -553,7 +558,7 @@ pub struct GRPCRouteRulesMatchesMethod {
     pub r#type: Option<GRPCRouteRulesMatchesMethodType>,
 }
 
-/// Path specifies a gRPC request service/method matcher. If this field is not specified, all services and methods will match.
+/// Method specifies a gRPC request service/method matcher. If this field is not specified, all services and methods will match.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub enum GRPCRouteRulesMatchesMethodType {
     Exact,
@@ -590,8 +595,9 @@ pub struct GRPCRouteStatusParents {
     pub parent_ref: GRPCRouteStatusParentsParentRef,
 }
 
-/// Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, type FooStatus struct{     // Represents the observations of a foo's current state.     // Known .status.conditions.type are: "Available", "Progressing", and "Degraded"     // +patchMergeKey=type     // +patchStrategy=merge     // +listType=map     // +listMapKey=type     Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"` 
-///      // other fields }
+/// Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, 
+///  type FooStatus struct{ // Represents the observations of a foo's current state. // Known .status.conditions.type are: "Available", "Progressing", and "Degraded" // +patchMergeKey=type // +patchStrategy=merge // +listType=map // +listMapKey=type Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"` 
+///  // other fields }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub struct GRPCRouteStatusParentsConditions {
     /// lastTransitionTime is the last time the condition transitioned from one status to another. This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
@@ -611,8 +617,9 @@ pub struct GRPCRouteStatusParentsConditions {
     pub r#type: String,
 }
 
-/// Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, type FooStatus struct{     // Represents the observations of a foo's current state.     // Known .status.conditions.type are: "Available", "Progressing", and "Degraded"     // +patchMergeKey=type     // +patchStrategy=merge     // +listType=map     // +listMapKey=type     Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"` 
-///      // other fields }
+/// Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, 
+///  type FooStatus struct{ // Represents the observations of a foo's current state. // Known .status.conditions.type are: "Available", "Progressing", and "Degraded" // +patchMergeKey=type // +patchStrategy=merge // +listType=map // +listMapKey=type Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"` 
+///  // other fields }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub enum GRPCRouteStatusParentsConditionsStatus {
     True,
@@ -636,6 +643,7 @@ pub struct GRPCRouteStatusParentsParentRef {
     ///  Support: Core
     pub name: String,
     /// Namespace is the namespace of the referent. When unspecified, this refers to the local namespace of the Route. 
+    ///  Note that there are specific rules for ParentRefs which cross namespace boundaries. Cross-namespace references are only valid if they are explicitly allowed by something in the namespace they are referring to. For example: Gateway has the AllowedRoutes field, and ReferenceGrant provides a generic way to enable any other kind of cross-namespace reference. 
     ///  Support: Core
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub namespace: Option<String>,

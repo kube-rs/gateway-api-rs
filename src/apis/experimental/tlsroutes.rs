@@ -13,9 +13,9 @@ use serde::{Serialize, Deserialize};
 #[kube(status = "TLSRouteStatus")]
 pub struct TLSRouteSpec {
     /// Hostnames defines a set of SNI names that should match against the SNI attribute of TLS ClientHello message in TLS handshake. This matches the RFC 1123 definition of a hostname with 2 notable exceptions: 
-    ///  1. IPs are not allowed in SNI names per RFC 6066. 2. A hostname may be prefixed with a wildcard label (`*.`). The wildcard    label must appear by itself as the first label. 
+    ///  1. IPs are not allowed in SNI names per RFC 6066. 2. A hostname may be prefixed with a wildcard label (`*.`). The wildcard label must appear by itself as the first label. 
     ///  If a hostname is specified by both the Listener and TLSRoute, there must be at least one intersecting hostname for the TLSRoute to be attached to the Listener. For example: 
-    ///  * A Listener with `test.example.com` as the hostname matches TLSRoutes   that have either not specified any hostnames, or have specified at   least one of `test.example.com` or `*.example.com`. * A Listener with `*.example.com` as the hostname matches TLSRoutes   that have either not specified any hostnames or have specified at least   one hostname that matches the Listener hostname. For example,   `test.example.com` and `*.example.com` would both match. On the other   hand, `example.com` and `test.example.net` would not match. 
+    ///  * A Listener with `test.example.com` as the hostname matches TLSRoutes that have either not specified any hostnames, or have specified at least one of `test.example.com` or `*.example.com`. * A Listener with `*.example.com` as the hostname matches TLSRoutes that have either not specified any hostnames or have specified at least one hostname that matches the Listener hostname. For example, `test.example.com` and `*.example.com` would both match. On the other hand, `example.com` and `test.example.net` would not match. 
     ///  If both the Listener and TLSRoute have specified hostnames, any TLSRoute hostnames that do not match the Listener hostname MUST be ignored. For example, if a Listener specified `*.example.com`, and the TLSRoute specified `test.example.com` and `test.example.net`, `test.example.net` must not be considered for a match. 
     ///  If both the Listener and TLSRoute have specified hostnames, and none match with the criteria above, then the TLSRoute is not accepted. The implementation must raise an 'Accepted' Condition with a status of `False` in the corresponding RouteParentStatus. 
     ///  Support: Core
@@ -24,7 +24,8 @@ pub struct TLSRouteSpec {
     /// ParentRefs references the resources (usually Gateways) that a Route wants to be attached to. Note that the referenced parent resource needs to allow this for the attachment to be complete. For Gateways, that means the Gateway needs to allow attachment from Routes of this kind and namespace. 
     ///  The only kind of parent resource with "Core" support is Gateway. This API may be extended in the future to support additional kinds of parent resources such as one of the route kinds. 
     ///  It is invalid to reference an identical parent more than once. It is valid to reference multiple distinct sections within the same parent resource, such as 2 Listeners within a Gateway. 
-    ///  It is possible to separately reference multiple distinct objects that may be collapsed by an implementation. For example, some implementations may choose to merge compatible Gateway Listeners together. If that is the case, the list of routes attached to those resources should also be merged.
+    ///  It is possible to separately reference multiple distinct objects that may be collapsed by an implementation. For example, some implementations may choose to merge compatible Gateway Listeners together. If that is the case, the list of routes attached to those resources should also be merged. 
+    ///  Note that for ParentRefs that cross namespace boundaries, there are specific rules. Cross-namespace references are only valid if they are explicitly allowed by something in the namespace they are referring to. For example, Gateway has the AllowedRoutes field, and ReferenceGrant provides a generic way to enable any other kind of cross-namespace reference.
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "parentRefs")]
     pub parent_refs: Option<Vec<TLSRouteParentRefs>>,
     /// Rules are a list of TLS matchers and actions.
@@ -48,6 +49,7 @@ pub struct TLSRouteParentRefs {
     ///  Support: Core
     pub name: String,
     /// Namespace is the namespace of the referent. When unspecified, this refers to the local namespace of the Route. 
+    ///  Note that there are specific rules for ParentRefs which cross namespace boundaries. Cross-namespace references are only valid if they are explicitly allowed by something in the namespace they are referring to. For example: Gateway has the AllowedRoutes field, and ReferenceGrant provides a generic way to enable any other kind of cross-namespace reference. 
     ///  Support: Core
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub namespace: Option<String>,
@@ -136,8 +138,9 @@ pub struct TLSRouteStatusParents {
     pub parent_ref: TLSRouteStatusParentsParentRef,
 }
 
-/// Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, type FooStatus struct{     // Represents the observations of a foo's current state.     // Known .status.conditions.type are: "Available", "Progressing", and "Degraded"     // +patchMergeKey=type     // +patchStrategy=merge     // +listType=map     // +listMapKey=type     Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"` 
-///      // other fields }
+/// Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, 
+///  type FooStatus struct{ // Represents the observations of a foo's current state. // Known .status.conditions.type are: "Available", "Progressing", and "Degraded" // +patchMergeKey=type // +patchStrategy=merge // +listType=map // +listMapKey=type Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"` 
+///  // other fields }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub struct TLSRouteStatusParentsConditions {
     /// lastTransitionTime is the last time the condition transitioned from one status to another. This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
@@ -157,8 +160,9 @@ pub struct TLSRouteStatusParentsConditions {
     pub r#type: String,
 }
 
-/// Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, type FooStatus struct{     // Represents the observations of a foo's current state.     // Known .status.conditions.type are: "Available", "Progressing", and "Degraded"     // +patchMergeKey=type     // +patchStrategy=merge     // +listType=map     // +listMapKey=type     Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"` 
-///      // other fields }
+/// Condition contains details for one aspect of the current state of this API Resource. --- This struct is intended for direct use as an array at the field path .status.conditions.  For example, 
+///  type FooStatus struct{ // Represents the observations of a foo's current state. // Known .status.conditions.type are: "Available", "Progressing", and "Degraded" // +patchMergeKey=type // +patchStrategy=merge // +listType=map // +listMapKey=type Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"` 
+///  // other fields }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub enum TLSRouteStatusParentsConditionsStatus {
     True,
@@ -182,6 +186,7 @@ pub struct TLSRouteStatusParentsParentRef {
     ///  Support: Core
     pub name: String,
     /// Namespace is the namespace of the referent. When unspecified, this refers to the local namespace of the Route. 
+    ///  Note that there are specific rules for ParentRefs which cross namespace boundaries. Cross-namespace references are only valid if they are explicitly allowed by something in the namespace they are referring to. For example: Gateway has the AllowedRoutes field, and ReferenceGrant provides a generic way to enable any other kind of cross-namespace reference. 
     ///  Support: Core
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub namespace: Option<String>,
