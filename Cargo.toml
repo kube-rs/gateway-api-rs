@@ -1,6 +1,6 @@
 [package]
 name = "gateway-api"
-version = "0.2.0"
+version = "0.3.0"
 description = "Kubernetes Gateway API bindings in Rust"
 authors = ["Shane Utt <shaneutt@linux.com>"]
 license = "MIT"
