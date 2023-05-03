@@ -75,7 +75,7 @@ pub struct GRPCRouteParentRefs {
     pub section_name: Option<String>,
 }
 
-/// GRPCRouteRule defines the semantics for matching an gRPC request based on conditions (matches), processing it (filters), and forwarding the request to an API object (backendRefs).
+/// GRPCRouteRule defines the semantics for matching a gRPC request based on conditions (matches), processing it (filters), and forwarding the request to an API object (backendRefs).
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub struct GRPCRouteRules {
     /// BackendRefs defines the backend(s) where matching requests should be sent. 
@@ -122,7 +122,11 @@ pub struct GRPCRouteRulesBackendRefs {
     /// Group is the group of the referent. For example, "gateway.networking.k8s.io". When unspecified or empty string, core API group is inferred.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,
-    /// Kind is kind of the referent. For example "HTTPRoute" or "Service". Defaults to "Service" when not specified.
+    /// Kind is the Kubernetes resource kind of the referent. For example "Service". 
+    ///  Defaults to "Service" when not specified. 
+    ///  ExternalName services can refer to CNAME DNS records that may live outside of the cluster and as such are difficult to reason about in terms of conformance. They also may not be safe to forward to (see CVE-2021-25740 for more information). Implementations SHOULD NOT support ExternalName Services. 
+    ///  Support: Core (Services with a type other than ExternalName) 
+    ///  Support: Implementation-specific (Services with type ExternalName)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
     /// Name is the name of the referent.
@@ -158,8 +162,7 @@ pub struct GRPCRouteRulesBackendRefsFilters {
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestMirror")]
     pub request_mirror: Option<GRPCRouteRulesBackendRefsFiltersRequestMirror>,
     /// ResponseHeaderModifier defines a schema for a filter that modifies response headers. 
-    ///  Support: Extended 
-    ///  <gateway:experimental>
+    ///  Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "responseHeaderModifier")]
     pub response_header_modifier: Option<GRPCRouteRulesBackendRefsFiltersResponseHeaderModifier>,
     /// Type identifies the type of filter to apply. As with other API fields, types are classified into three conformance levels: 
@@ -254,7 +257,11 @@ pub struct GRPCRouteRulesBackendRefsFiltersRequestMirrorBackendRef {
     /// Group is the group of the referent. For example, "gateway.networking.k8s.io". When unspecified or empty string, core API group is inferred.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,
-    /// Kind is kind of the referent. For example "HTTPRoute" or "Service". Defaults to "Service" when not specified.
+    /// Kind is the Kubernetes resource kind of the referent. For example "Service". 
+    ///  Defaults to "Service" when not specified. 
+    ///  ExternalName services can refer to CNAME DNS records that may live outside of the cluster and as such are difficult to reason about in terms of conformance. They also may not be safe to forward to (see CVE-2021-25740 for more information). Implementations SHOULD NOT support ExternalName Services. 
+    ///  Support: Core (Services with a type other than ExternalName) 
+    ///  Support: Implementation-specific (Services with type ExternalName)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
     /// Name is the name of the referent.
@@ -270,8 +277,7 @@ pub struct GRPCRouteRulesBackendRefsFiltersRequestMirrorBackendRef {
 }
 
 /// ResponseHeaderModifier defines a schema for a filter that modifies response headers. 
-///  Support: Extended 
-///  <gateway:experimental>
+///  Support: Extended
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub struct GRPCRouteRulesBackendRefsFiltersResponseHeaderModifier {
     /// Add adds the given header(s) (name, value) to the request before the action. It appends to any existing values associated with the header name. 
@@ -339,8 +345,7 @@ pub struct GRPCRouteRulesFilters {
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestMirror")]
     pub request_mirror: Option<GRPCRouteRulesFiltersRequestMirror>,
     /// ResponseHeaderModifier defines a schema for a filter that modifies response headers. 
-    ///  Support: Extended 
-    ///  <gateway:experimental>
+    ///  Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "responseHeaderModifier")]
     pub response_header_modifier: Option<GRPCRouteRulesFiltersResponseHeaderModifier>,
     /// Type identifies the type of filter to apply. As with other API fields, types are classified into three conformance levels: 
@@ -435,7 +440,11 @@ pub struct GRPCRouteRulesFiltersRequestMirrorBackendRef {
     /// Group is the group of the referent. For example, "gateway.networking.k8s.io". When unspecified or empty string, core API group is inferred.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,
-    /// Kind is kind of the referent. For example "HTTPRoute" or "Service". Defaults to "Service" when not specified.
+    /// Kind is the Kubernetes resource kind of the referent. For example "Service". 
+    ///  Defaults to "Service" when not specified. 
+    ///  ExternalName services can refer to CNAME DNS records that may live outside of the cluster and as such are difficult to reason about in terms of conformance. They also may not be safe to forward to (see CVE-2021-25740 for more information). Implementations SHOULD NOT support ExternalName Services. 
+    ///  Support: Core (Services with a type other than ExternalName) 
+    ///  Support: Implementation-specific (Services with type ExternalName)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
     /// Name is the name of the referent.
@@ -451,8 +460,7 @@ pub struct GRPCRouteRulesFiltersRequestMirrorBackendRef {
 }
 
 /// ResponseHeaderModifier defines a schema for a filter that modifies response headers. 
-///  Support: Extended 
-///  <gateway:experimental>
+///  Support: Extended
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub struct GRPCRouteRulesFiltersResponseHeaderModifier {
     /// Add adds the given header(s) (name, value) to the request before the action. It appends to any existing values associated with the header name. 
@@ -542,13 +550,11 @@ pub enum GRPCRouteRulesMatchesHeadersType {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub struct GRPCRouteRulesMatchesMethod {
     /// Value of the method to match against. If left empty or omitted, will match all services. 
-    ///  At least one of Service and Method MUST be a non-empty string. 
-    ///  A GRPC Method must be a valid Protobuf Method (https://protobuf.com/docs/language-spec#methods).
+    ///  At least one of Service and Method MUST be a non-empty string.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub method: Option<String>,
     /// Value of the service to match against. If left empty or omitted, will match any service. 
-    ///  At least one of Service and Method MUST be a non-empty string. 
-    ///  A GRPC Service must be a valid Protobuf Type Name (https://protobuf.com/docs/language-spec#type-references).
+    ///  At least one of Service and Method MUST be a non-empty string.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub service: Option<String>,
     /// Type specifies how to match against the service and/or method. Support: Core (Exact with service and method specified) 

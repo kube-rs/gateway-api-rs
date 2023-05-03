@@ -224,7 +224,7 @@ pub struct GatewayStatus {
     /// Conditions describe the current conditions of the Gateway. 
     ///  Implementations should prefer to express Gateway conditions using the `GatewayConditionType` and `GatewayConditionReason` constants so that operators and tools can converge on a common vocabulary to describe Gateway state. 
     ///  Known condition types are: 
-    ///  * "Accepted" * "Ready"
+    ///  * "Accepted" * "Programmed" * "Ready"
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub conditions: Option<Vec<GatewayStatusConditions>>,
     /// Listeners provide status for each unique listener port defined in the Spec.

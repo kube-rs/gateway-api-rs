@@ -65,7 +65,9 @@ pub struct UDPRouteParentRefs {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema)]
 pub struct UDPRouteRules {
     /// BackendRefs defines the backend(s) where matching requests should be sent. If unspecified or invalid (refers to a non-existent resource or a Service with no endpoints), the underlying implementation MUST actively reject connection attempts to this backend. Packet drops must respect weight; if an invalid backend is requested to have 80% of the packets, then 80% of packets must be dropped instead. 
-    ///  Support: Core for Kubernetes Service Support: Implementation-specific for any other resource 
+    ///  Support: Core for Kubernetes Service 
+    ///  Support: Extended for Kubernetes ServiceImport 
+    ///  Support: Implementation-specific for any other resource 
     ///  Support for weight: Extended
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "backendRefs")]
     pub backend_refs: Option<Vec<UDPRouteRulesBackendRefs>>,
@@ -78,7 +80,11 @@ pub struct UDPRouteRulesBackendRefs {
     /// Group is the group of the referent. For example, "gateway.networking.k8s.io". When unspecified or empty string, core API group is inferred.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,
-    /// Kind is kind of the referent. For example "HTTPRoute" or "Service". Defaults to "Service" when not specified.
+    /// Kind is the Kubernetes resource kind of the referent. For example "Service". 
+    ///  Defaults to "Service" when not specified. 
+    ///  ExternalName services can refer to CNAME DNS records that may live outside of the cluster and as such are difficult to reason about in terms of conformance. They also may not be safe to forward to (see CVE-2021-25740 for more information). Implementations SHOULD NOT support ExternalName Services. 
+    ///  Support: Core (Services with a type other than ExternalName) 
+    ///  Support: Implementation-specific (Services with type ExternalName)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
     /// Name is the name of the referent.
