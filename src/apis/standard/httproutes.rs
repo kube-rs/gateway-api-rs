@@ -12,7 +12,8 @@ use serde::{Serialize, Deserialize};
 #[kube(namespaced)]
 #[kube(status = "HTTPRouteStatus")]
 pub struct HTTPRouteSpec {
-    /// Hostnames defines a set of hostname that should match against the HTTP Host header to select a HTTPRoute to process the request. This matches the RFC 1123 definition of a hostname with 2 notable exceptions: 
+    /// Hostnames defines a set of hostname that should match against the HTTP Host header to select a HTTPRoute used to process the request. Implementations MUST ignore any port value specified in the HTTP Host header while performing a match. 
+    ///  Valid values for Hostnames are determined by RFC 1123 definition of a hostname with 2 notable exceptions: 
     ///  1. IPs are not allowed. 2. A hostname may be prefixed with a wildcard label (`*.`). The wildcard label must appear by itself as the first label. 
     ///  If a hostname is specified by both the Listener and HTTPRoute, there must be at least one intersecting hostname for the HTTPRoute to be attached to the Listener. For example: 
     ///  * A Listener with `test.example.com` as the hostname matches HTTPRoutes that have either not specified any hostnames, or have specified at least one of `test.example.com` or `*.example.com`. * A Listener with `*.example.com` as the hostname matches HTTPRoutes that have either not specified any hostnames or have specified at least one hostname that matches the Listener hostname. For example, `*.example.com`, `test.example.com`, and `foo.test.example.com` would all match. On the other hand, `example.com` and `test.example.net` would not match. 
@@ -295,13 +296,15 @@ pub struct HTTPRouteRulesBackendRefsFiltersRequestRedirect {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub path: Option<HTTPRouteRulesBackendRefsFiltersRequestRedirectPath>,
     /// Port is the port to be used in the value of the `Location` header in the response. 
-    ///  When empty, the Gateway Listener port is used. 
+    ///  If no port is specified, the redirect port MUST be derived using the following rules: 
+    ///  * If redirect scheme is not-empty, the redirect port MUST be the well-known port associated with the redirect scheme. Specifically "http" to port 80 and "https" to port 443. If the redirect scheme does not have a well-known port, the listener port of the Gateway SHOULD be used. * If redirect scheme is empty, the redirect port MUST be the Gateway Listener port. 
     ///  Implementations SHOULD NOT add the port number in the 'Location' header in the following cases: 
     ///  * A Location header that will use HTTP (whether that is determined via the Listener protocol or the Scheme field) _and_ use port 80. * A Location header that will use HTTPS (whether that is determined via the Listener protocol or the Scheme field) _and_ use port 443. 
     ///  Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub port: Option<i32>,
     /// Scheme is the scheme to be used in the value of the `Location` header in the response. When empty, the scheme of the request is used. 
+    ///  Scheme redirects can affect the port of the redirect, for more information, refer to the documentation for the port field of this filter. 
     ///  Note that values may be added to this enum, implementations must ensure that unknown values will not cause a crash. 
     ///  Unknown values here must result in the implementation setting the Accepted Condition for the Route to `status: False`, with a Reason of `UnsupportedValue`. 
     ///  Support: Extended
@@ -609,13 +612,15 @@ pub struct HTTPRouteRulesFiltersRequestRedirect {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub path: Option<HTTPRouteRulesFiltersRequestRedirectPath>,
     /// Port is the port to be used in the value of the `Location` header in the response. 
-    ///  When empty, the Gateway Listener port is used. 
+    ///  If no port is specified, the redirect port MUST be derived using the following rules: 
+    ///  * If redirect scheme is not-empty, the redirect port MUST be the well-known port associated with the redirect scheme. Specifically "http" to port 80 and "https" to port 443. If the redirect scheme does not have a well-known port, the listener port of the Gateway SHOULD be used. * If redirect scheme is empty, the redirect port MUST be the Gateway Listener port. 
     ///  Implementations SHOULD NOT add the port number in the 'Location' header in the following cases: 
     ///  * A Location header that will use HTTP (whether that is determined via the Listener protocol or the Scheme field) _and_ use port 80. * A Location header that will use HTTPS (whether that is determined via the Listener protocol or the Scheme field) _and_ use port 443. 
     ///  Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub port: Option<i32>,
     /// Scheme is the scheme to be used in the value of the `Location` header in the response. When empty, the scheme of the request is used. 
+    ///  Scheme redirects can affect the port of the redirect, for more information, refer to the documentation for the port field of this filter. 
     ///  Note that values may be added to this enum, implementations must ensure that unknown values will not cause a crash. 
     ///  Unknown values here must result in the implementation setting the Accepted Condition for the Route to `status: False`, with a Reason of `UnsupportedValue`. 
     ///  Support: Extended
