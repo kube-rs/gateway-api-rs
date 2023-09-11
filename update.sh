@@ -2,7 +2,7 @@
 
 set -eoux pipefail
 
-VERSION="v0.7.0"
+VERSION="v0.8.0"
 
 STANDARD_APIS=(
     gatewayclasses
