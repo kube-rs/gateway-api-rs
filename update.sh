@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# ------------------------------------------------------------------------------
+# This script will automatically generate API updates for new Gateway API
+# releases. Update the $VERSION to the new release version before executing.
+#
+# This script requires kopium, which can be installed with:
+#
+#   cargo install kopium
+#
+# See: https://github.com/kube-rs/kopium
+# ------------------------------------------------------------------------------
+
 set -eoux pipefail
 
 VERSION="v0.8.0"
