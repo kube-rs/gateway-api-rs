@@ -100,7 +100,7 @@ mod tests {
         let service = ServiceBuilder::new()
             .layer(config.base_uri_layer())
             .option_layer(config.auth_layer()?)
-            .service(hyper::Client::builder().build(config.openssl_https_connector()?));
+            .service(hyper::Client::builder().build(config.rustls_https_connector()?));
 
         let client = kube::Client::new(service, config.default_namespace);
 
