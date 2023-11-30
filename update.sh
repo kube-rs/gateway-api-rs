@@ -13,7 +13,7 @@
 
 set -eoux pipefail
 
-VERSION="v1.0.0-rc1"
+VERSION="v1.0.0"
 
 STANDARD_APIS=(
     gatewayclasses
