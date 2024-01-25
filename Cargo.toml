@@ -11,8 +11,8 @@ repository = "https://github.com/kube-rs/gateway-api-rs"
 edition = "2021"
 
 [dependencies]
-kube = { version = "^0.87.2", default-features = false, features = ["derive"] }
-k8s-openapi = { version = "0.20.0", features = ["v1_28"] }
+kube = { version = "^0.88.0", default-features = false, features = ["derive"] }
+k8s-openapi = { version = "0.21.0", features = ["v1_29"] }
 schemars = "0.8.16"
 serde = { version = "1.0.195", features = ["derive"] }
 serde_json = "1.0.111"
@@ -21,8 +21,8 @@ serde_yaml = "0.9.30"
 [dev-dependencies]
 anyhow = "1.0.79"
 hyper = "0.14.28"
-kube = { version = "^0.87.2" }
-k8s-openapi = { version = "0.20.0" , features = ["v1_28"] }
+kube = { version = "^0.88.0" }
+k8s-openapi = { version = "0.21.0" , features = ["v1_29"] }
 tokio = { version = "1.35.1", features = ["macros"] }
 tower = "0.4.13"
 uuid = { version = "1.7.0", features = ["v4", "fast-rng"] }
