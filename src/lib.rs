@@ -15,7 +15,7 @@ mod tests {
 
     use crate::apis::standard::{
         gatewayclasses::{GatewayClass, GatewayClassSpec},
-        gateways::{Gateway, GatewaySpec},
+        gateways::{Gateway, GatewaySpec, GatewayStatus},
     };
 
     // -------------------------------------------------------------------------
@@ -60,7 +60,7 @@ mod tests {
                 addresses: None,
                 listeners: vec![],
             },
-            status: None,
+            status: Some(GatewayStatus::default()),
         };
         gw.metadata.name = Some("test-gateway".to_string());
         gw = Api::default_namespaced(client)
@@ -69,6 +69,10 @@ mod tests {
 
         assert!(gw.metadata.name.is_some());
         assert!(gw.metadata.uid.is_some());
+        assert!(gw.status.is_some());
+        assert!(gw.status.unwrap().addresses.is_some());
+        assert!(gw.status.unwrap().listeners.is_some());
+        assert!(gw.status.unwrap().conditions.is_some());
 
         Ok(())
     }
