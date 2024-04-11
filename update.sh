@@ -61,3 +61,5 @@ do
     curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${VERSION}/config/crd/experimental/gateway.networking.k8s.io_${API}.yaml" | kopium -Af - > src/apis/experimental/${API}.rs
     echo "pub mod ${API};" >> src/apis/experimental/mod.rs
 done
+
+cargo fmt
