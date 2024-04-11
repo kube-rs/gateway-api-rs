@@ -1,0 +1,10 @@
+[package]
+name = "enum_default_generator"
+version = "0.1.0"
+edition = "2021"
+description = "Codegen tool to generate Default trait impls for Gateway API enums"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+codegen = "0.2.0"
