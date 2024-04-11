@@ -53,6 +53,20 @@ do
     echo "pub mod ${API};" >> src/apis/standard/mod.rs
 done
 
+ENUMS=(
+    HTTPRouteRulesFiltersRequestRedirectPathType=ReplaceFullPath
+    HTTPRouteRulesFiltersUrlRewritePathType=ReplaceFullPath
+    HTTPRouteRulesFiltersType=RequestHeaderModifier
+    HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType=ReplaceFullPath
+    HTTPRouteRulesBackendRefsFiltersUrlRewritePathType=ReplaceFullPath
+    HTTPRouteRulesBackendRefsFiltersType=RequestHeaderModifier
+)
+
+ENUMS_WITH_DEFAULTS=$(printf ",%s" "${ENUMS[@]}")
+ENUMS_WITH_DEFAULTS=${ENUMS_WITH_DEFAULTS:1}
+GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo run --manifest-path ./tools/enum_default_generator/Cargo.toml >> src/apis/standard/enum_defaults.rs
+echo "mod enum_defaults;" >> src/apis/standard/mod.rs
+
 echo "// WARNING! generated file do not edit" > src/apis/experimental/mod.rs
 
 for API in "${EXPERIMENTAL_APIS[@]}"
@@ -61,5 +75,21 @@ do
     curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${VERSION}/config/crd/experimental/gateway.networking.k8s.io_${API}.yaml" | kopium -Af - > src/apis/experimental/${API}.rs
     echo "pub mod ${API};" >> src/apis/experimental/mod.rs
 done
+
+ENUMS=(
+    HTTPRouteRulesFiltersRequestRedirectPathType=ReplaceFullPath
+    HTTPRouteRulesFiltersUrlRewritePathType=ReplaceFullPath
+    HTTPRouteRulesFiltersType=RequestHeaderModifier
+    HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType=ReplaceFullPath
+    HTTPRouteRulesBackendRefsFiltersUrlRewritePathType=ReplaceFullPath
+    HTTPRouteRulesBackendRefsFiltersType=RequestHeaderModifier
+    GRPCRouteRulesFiltersType=RequestHeaderModifier
+    GRPCRouteRulesBackendRefsFiltersType=RequestHeaderModifier
+)
+
+ENUMS_WITH_DEFAULTS=$(printf ",%s" "${ENUMS[@]}")
+ENUMS_WITH_DEFAULTS=${ENUMS_WITH_DEFAULTS:1}
+GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo run --manifest-path ./tools/enum_default_generator/Cargo.toml >> src/apis/experimental/enum_defaults.rs
+echo "mod enum_defaults;" >> src/apis/experimental/mod.rs
 
 cargo fmt
