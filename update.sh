@@ -49,7 +49,7 @@ echo "// WARNING! generated file do not edit" > src/apis/standard/mod.rs
 for API in "${STANDARD_APIS[@]}"
 do
     echo "generating standard api ${API}"
-    curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/main/config/crd/standard/gateway.networking.k8s.io_${API}.yaml?ref=${VERSION}" | kopium -Af - > src/apis/standard/${API}.rs
+    curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${VERSION}/config/crd/standard/gateway.networking.k8s.io_${API}.yaml" | kopium -Af - > src/apis/standard/${API}.rs
     echo "pub mod ${API};" >> src/apis/standard/mod.rs
 done
 
@@ -58,6 +58,6 @@ echo "// WARNING! generated file do not edit" > src/apis/experimental/mod.rs
 for API in "${EXPERIMENTAL_APIS[@]}"
 do
     echo "generating experimental api $API"
-    curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/main/config/crd/experimental/gateway.networking.k8s.io_${API}.yaml?ref=${VERSION}" | kopium -Af - > src/apis/experimental/${API}.rs
+    curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${VERSION}/config/crd/experimental/gateway.networking.k8s.io_${API}.yaml" | kopium -Af - > src/apis/experimental/${API}.rs
     echo "pub mod ${API};" >> src/apis/experimental/mod.rs
 done
