@@ -1,11 +1,31 @@
-use std::{collections::HashMap, env};
+use std::{collections::BTreeMap, env};
 
 use codegen::{Function, Scope};
 
 fn main() {
+    let task = env::args().nth(1);
+
+    match task.as_deref() {
+        Some("gen_enum_defaults") => gen_enum_defaults().unwrap(),
+        _ => print_help(),
+    }
+}
+
+fn print_help() {
+    eprintln!(
+        "Tasks:
+
+gen_enum_defaults generates Default trait impls for enums
+"
+    )
+}
+
+type DynError = Box<dyn std::error::Error>;
+
+fn gen_enum_defaults() -> Result<(), DynError> {
     // GATEWAY_API_ENUMS provides the enum names along with their default variant to be used in the
     // generated Default impl. For eg: GATEWAY_API_ENUMS=enum1=default1,enum2=default2.
-    let gw_api_enums = env::var("GATEWAY_API_ENUMS").unwrap();
+    let gw_api_enums = env::var("GATEWAY_API_ENUMS")?;
     let enums_with_defaults = get_enums_with_defaults_map(gw_api_enums);
 
     let mut scope = Scope::new();
@@ -32,6 +52,8 @@ fn main() {
         }
     }
 
+    println!("// WARNING: generated file - manual changes will be overriden\n");
+
     // Generate use statements for the enums.
     if httproute_enums.len() > 0 {
         let use_http_stmt = gen_use_stmt(httproute_enums, "httproutes".to_string());
@@ -43,6 +65,7 @@ fn main() {
     }
 
     println!("{}", scope.to_string());
+    Ok(())
 }
 
 fn gen_use_stmt(items: Vec<String>, module: String) -> String {
@@ -54,8 +77,8 @@ fn gen_use_stmt(items: Vec<String>, module: String) -> String {
     stmt
 }
 
-fn get_enums_with_defaults_map(env_var_val: String) -> HashMap<String, String> {
-    let mut enums_with_defaults = HashMap::new();
+fn get_enums_with_defaults_map(env_var_val: String) -> BTreeMap<String, String> {
+    let mut enums_with_defaults = BTreeMap::new();
     env_var_val.split(',').for_each(|enum_with_default| {
         let enum_and_default: Vec<&str> = enum_with_default.split('=').collect();
         enums_with_defaults.insert(
