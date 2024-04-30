@@ -5,17 +5,21 @@ mod tests {
     use std::process::Command;
 
     use anyhow::Error;
-    use kube::api::PostParams;
+    use k8s_openapi::apimachinery::pkg::apis::meta::v1::{Condition, Time};
+    use k8s_openapi::chrono::Utc;
+    use kube::api::{Patch, PatchParams, PostParams};
     use kube::client::ConfigExt;
     use kube::config::{KubeConfigOptions, Kubeconfig};
     use kube::core::ObjectMeta;
     use kube::{Api, Config, CustomResourceExt};
+    use serde_json::json;
     use tower::ServiceBuilder;
     use uuid::Uuid;
 
+    use crate::apis::standard::gateways::GatewayStatusAddresses;
     use crate::apis::standard::{
         gatewayclasses::{GatewayClass, GatewayClassSpec},
-        gateways::{Gateway, GatewaySpec},
+        gateways::{Gateway, GatewaySpec, GatewayStatus},
     };
 
     // -------------------------------------------------------------------------
@@ -63,12 +67,36 @@ mod tests {
             status: None,
         };
         gw.metadata.name = Some("test-gateway".to_string());
-        gw = Api::default_namespaced(client)
+        gw = Api::default_namespaced(client.clone())
             .create(&PostParams::default(), &gw)
             .await?;
 
         assert!(gw.metadata.name.is_some());
         assert!(gw.metadata.uid.is_some());
+
+        let mut gw_status = GatewayStatus::default();
+        gw_status.addresses = Some(vec![GatewayStatusAddresses::default()]);
+        gw_status.conditions = Some(vec![Condition {
+            last_transition_time: Time(Utc::now()),
+            message: "testing gateway".to_string(),
+            observed_generation: Some(1),
+            reason: "GatewayTesting".to_string(),
+            status: "True".to_string(),
+            type_: "IntegrationTest".to_string(),
+        }]);
+
+        gw = Api::default_namespaced(client)
+            .patch_status(
+                gw.metadata.name.clone().unwrap().as_str(),
+                &PatchParams::default(),
+                &Patch::Merge(json!({
+                    "status": Some(gw_status)
+                })),
+            )
+            .await?;
+        assert!(gw.status.is_some());
+        assert!(gw.status.clone().unwrap().addresses.is_some());
+        assert!(gw.status.clone().unwrap().conditions.is_some());
 
         Ok(())
     }

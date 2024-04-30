@@ -1,0 +1,2 @@
+[alias]
+xtask = "run -q --manifest-path ./xtask/Cargo.toml --"
