@@ -12,7 +12,7 @@ edition = "2021"
 
 [dependencies]
 kube = { version = "^0.88.0", default-features = false, features = ["derive"] }
-k8s-openapi = { version = "0.21.0", features = ["v1_29", "schemars"] }
+k8s-openapi = { version = "0.22.0", features = ["v1_29", "schemars"] }
 schemars = "0.8.16"
 serde = { version = "1.0.195", features = ["derive"] }
 serde_json = "1.0.111"
@@ -22,7 +22,7 @@ serde_yaml = "0.9.30"
 anyhow = "1.0.79"
 hyper = "0.14.28"
 kube = { version = "^0.88.0" }
-k8s-openapi = { version = "0.21.0" , features = ["v1_29"] }
+k8s-openapi = { version = "0.22.0" , features = ["v1_29"] }
 tokio = { version = "1.35.1", features = ["macros"] }
 tower = "0.4.13"
 uuid = { version = "1.7.0", features = ["v4", "fast-rng"] }
