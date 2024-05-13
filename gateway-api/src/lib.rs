@@ -16,10 +16,15 @@ mod tests {
     use tower::ServiceBuilder;
     use uuid::Uuid;
 
-    use crate::apis::standard::gateways::GatewayStatusAddresses;
     use crate::apis::standard::{
+        constants::{
+            GatewayConditionReason, GatewayConditionType, ListenerConditionReason,
+            ListenerConditionType,
+        },
         gatewayclasses::{GatewayClass, GatewayClassSpec},
-        gateways::{Gateway, GatewaySpec, GatewayStatus},
+        gateways::{
+            Gateway, GatewaySpec, GatewayStatus, GatewayStatusAddresses, GatewayStatusListeners,
+        },
     };
 
     // -------------------------------------------------------------------------
@@ -76,13 +81,26 @@ mod tests {
 
         let mut gw_status = GatewayStatus::default();
         gw_status.addresses = Some(vec![GatewayStatusAddresses::default()]);
+        gw_status.listeners = Some(vec![GatewayStatusListeners {
+            name: "tcp".into(),
+            attached_routes: 0,
+            supported_kinds: vec![],
+            conditions: vec![Condition {
+                last_transition_time: Time(Utc::now()),
+                message: "testing gateway".to_string(),
+                observed_generation: Some(1),
+                reason: ListenerConditionReason::Programmed.to_string(),
+                status: "True".to_string(),
+                type_: ListenerConditionType::Programmed.to_string(),
+            }],
+        }]);
         gw_status.conditions = Some(vec![Condition {
             last_transition_time: Time(Utc::now()),
             message: "testing gateway".to_string(),
             observed_generation: Some(1),
-            reason: "GatewayTesting".to_string(),
+            reason: GatewayConditionReason::Programmed.to_string(),
             status: "True".to_string(),
-            type_: "IntegrationTest".to_string(),
+            type_: GatewayConditionType::Programmed.to_string(),
         }]);
 
         gw = Api::default_namespaced(client)
@@ -94,8 +112,10 @@ mod tests {
                 })),
             )
             .await?;
+
         assert!(gw.status.is_some());
         assert!(gw.status.clone().unwrap().addresses.is_some());
+        assert!(gw.status.clone().unwrap().listeners.is_some());
         assert!(gw.status.clone().unwrap().conditions.is_some());
 
         Ok(())

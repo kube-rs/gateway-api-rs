@@ -71,6 +71,16 @@ ENUMS_WITH_DEFAULTS=${ENUMS_WITH_DEFAULTS:1}
 GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults >> gateway-api/src/apis/standard/enum_defaults.rs
 echo "mod enum_defaults;" >> gateway-api/src/apis/standard/mod.rs
 
+GATEWAY_CONDITION_CONSTANTS="GatewayConditionType=Programmed,Accepted,Ready"
+GATEWAY_REASON_CONSTANTS="GatewayConditionReason=Programmed,Invalid,NoResources,AddressNotAssigned,AddressNotUsable,Accepted,ListenersNotValid,Pending,UnsupportedAddress,InvalidParameters,Ready,ListenersNotReady"
+LISTENER_CONDITION_CONSTANTS="ListenerConditionType=Conflicted,Accepted,ResolvedRefs,Programmed,Ready"
+LISTENER_REASON_CONSTANTS="ListenerConditionReason=HostnameConflict,ProtocolConflict,NoConflicts,Accepted,PortUnavailable,UnsupportedProtocol,ResolvedRefs,InvalidCertificateRef,InvalidRouteKinds,RefNotPermitted,Programmed,Invalid,Pending,Ready"
+
+GATEWAY_CONDITION_CONSTANTS=${GATEWAY_CONDITION_CONSTANTS} GATEWAY_REASON_CONSTANTS=${GATEWAY_REASON_CONSTANTS} \
+    LISTENER_CONDITION_CONSTANTS=${LISTENER_CONDITION_CONSTANTS} LISTENER_REASON_CONSTANTS=${LISTENER_REASON_CONSTANTS} \
+    cargo xtask gen_condition_constants >> gateway-api/src/apis/standard/constants.rs
+echo "pub mod constants;" >> gateway-api/src/apis/standard/mod.rs
+
 echo "// WARNING! generated file do not edit" > gateway-api/src/apis/experimental/mod.rs
 
 for API in "${EXPERIMENTAL_APIS[@]}"
@@ -96,6 +106,11 @@ ENUMS_WITH_DEFAULTS=$(printf ",%s" "${ENUMS[@]}")
 ENUMS_WITH_DEFAULTS=${ENUMS_WITH_DEFAULTS:1}
 GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults >> gateway-api/src/apis/experimental/enum_defaults.rs
 echo "mod enum_defaults;" >> gateway-api/src/apis/experimental/mod.rs
+
+GATEWAY_CONDITION_CONSTANTS=${GATEWAY_CONDITION_CONSTANTS} GATEWAY_REASON_CONSTANTS=${GATEWAY_REASON_CONSTANTS} \
+    LISTENER_CONDITION_CONSTANTS=${LISTENER_CONDITION_CONSTANTS} LISTENER_REASON_CONSTANTS=${LISTENER_REASON_CONSTANTS} \
+    cargo xtask gen_condition_constants >> gateway-api/src/apis/experimental/constants.rs
+echo "pub mod constants;" >> gateway-api/src/apis/experimental/mod.rs
 
 # Format the code.
 cargo fmt
