@@ -1,12 +1,13 @@
 use std::{collections::BTreeMap, env};
 
-use codegen::{Function, Scope};
+use codegen::{Enum, Function, Scope, Variant};
 
 fn main() {
     let task = env::args().nth(1);
 
     match task.as_deref() {
         Some("gen_enum_defaults") => gen_enum_defaults().unwrap(),
+        Some("gen_condition_constants") => gen_condition_constants().unwrap(),
         _ => print_help(),
     }
 }
@@ -16,11 +17,58 @@ fn print_help() {
         "Tasks:
 
 gen_enum_defaults generates Default trait impls for enums
+gen_constants generates constants used for Conditions
 "
     )
 }
 
 type DynError = Box<dyn std::error::Error>;
+
+fn gen_condition_constants() -> Result<(), DynError> {
+    let gateway_condition_types = env::var("GATEWAY_CONDITION_CONSTANTS")?;
+    let gateway_reason_types = env::var("GATEWAY_REASON_CONSTANTS")?;
+    let listener_condition_types = env::var("LISTENER_CONDITION_CONSTANTS")?;
+    let listener_reason_types = env::var("LISTENER_REASON_CONSTANTS")?;
+
+    let mut scope = Scope::new();
+    gen_const_enums(&mut scope, gateway_condition_types);
+    gen_const_enums(&mut scope, gateway_reason_types);
+    gen_const_enums(&mut scope, listener_condition_types);
+    gen_const_enums(&mut scope, listener_reason_types);
+    println!("{}", gen_generated_file_warning());
+    println!("{}", scope.to_string());
+    Ok(())
+}
+
+fn gen_const_enums(scope: &mut Scope, constants: String) {
+    let enum_type_and_variants: Vec<&str> = constants.split('=').collect();
+    let enum_type = enum_type_and_variants[0];
+    let variants: Vec<&str> = enum_type_and_variants[1].split(',').collect();
+
+    let mut enumeration = Enum::new(enum_type);
+    enumeration.derive("Debug");
+    enumeration.vis("pub");
+
+    for variant in variants {
+        let var = Variant::new(variant);
+        enumeration.push_variant(var);
+    }
+    scope.push_enum(enumeration);
+
+    gen_display_impl(scope, enum_type);
+}
+
+fn gen_display_impl(scope: &mut Scope, ty: &str) {
+    let mut func = Function::new("fmt".to_string());
+    func.arg_ref_self();
+    func.arg("f", "&mut std::fmt::Formatter");
+    func.ret("std::fmt::Result");
+    func.line("write!(f, \"{:?}\", self)");
+    scope
+        .new_impl(ty)
+        .impl_trait("std::fmt::Display")
+        .push_fn(func);
+}
 
 fn gen_enum_defaults() -> Result<(), DynError> {
     // GATEWAY_API_ENUMS provides the enum names along with their default variant to be used in the
@@ -52,7 +100,7 @@ fn gen_enum_defaults() -> Result<(), DynError> {
         }
     }
 
-    println!("// WARNING: generated file - manual changes will be overriden\n");
+    println!("{}", gen_generated_file_warning());
 
     // Generate use statements for the enums.
     if httproute_enums.len() > 0 {
@@ -66,6 +114,10 @@ fn gen_enum_defaults() -> Result<(), DynError> {
 
     println!("{}", scope.to_string());
     Ok(())
+}
+
+fn gen_generated_file_warning() -> String {
+    "// WARNING: generated file - manual changes will be overriden\n".into()
 }
 
 fn gen_use_stmt(items: Vec<String>, module: String) -> String {
