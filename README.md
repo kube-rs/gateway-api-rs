@@ -5,19 +5,25 @@
 > **Note**: In [Kubernetes SIG Network][signet] we're evaluating this project
 > as a potential "official" Gateway API library. The goal for this repository
 > currently is to get all the groundwork done so that we have a complete and
-> functional set of APIs. This is considered `alpha` at this time.
+> functional set of APIs. This is considered experimental at this time.
 > **Do not use in production**.
 
 [signet]:https://github.com/kubernetes/community/tree/master/sig-network
 
-# Kubernetes Gateway API bindings in Rust
+# Gateway API (Rust)
 
 > **Note**: Currently supports [Gateway API version v1.0.0][gwv]
 
-This provides bindings in [Rust][rust] for [Kubernetes][k8s] [Gateway
-API][gwapi].
+[Gateway API] is an official [Kubernetes] API for [Layer 7] network routing.
+It is the successor to the [Ingress API] but supports both ingress and service
+mesh use cases. See the [Gateway API Introduction] for more details.
+
+This project provides bindings in [Rust] for [Kubernetes] [Gateway API].
 
 [gwv]:https://github.com/kubernetes-sigs/gateway-api/releases/tag/v1.0.0
-[rust]:https://rust-lang.org
-[k8s]:https://kubernetes.io
-[gwapi]:https://gateway-api.sigs.k8s.io/
+[Gateway API]:https://gateway-api.sigs.k8s.io/
+[Kubernetes]:https://kubernetes.io/
+[Layer 7]:https://en.wikipedia.org/wiki/Application_layer
+[Ingress API]:https://kubernetes.io/docs/concepts/services-networking/ingress/
+[Gateway API Introduction]:https://gateway-api.sigs.k8s.io/#introduction
+[Rust]:https://rust-lang.org
