@@ -1,2 +1,3 @@
 [workspace]
 members = ["gateway-api", "xtask"]
+resolver = "2"
