@@ -20,7 +20,7 @@ serde_yaml = "0.9.34"
 
 [dev-dependencies]
 anyhow = "1.0.86"
-hyper = "0.14.29"
+hyper = "1.4.0"
 kube = { version = "^0.88.1" }
 k8s-openapi = { version = "0.21.1" , features = ["v1_29"] }
 tokio = { version = "1.38.0", features = ["macros"] }
