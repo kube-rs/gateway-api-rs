@@ -17,13 +17,15 @@ fn main() {
         return;
     }
 
+    let value = &args[1];
+
     // Parse the duration input using gateway_api::Duration
-    match Duration::from_str(&args[1]) {
+    match Duration::from_str(value) {
         Ok(duration) => {
             println!("Parsed duration: {}", duration);
         }
-        Err(err) => {
-            println!("Failed to parse duration: {}", err);
+        Err(error) => {
+            println!("Failed to parse duration from: {}\nError: {:#?}", value, error);
         }
     }
 }
