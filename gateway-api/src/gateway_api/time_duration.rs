@@ -165,16 +165,14 @@ impl FromStr for Duration {
         }
 
         // We use kube::core::Duration to do the heavy lifting of parsing.
-        let kd = k8sDuration::from_str(duration_str);
+        match k8sDuration::from_str(duration_str) {
+            // If the parse fails, return an error immediately...
+            Err(err) => Err(err.to_string()),
 
-        // If the parse fails, return an error immediately...
-        if kd.is_err() {
-            return Err(kd.err().unwrap().to_string());
+            // ...otherwise, we need to try to turn the k8sDuration into a
+            // gateway_api::Duration (which will check validity).
+            Ok(kd) => Duration::try_from(kd),
         }
-
-        // ...otherwise, we need to check the duration for validity by turning
-        // it into a gateway_api::Duration.
-        Duration::try_from(stdDuration::from(kd.unwrap()))
     }
 }
 
