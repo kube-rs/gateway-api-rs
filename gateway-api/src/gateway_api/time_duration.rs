@@ -62,6 +62,26 @@ impl TryFrom<stdDuration> for Duration {
     }
 }
 
+impl TryFrom<k8sDuration> for Duration {
+    type Error = String;
+
+    fn try_from(d: k8sDuration) -> Result<Self, Self::Error> {
+        // We can't rely on kube::core::Duration to check validity for
+        // gateway_api::Duration, so first we need to make sure that our
+        // k8sDuration is not negative...
+        if d.is_negative() {
+            return Err("Duration cannot be negative".to_string());
+        }
+
+        // Once we know it's not negative, we can safely convert it to a
+        // std::time::Duration (which will always succeed) and then check it
+        // for validity as in TryFrom<stdDuration>.
+        let stddur = stdDuration::from(d);
+        is_valid(stddur)?;
+        Ok(Duration(stddur))
+    }
+}
+
 impl Duration {
     /// gateway_api::Duration::new creates a new gateway_api::Duration from
     /// seconds and nanoseconds, but requires that the resulting Duration be
@@ -257,6 +277,45 @@ mod tests {
 
         for (idx, (duration, expected)) in test_cases.into_iter().enumerate() {
             assert_eq!(duration, expected, "{:?}: Duration {:?} should be an error", idx, duration);
+        }
+    }
+
+    #[test]
+    /// Test that the TryFrom implementation for k8sDuration correctly converts
+    /// to gateway_api::Duration and validates the result.
+    fn test_gep2257_from_valid_k8s_duration() {
+        let test_cases = vec![
+            (k8sDuration::from_str("0s").unwrap(), Duration::from_secs(0).unwrap()),
+            (k8sDuration::from_str("1h").unwrap(), Duration::from_secs(3600).unwrap()),
+            (k8sDuration::from_str("500ms").unwrap(), Duration::from_millis(500).unwrap()),
+            (k8sDuration::from_str("2h600ms").unwrap(), Duration::new(7200, 600_000_000).unwrap()),
+        ];
+
+        for (idx, (k8s_duration, expected)) in test_cases.into_iter().enumerate() {
+            let duration = Duration::try_from(k8s_duration);
+
+            assert!(duration.as_ref().is_ok_and(|d| *d == expected),
+                    "{:?}: Duration {:?} should be {:?}", idx, duration, expected);
+        }
+    }
+
+    #[test]
+    /// Test that the TryFrom implementation for k8sDuration correctly fails
+    /// for kube::core::Durations that aren't valid GEP-2257 durations.
+    fn test_gep2257_from_invalid_k8s_duration() {
+        let test_cases: Vec<(k8sDuration, Result<Duration, String>)> = vec![
+            (k8sDuration::from_str("100us").unwrap(),
+                Err("Cannot express sub-millisecond precision in GEP-2257".to_string())),
+            (k8sDuration::from_str("100000h").unwrap(),
+                Err("Duration exceeds GEP-2257 maximum 99999h59m59s999ms".to_string())),
+            (k8sDuration::from(stdDuration::from_millis((MAX_DURATION_MS + 1) as u64)),
+                Err("Duration exceeds GEP-2257 maximum 99999h59m59s999ms".to_string())),
+            (k8sDuration::from_str("-5s").unwrap(),
+                Err("Duration cannot be negative".to_string())),
+        ];
+
+        for (idx, (k8s_duration, expected)) in test_cases.into_iter().enumerate() {
+            assert_eq!(Duration::try_from(k8s_duration), expected, "{:?}: k8sDuration {:?} should be error {:?}", idx, k8s_duration, expected);
         }
     }
 
