@@ -258,7 +258,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_gep2257() {
+    fn test_gep2257_from_str() {
         // Test vectors are mostly taken directly from GEP-2257, but there are
         // some extras thrown in and it's not meaningful to test e.g. "0.5m"
         // in Rust.
