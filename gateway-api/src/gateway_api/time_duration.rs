@@ -4,6 +4,7 @@ use std::time::Duration as stdDuration;
 use kube::core::Duration as k8sDuration;
 use std::fmt;
 use std::str::FromStr;
+use once_cell::sync::Lazy;
 
 /// gateway_api::Duration is a duration type where parsing and formatting obey
 /// GEP-2257. It uses kube::core::Duration for the heavy lifting of parsing
@@ -21,6 +22,8 @@ use std::str::FromStr;
 /// 99999h59m59s999ms. Since there's no meaningful way in Rust to allow string
 /// formatting to fail, these conditions are checked instead when
 /// instantiating gateway_api::Duration.
+const GEP2257_PATTERN: &str = r"^([0-9]{1,5}(h|m|s|ms)){1,4}$";
+
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub struct Duration(stdDuration);
 
@@ -134,10 +137,10 @@ impl FromStr for Duration {
     fn from_str(duration_str: &str) -> Result<Self, Self::Err> {
         // GEP-2257 dictates that string values must match this regex and be
         // parsed the same way that Go's time.ParseDuration parses durations.
-        let re = Regex::new(r"^([0-9]{1,5}(h|m|s|ms)){1,4}$").unwrap();
+        static RE: Lazy<Regex> = Lazy::new(|| Regex::new(GEP2257_PATTERN).unwrap());
 
         // If the string doesn't match the regex, it's invalid.
-        if ! re.is_match(duration_str) {
+        if ! RE.is_match(duration_str) {
             return Err("Invalid duration format".to_string());
         }
 
