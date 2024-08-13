@@ -219,35 +219,40 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_gep2257_from_duration() {
-        // Since the constructor is responsible for checking validity, we test
-        // a bunch of things that should be valid and invalid.
-        let ok_test_cases = vec![
+    /// Test that the validation logic in `Duration`'s constructor
+    /// method(s) correctly handles known-good durations
+    fn test_gep2257_from_valid_duration() {
+        let test_cases = vec![
             Duration::from_secs(0),
-            Duration::from_secs(3600),
-            Duration::from_secs(1800),
             Duration::from_secs(10),
-            Duration::from_millis(500),
+            Duration::from_secs(1800),
+            Duration::from_secs(3600),
             Duration::from_secs(9000),
             Duration::from_secs(5410),
+            Duration::from_millis(500),
             Duration::from_millis(600),
-            Duration::from_millis(MAX_DURATION_MS as u64),
             Duration::new(7200, 600_000_000),
             Duration::new(7200 + 1800, 600_000_000),
             Duration::new(7200 + 1800 + 10, 600_000_000),
+            Duration::from_millis(MAX_DURATION_MS as u64),
         ];
 
-        let err_test_cases = vec![
+        for (idx, duration) in test_cases.iter().enumerate() {
+            assert!(duration.is_ok(), "{:?}: Duration {:?} should be OK", idx, duration);
+        }
+    }
+
+    #[test]
+    /// Test that the validation logic in `Duration`'s constructor
+    /// method(s) correctly handles known-bad durations
+    fn test_gep2257_from_invalid_duration() {
+        let test_cases = vec![
             (Duration::from_micros(100), Err("Cannot express sub-millisecond precision in GEP-2257".to_string())),
             (Duration::from_secs(10000 * 86400), Err("Duration exceeds GEP-2257 maximum 99999h59m59s999ms".to_string())),
             (Duration::from_millis((MAX_DURATION_MS + 1) as u64), Err("Duration exceeds GEP-2257 maximum 99999h59m59s999ms".to_string())),
         ];
 
-        for (idx, duration) in ok_test_cases.iter().enumerate() {
-            assert!(duration.is_ok(), "{:?}: Duration {:?} should be OK", idx, duration);
-        }
-
-        for (idx, (duration, expected)) in err_test_cases.into_iter().enumerate() {
+        for (idx, (duration, expected)) in test_cases.into_iter().enumerate() {
             assert_eq!(duration, expected, "{:?}: Duration {:?} should be an error", idx, duration);
         }
     }
