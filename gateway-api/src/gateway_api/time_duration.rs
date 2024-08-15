@@ -64,6 +64,9 @@ impl TryFrom<stdDuration> for Duration {
     }
 }
 
+/// Converting from k8s::time::Duration to gateway_api::Duration is allowed,
+/// but we need to make sure that the incoming duration is valid according to
+/// GEP-2257.
 impl TryFrom<k8sDuration> for Duration {
     type Error = String;
 
