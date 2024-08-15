@@ -10,6 +10,8 @@ use once_cell::sync::Lazy;
 /// GEP-2257. It uses kube::core::Duration for the heavy lifting of parsing
 /// but is based on std::time::Duration.
 ///
+/// See https://gateway-api.sigs.k8s.io/geps/gep-2257 for the complete specification.
+///
 /// Per GEP-2257, when parsing a gateway_api::Duration from a string, the
 /// string must match ^([0-9]{1,5}(h|m|s|ms)){1,4}$ and is otherwise parsed
 /// the same way that Go's time.ParseDuration parses durations. When
