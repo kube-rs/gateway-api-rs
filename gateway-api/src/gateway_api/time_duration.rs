@@ -122,29 +122,30 @@ impl Duration {
         Self::new(sec, ns)
     }
 
-    delegate! {
-        to self.0 {
-            /// gateway_api::Duration::as_secs returns the number of whole
-            /// seconds in the duration.
-            pub fn as_secs(&self) -> u64;
+    /// The number of whole seconds in the duration
+    pub fn as_secs(&self) -> u64 {
+        self.0.as_secs()
+    }
 
-            /// gateway_api::Duration::as_millis returns the number of whole
-            /// milliseconds in the duration.
-            pub fn as_millis(&self) -> u128;
+    /// The number of whole milliseconds in the duration
+    pub fn as_millis(&self) -> u128 {
+        self.0.as_millis()
+    }
 
-            /// gateway_api::Duration::as_micros returns the number of whole
-            /// microseconds in the duration.
-            pub fn as_nanos(&self) -> u128;
+    /// The number of whole microseconds in the duration
+    pub fn as_nanos(&self) -> u128 {
+        self.0.as_nanos()
+    }
 
-            /// gateway_api::Duration::subsec_nanos returns the number of
-            /// nanoseconds in the duration that are not part of the whole
-            /// seconds.
-            pub fn subsec_nanos(&self) -> u32;
+    /// The number of nanoseconds in the duration that are
+    /// not part of the whole seconds
+    pub fn subsec_nanos(&self) -> u32 {
+        self.0.subsec_nanos()
+    }
 
-            /// gateway_api::Duration::is_zero returns true if the duration is
-            /// zero.
-            pub fn is_zero(&self) -> bool;
-        }
+    /// Indicates whether or not the duration is zero
+    pub fn is_zero(&self) -> bool {
+        self.0.is_zero()
     }
 }
 
