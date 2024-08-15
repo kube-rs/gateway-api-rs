@@ -33,7 +33,7 @@ pub struct Duration(stdDuration);
 const MAX_DURATION_MS: u128 = (((99999 * 3600) + (59 * 60) + 59) * 1_000) + 999;
 
 /// is_valid checks if a duration is valid according to GEP-2257. If it's not,
-///
+/// it returns an error result explaining why the duration is not GEP-2257 valid.
 fn is_valid(duration: stdDuration) -> Result<(), String> {
     // Check nanoseconds to see if we have sub-millisecond precision in
     // this duration.
