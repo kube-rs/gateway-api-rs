@@ -5,6 +5,8 @@ use std::str::FromStr;
 /// Simple example of using the gateway_api::Duration: just parse the duration
 /// string given on the command line, then print it back out (which formats it).
 ///
+/// See the format specification here: https://gateway-api.sigs.k8s.io/geps/gep-2257/
+///
 /// Good things to try:
 /// cargo run --example gep2257 1h (should print "Parsed duration: 1h")
 /// cargo run --example gep2257 1h30m (should print "Parsed duration: 1h30m")
