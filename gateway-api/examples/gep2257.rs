@@ -27,7 +27,8 @@ fn main() {
             println!("Parsed duration: {}", duration);
         }
         Err(error) => {
-            println!("Failed to parse duration from: {}\nError: {:#?}", value, error);
+            eprintln!("Failed to parse duration from: {}\nError: {:#?}", value, error);
+            std::process::exit(1);
         }
     }
 }
