@@ -1,5 +1,5 @@
-use std::env;
 use gateway_api::Duration;
+use std::env;
 use std::str::FromStr;
 
 /// Simple example of using the gateway_api::Duration: just parse the duration
@@ -27,7 +27,10 @@ fn main() {
             println!("Parsed duration: {}", duration);
         }
         Err(error) => {
-            eprintln!("Failed to parse duration from: {}\nError: {:#?}", value, error);
+            eprintln!(
+                "Failed to parse duration from: {}\nError: {:#?}",
+                value, error
+            );
             std::process::exit(1);
         }
     }
