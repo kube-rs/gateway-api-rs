@@ -162,7 +162,18 @@ impl FromStr for Duration {
     fn from_str(duration_str: &str) -> Result<Self, Self::Err> {
         // GEP-2257 dictates that string values must match this regex and be
         // parsed the same way that Go's time.ParseDuration parses durations.
-        static RE: Lazy<Regex> = Lazy::new(|| Regex::new(GEP2257_PATTERN).unwrap());
+        //
+        // This Lazy Regex::new should never ever fail, given that the regex
+        // is a compile-time constant. But just in case.....
+        static RE: Lazy<Regex> = Lazy::new(|| {
+            Regex::new(GEP2257_PATTERN).expect(
+                format!(
+                    r#"GEP2257 regex "{}" did not compile (this is a bug!)"#,
+                    GEP2257_PATTERN
+                )
+                .as_str(),
+            )
+        });
 
         // If the string doesn't match the regex, it's invalid.
         if ! RE.is_match(duration_str) {
