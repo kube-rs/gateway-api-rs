@@ -1,4 +1,3 @@
-use delegate::delegate;
 use regex::Regex;
 use std::time::Duration as stdDuration;
 use kube::core::Duration as k8sDuration;
