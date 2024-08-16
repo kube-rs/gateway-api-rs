@@ -258,21 +258,21 @@ mod tests {
 
     #[test]
     /// Test that the validation logic in `Duration`'s constructor
-    /// method(s) correctly handles known-good durations
+    /// method(s) correctly handles known-good durations. (The tests are
+    /// ordered to match the from_str test cases.)
     fn test_gep2257_from_valid_duration() {
         let test_cases = vec![
-            Duration::from_secs(0),
-            Duration::from_secs(10),
-            Duration::from_secs(1800),
-            Duration::from_secs(3600),
-            Duration::from_secs(9000),
-            Duration::from_secs(5410),
-            Duration::from_millis(500),
-            Duration::from_millis(600),
-            Duration::new(7200, 600_000_000),
-            Duration::new(7200 + 1800, 600_000_000),
-            Duration::new(7200 + 1800 + 10, 600_000_000),
-            Duration::from_millis(MAX_DURATION_MS as u64),
+            Duration::from_secs(0),                        // 0s / 0h0m0s / 0m0s
+            Duration::from_secs(3600),                     // 1h
+            Duration::from_secs(1800),                     // 30m
+            Duration::from_secs(10),                       // 10s
+            Duration::from_millis(500),                    // 500ms
+            Duration::from_secs(9000),                     // 2h30m / 150m
+            Duration::from_secs(5410),                     // 1h30m10s / 10s30m1h
+            Duration::new(7200, 600_000_000),              // 2h600ms
+            Duration::new(7200 + 1800, 600_000_000),       // 2h30m600ms
+            Duration::new(7200 + 1800 + 10, 600_000_000),  // 2h30m10s600ms
+            Duration::from_millis(MAX_DURATION_MS as u64), // 99999h59m59s999ms
         ];
 
         for (idx, duration) in test_cases.iter().enumerate() {
@@ -287,7 +287,7 @@ mod tests {
 
     #[test]
     /// Test that the validation logic in `Duration`'s constructor
-    /// method(s) correctly handles known-bad durations
+    /// method(s) correctly handles known-bad durations.
     fn test_gep2257_from_invalid_duration() {
         let test_cases = vec![
             (
