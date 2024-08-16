@@ -1,6 +1,8 @@
 pub mod apis;
-pub mod gateway_api;
-pub use gateway_api::Duration;
+
+pub mod duration;
+pub use duration::Duration;
+
 #[cfg(test)]
 mod tests {
     use std::process::Command;
