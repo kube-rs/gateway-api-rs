@@ -54,12 +54,12 @@ fn is_valid(duration: stdDuration) -> Result<(), String> {
 impl TryFrom<stdDuration> for Duration {
     type Error = String;
 
-    fn try_from(d: stdDuration) -> Result<Self, Self::Error> {
+    fn try_from(duration: stdDuration) -> Result<Self, Self::Error> {
         // Check validity, and propagate any error if it's not.
-        is_valid(d)?;
+        is_valid(duration)?;
 
         // It's valid, so we can safely convert it to a gateway_api::Duration.
-        Ok(Duration(d))
+        Ok(Duration(duration))
     }
 }
 
@@ -69,18 +69,18 @@ impl TryFrom<stdDuration> for Duration {
 impl TryFrom<k8sDuration> for Duration {
     type Error = String;
 
-    fn try_from(d: k8sDuration) -> Result<Self, Self::Error> {
+    fn try_from(duration: k8sDuration) -> Result<Self, Self::Error> {
         // We can't rely on kube::core::Duration to check validity for
         // gateway_api::Duration, so first we need to make sure that our
         // k8sDuration is not negative...
-        if d.is_negative() {
+        if duration.is_negative() {
             return Err("Duration cannot be negative".to_string());
         }
 
         // Once we know it's not negative, we can safely convert it to a
         // std::time::Duration (which will always succeed) and then check it
         // for validity as in TryFrom<stdDuration>.
-        let stddur = stdDuration::from(d);
+        let stddur = stdDuration::from(duration);
         is_valid(stddur)?;
         Ok(Duration(stddur))
     }
