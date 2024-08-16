@@ -1,15 +1,16 @@
-use regex::Regex;
-use std::time::Duration as stdDuration;
 use kube::core::Duration as k8sDuration;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use std::fmt;
 use std::str::FromStr;
-use once_cell::sync::Lazy;
+use std::time::Duration as stdDuration;
 
 /// gateway_api::Duration is a duration type where parsing and formatting obey
 /// GEP-2257. It uses kube::core::Duration for the heavy lifting of parsing
 /// but is based on std::time::Duration.
 ///
-/// See https://gateway-api.sigs.k8s.io/geps/gep-2257 for the complete specification.
+/// See https://gateway-api.sigs.k8s.io/geps/gep-2257 for the complete
+/// specification.
 ///
 /// Per GEP-2257, when parsing a gateway_api::Duration from a string, the
 /// string must match ^([0-9]{1,5}(h|m|s|ms)){1,4}$ and is otherwise parsed
@@ -176,7 +177,7 @@ impl FromStr for Duration {
         });
 
         // If the string doesn't match the regex, it's invalid.
-        if ! RE.is_match(duration_str) {
+        if !RE.is_match(duration_str) {
             return Err("Invalid duration format".to_string());
         }
 
@@ -275,7 +276,12 @@ mod tests {
         ];
 
         for (idx, duration) in test_cases.iter().enumerate() {
-            assert!(duration.is_ok(), "{:?}: Duration {:?} should be OK", idx, duration);
+            assert!(
+                duration.is_ok(),
+                "{:?}: Duration {:?} should be OK",
+                idx,
+                duration
+            );
         }
     }
 
@@ -284,13 +290,26 @@ mod tests {
     /// method(s) correctly handles known-bad durations
     fn test_gep2257_from_invalid_duration() {
         let test_cases = vec![
-            (Duration::from_micros(100), Err("Cannot express sub-millisecond precision in GEP-2257".to_string())),
-            (Duration::from_secs(10000 * 86400), Err("Duration exceeds GEP-2257 maximum 99999h59m59s999ms".to_string())),
-            (Duration::from_millis((MAX_DURATION_MS + 1) as u64), Err("Duration exceeds GEP-2257 maximum 99999h59m59s999ms".to_string())),
+            (
+                Duration::from_micros(100),
+                Err("Cannot express sub-millisecond precision in GEP-2257".to_string()),
+            ),
+            (
+                Duration::from_secs(10000 * 86400),
+                Err("Duration exceeds GEP-2257 maximum 99999h59m59s999ms".to_string()),
+            ),
+            (
+                Duration::from_millis((MAX_DURATION_MS + 1) as u64),
+                Err("Duration exceeds GEP-2257 maximum 99999h59m59s999ms".to_string()),
+            ),
         ];
 
         for (idx, (duration, expected)) in test_cases.into_iter().enumerate() {
-            assert_eq!(duration, expected, "{:?}: Duration {:?} should be an error", idx, duration);
+            assert_eq!(
+                duration, expected,
+                "{:?}: Duration {:?} should be an error",
+                idx, duration
+            );
         }
     }
 
@@ -299,17 +318,34 @@ mod tests {
     /// to gateway_api::Duration and validates the result.
     fn test_gep2257_from_valid_k8s_duration() {
         let test_cases = vec![
-            (k8sDuration::from_str("0s").unwrap(), Duration::from_secs(0).unwrap()),
-            (k8sDuration::from_str("1h").unwrap(), Duration::from_secs(3600).unwrap()),
-            (k8sDuration::from_str("500ms").unwrap(), Duration::from_millis(500).unwrap()),
-            (k8sDuration::from_str("2h600ms").unwrap(), Duration::new(7200, 600_000_000).unwrap()),
+            (
+                k8sDuration::from_str("0s").unwrap(),
+                Duration::from_secs(0).unwrap(),
+            ),
+            (
+                k8sDuration::from_str("1h").unwrap(),
+                Duration::from_secs(3600).unwrap(),
+            ),
+            (
+                k8sDuration::from_str("500ms").unwrap(),
+                Duration::from_millis(500).unwrap(),
+            ),
+            (
+                k8sDuration::from_str("2h600ms").unwrap(),
+                Duration::new(7200, 600_000_000).unwrap(),
+            ),
         ];
 
         for (idx, (k8s_duration, expected)) in test_cases.into_iter().enumerate() {
             let duration = Duration::try_from(k8s_duration);
 
-            assert!(duration.as_ref().is_ok_and(|d| *d == expected),
-                    "{:?}: Duration {:?} should be {:?}", idx, duration, expected);
+            assert!(
+                duration.as_ref().is_ok_and(|d| *d == expected),
+                "{:?}: Duration {:?} should be {:?}",
+                idx,
+                duration,
+                expected
+            );
         }
     }
 
@@ -318,18 +354,33 @@ mod tests {
     /// for kube::core::Durations that aren't valid GEP-2257 durations.
     fn test_gep2257_from_invalid_k8s_duration() {
         let test_cases: Vec<(k8sDuration, Result<Duration, String>)> = vec![
-            (k8sDuration::from_str("100us").unwrap(),
-                Err("Cannot express sub-millisecond precision in GEP-2257".to_string())),
-            (k8sDuration::from_str("100000h").unwrap(),
-                Err("Duration exceeds GEP-2257 maximum 99999h59m59s999ms".to_string())),
-            (k8sDuration::from(stdDuration::from_millis((MAX_DURATION_MS + 1) as u64)),
-                Err("Duration exceeds GEP-2257 maximum 99999h59m59s999ms".to_string())),
-            (k8sDuration::from_str("-5s").unwrap(),
-                Err("Duration cannot be negative".to_string())),
+            (
+                k8sDuration::from_str("100us").unwrap(),
+                Err("Cannot express sub-millisecond precision in GEP-2257".to_string()),
+            ),
+            (
+                k8sDuration::from_str("100000h").unwrap(),
+                Err("Duration exceeds GEP-2257 maximum 99999h59m59s999ms".to_string()),
+            ),
+            (
+                k8sDuration::from(stdDuration::from_millis((MAX_DURATION_MS + 1) as u64)),
+                Err("Duration exceeds GEP-2257 maximum 99999h59m59s999ms".to_string()),
+            ),
+            (
+                k8sDuration::from_str("-5s").unwrap(),
+                Err("Duration cannot be negative".to_string()),
+            ),
         ];
 
         for (idx, (k8s_duration, expected)) in test_cases.into_iter().enumerate() {
-            assert_eq!(Duration::try_from(k8s_duration), expected, "{:?}: k8sDuration {:?} should be error {:?}", idx, k8s_duration, expected);
+            assert_eq!(
+                Duration::try_from(k8s_duration),
+                expected,
+                "{:?}: k8sDuration {:?} should be error {:?}",
+                idx,
+                k8s_duration,
+                expected
+            );
         }
     }
 
@@ -353,19 +404,35 @@ mod tests {
             ("10s30m1h", Duration::from_secs(5410)),
             ("100ms200ms300ms", Duration::from_millis(600)),
             ("100ms200ms300ms", Duration::from_millis(600)),
-            ("99999h59m59s999ms", Duration::from_millis(MAX_DURATION_MS as u64)),
+            (
+                "99999h59m59s999ms",
+                Duration::from_millis(MAX_DURATION_MS as u64),
+            ),
             ("1d", Err("Invalid duration format".to_string())),
             ("1", Err("Invalid duration format".to_string())),
             ("1m1", Err("Invalid duration format".to_string())),
-            ("1h30m10s20ms50h", Err("Invalid duration format".to_string())),
+            (
+                "1h30m10s20ms50h",
+                Err("Invalid duration format".to_string()),
+            ),
             ("999999h", Err("Invalid duration format".to_string())),
             ("1.5h", Err("Invalid duration format".to_string())),
             ("-15m", Err("Invalid duration format".to_string())),
-            ("99999h59m59s1000ms", Err("Duration exceeds GEP-2257 maximum 99999h59m59s999ms".to_string())),
+            (
+                "99999h59m59s1000ms",
+                Err("Duration exceeds GEP-2257 maximum 99999h59m59s999ms".to_string()),
+            ),
         ];
 
         for (idx, (duration_str, expected)) in test_cases.into_iter().enumerate() {
-            assert_eq!(Duration::from_str(duration_str), expected, "{:?}: Duration {:?} should be {:?}", idx, duration_str, expected);
+            assert_eq!(
+                Duration::from_str(duration_str),
+                expected,
+                "{:?}: Duration {:?} should be {:?}",
+                idx,
+                duration_str,
+                expected
+            );
         }
     }
 
@@ -383,13 +450,26 @@ mod tests {
             (Duration::from_secs(5410), "1h30m10s".to_string()),
             (Duration::from_millis(600), "600ms".to_string()),
             (Duration::new(7200, 600_000_000), "2h600ms".to_string()),
-            (Duration::new(7200 + 1800, 600_000_000), "2h30m600ms".to_string()),
-            (Duration::new(7200 + 1800 + 10, 600_000_000), "2h30m10s600ms".to_string()),
+            (
+                Duration::new(7200 + 1800, 600_000_000),
+                "2h30m600ms".to_string(),
+            ),
+            (
+                Duration::new(7200 + 1800 + 10, 600_000_000),
+                "2h30m10s600ms".to_string(),
+            ),
         ];
 
         for (idx, (duration, expected)) in test_cases.into_iter().enumerate() {
-            assert!(duration.as_ref().is_ok_and(|d| format!("{}", d) == expected),
-                    "{:?}: Duration {:?} should be {:?}", idx, duration, expected);
+            assert!(
+                duration
+                    .as_ref()
+                    .is_ok_and(|d| format!("{}", d) == expected),
+                "{:?}: Duration {:?} should be {:?}",
+                idx,
+                duration,
+                expected
+            );
         }
     }
 }
