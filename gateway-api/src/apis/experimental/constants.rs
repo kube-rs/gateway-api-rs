@@ -1,6 +1,6 @@
 // WARNING: generated file - manual changes will be overriden
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum GatewayConditionType {
     Programmed,
     Accepted,
@@ -13,7 +13,7 @@ impl std::fmt::Display for GatewayConditionType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum GatewayConditionReason {
     Programmed,
     Invalid,
@@ -35,7 +35,7 @@ impl std::fmt::Display for GatewayConditionReason {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ListenerConditionType {
     Conflicted,
     Accepted,
@@ -50,7 +50,7 @@ impl std::fmt::Display for ListenerConditionType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ListenerConditionReason {
     HostnameConflict,
     ProtocolConflict,

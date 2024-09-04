@@ -47,6 +47,8 @@ fn gen_const_enums(scope: &mut Scope, constants: String) {
 
     let mut enumeration = Enum::new(enum_type);
     enumeration.derive("Debug");
+    enumeration.derive("PartialEq");
+    enumeration.derive("Eq");
     enumeration.vis("pub");
 
     for variant in variants {

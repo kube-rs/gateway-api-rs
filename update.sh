@@ -49,7 +49,7 @@ echo "// WARNING! generated file do not edit" > gateway-api/src/apis/standard/mo
 for API in "${STANDARD_APIS[@]}"
 do
     echo "generating standard api ${API}"
-    curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${VERSION}/config/crd/standard/gateway.networking.k8s.io_${API}.yaml" | kopium --schema=derived --derive=JsonSchema --derive=Default --docs -f - > gateway-api/src/apis/standard/${API}.rs
+    curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${VERSION}/config/crd/standard/gateway.networking.k8s.io_${API}.yaml" | kopium --schema=derived --derive=JsonSchema --derive=Default --derive=PartialEq --docs -f - > gateway-api/src/apis/standard/${API}.rs
     echo "pub mod ${API};" >> gateway-api/src/apis/standard/mod.rs
 done
 
@@ -86,7 +86,7 @@ echo "// WARNING! generated file do not edit" > gateway-api/src/apis/experimenta
 for API in "${EXPERIMENTAL_APIS[@]}"
 do
     echo "generating experimental api $API"
-    curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${VERSION}/config/crd/experimental/gateway.networking.k8s.io_${API}.yaml" | kopium --schema=derived --derive=JsonSchema --derive=Default --docs -f - > gateway-api/src/apis/experimental/${API}.rs
+    curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${VERSION}/config/crd/experimental/gateway.networking.k8s.io_${API}.yaml" | kopium --schema=derived --derive=JsonSchema --derive=Default --derive=PartialEq --docs -f - > gateway-api/src/apis/experimental/${API}.rs
     echo "pub mod ${API};" >> gateway-api/src/apis/experimental/mod.rs
 done
 
