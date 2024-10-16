@@ -69,8 +69,7 @@ mod tests {
                     .metadata
                     .name
                     .ok_or(Error::msg("could not find GatewayClass name"))?,
-                addresses: None,
-                listeners: vec![],
+                ..Default::default()
             },
             status: None,
         };
