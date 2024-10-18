@@ -8,14 +8,17 @@ mod tests {
     use std::process::Command;
 
     use anyhow::Error;
+    use hyper_util::client::legacy::Client as HTTPClient;
+    use hyper_util::rt::TokioExecutor;
     use k8s_openapi::apimachinery::pkg::apis::meta::v1::{Condition, Time};
     use k8s_openapi::chrono::Utc;
     use kube::api::{Patch, PatchParams, PostParams};
-    use kube::client::ConfigExt;
     use kube::config::{KubeConfigOptions, Kubeconfig};
     use kube::core::ObjectMeta;
-    use kube::{Api, Config, CustomResourceExt};
+    use kube::Client as KubeClient;
+    use kube::{client::ConfigExt, Api, Config, CustomResourceExt};
     use serde_json::json;
+    use tower::BoxError;
     use tower::ServiceBuilder;
     use uuid::Uuid;
 
@@ -147,12 +150,15 @@ mod tests {
         let config =
             Config::from_custom_kubeconfig(kubeconfig, &KubeConfigOptions::default()).await?;
 
+        let https = config.rustls_https_connector()?;
+        let http_client = HTTPClient::builder(TokioExecutor::new()).build(https);
         let service = ServiceBuilder::new()
             .layer(config.base_uri_layer())
             .option_layer(config.auth_layer()?)
-            .service(hyper::Client::builder().build(config.rustls_https_connector()?));
+            .map_err(BoxError::from)
+            .service(http_client);
 
-        let client = kube::Client::new(service, config.default_namespace);
+        let client = KubeClient::new(service, config.default_namespace);
 
         deploy_crds(client.clone()).await?;
 
