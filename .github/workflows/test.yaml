@@ -27,6 +27,12 @@ jobs:
         toolchain: stable
         override: true
 
+    - name: run unit tests
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: -v -- --nocapture
+
     - name: run integration tests
       uses: actions-rs/cargo@v1
       with:
