@@ -32,4 +32,4 @@ tower = { version = "0.5.1", features = ["limit"] }
 uuid = { version = "1.11.0", features = ["v4", "fast-rng"] }
 
 [package.metadata.docs.rs]
-features = "k8s-openapi/v1_31"
+features = [ "k8s-openapi/v1_31" ]
