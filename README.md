@@ -31,10 +31,10 @@ This project provides bindings in [Rust] for [Kubernetes] [Gateway API].
 
 ## Usage
 
-Basic usage involves generating a [kube-rs] to perform create, read, update and
-delete (CRUD) operations on [Gateway API resources]. You can either use a basic
-[Client] to perform CRUD operations, or you can build a [Controller]. See the
-`gateway-api/examples/` directory for detailed (and specific) usage examples.
+Basic usage involves using a [kube-rs] [Client] to perform create, read, update
+and delete (CRUD) operations on [Gateway API resources]. You can either use a
+basic `Client` to perform CRUD operations, or you can build a [Controller]. See
+the `gateway-api/examples/` directory for detailed (and specific) usage examples.
 
 [kube-rs]:https://github.com/kube-rs/kube
 [Gateway API resources]:https://gateway-api.sigs.k8s.io/api-types/gateway/
