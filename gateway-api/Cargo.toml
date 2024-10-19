@@ -9,6 +9,7 @@ categories = ["api-bindings"]
 homepage = "https://gateway-api.sigs.k8s.io/"
 repository = "https://github.com/kube-rs/gateway-api-rs"
 edition = "2021"
+readme = "../README.md"
 
 [dependencies]
 kube = { version = "0.96.0", default-features = false, features = ["derive"] }
