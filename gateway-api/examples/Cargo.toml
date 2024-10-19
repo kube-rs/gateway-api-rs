@@ -1,0 +1,32 @@
+[package]
+name = "gateway-api-examples"
+publish = false
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[package.metadata.release]
+release = false
+
+[dependencies]
+gateway-api = { path = "../" }
+
+anyhow.workspace = true
+hyper-util.workspace = true
+k8s-openapi.workspace = true
+kube.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tower.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+uuid.workspace = true
+
+[features]
+default = [ "k8s-openapi/v1_31" ]
+
+[[bin]]
+name = "gep2257"
+path = "gep2257.rs"
