@@ -9,7 +9,7 @@ license = "MIT"
 version = "0.14.0"
 
 [workspace.dependencies]
-anyhow = "1.0.90"
+anyhow = "1.0.91"
 delegate = "0.13.1"
 hyper-util = "0.1.9"
 kube = { version = "0.96.0", default-features = false, features = ["derive"] }
