@@ -11,7 +11,7 @@
 # See: https://github.com/kube-rs/kopium
 # ------------------------------------------------------------------------------
 
-set -eoux pipefail
+set -eou pipefail
 
 VERSION="v1.2.1"
 
