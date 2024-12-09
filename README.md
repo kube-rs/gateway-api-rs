@@ -12,11 +12,11 @@
 
 # Gateway API (Rust)
 
-> **Note**: Currently supports [Gateway API version v1.2.0][gwv]
+> **Note**: Currently supports [Gateway API version v1.2.1][gwv]
 
 This project provides bindings in [Rust] for [Kubernetes] [Gateway API].
 
-[gwv]:https://github.com/kubernetes-sigs/gateway-api/releases/tag/v1.2.0
+[gwv]:https://github.com/kubernetes-sigs/gateway-api/releases/tag/v1.2.1
 [Rust]:https://rust-lang.org
 [Kubernetes]:https://kubernetes.io/
 [Gateway API]:https://gateway-api.sigs.k8s.io/
