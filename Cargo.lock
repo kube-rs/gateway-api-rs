@@ -324,7 +324,7 @@ dependencies = [
 
 [[package]]
 name = "gateway-api"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "anyhow",
  "delegate",
@@ -344,7 +344,7 @@ dependencies = [
 
 [[package]]
 name = "gateway-api-examples"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "anyhow",
  "gateway-api",
