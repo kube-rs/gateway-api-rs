@@ -54,7 +54,20 @@ const MAX_DURATION_MS: u128 = (((99999 * 3600) + (59 * 60) + 59) * 1_000) + 999;
 
 /// Checks if a duration is valid according to GEP-2257. If it's not, return
 /// an error result explaining why the duration is not valid.
-fn is_valid(duration: stdDuration) -> Result<(), String> {
+///
+/// ```rust
+/// use gateway_api::duration::is_valid;
+/// use std::time::Duration as stdDuration;
+///
+/// // sub-millisecond precision is not allowed
+/// let sub_millisecond_duration = stdDuration::from_nanos(600);
+/// # assert!(is_valid(sub_millisecond_duration).is_err());
+///
+/// // but precision at a millisecond is fine
+/// let non_sub_millisecond_duration = stdDuration::from_millis(1);
+/// # assert!(is_valid(non_sub_millisecond_duration).is_ok());
+/// ```
+pub fn is_valid(duration: stdDuration) -> Result<(), String> {
     // Check nanoseconds to see if we have sub-millisecond precision in
     // this duration.
     if duration.subsec_nanos() % 1_000_000 != 0 {
