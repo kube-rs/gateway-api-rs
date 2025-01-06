@@ -1,3 +1,7 @@
+.PHONY: clean
+clean:
+	cargo clean
+
 .PHONY: generate
 generate:
 	./update.sh
