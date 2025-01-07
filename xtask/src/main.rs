@@ -25,12 +25,16 @@ gen_constants generates constants used for Conditions
 type DynError = Box<dyn std::error::Error>;
 
 fn gen_condition_constants() -> Result<(), DynError> {
+    let gateway_class_condition_types = env::var("GATEWAY_CLASS_CONDITION_CONSTANTS")?;
+    let gateway_class_reason_types = env::var("GATEWAY_CLASS_REASON_CONSTANTS")?;
     let gateway_condition_types = env::var("GATEWAY_CONDITION_CONSTANTS")?;
     let gateway_reason_types = env::var("GATEWAY_REASON_CONSTANTS")?;
     let listener_condition_types = env::var("LISTENER_CONDITION_CONSTANTS")?;
     let listener_reason_types = env::var("LISTENER_REASON_CONSTANTS")?;
 
     let mut scope = Scope::new();
+    gen_const_enums(&mut scope, gateway_class_condition_types);
+    gen_const_enums(&mut scope, gateway_class_reason_types);
     gen_const_enums(&mut scope, gateway_condition_types);
     gen_const_enums(&mut scope, gateway_reason_types);
     gen_const_enums(&mut scope, listener_condition_types);
@@ -105,11 +109,11 @@ fn gen_enum_defaults() -> Result<(), DynError> {
     println!("{}", gen_generated_file_warning());
 
     // Generate use statements for the enums.
-    if httproute_enums.len() > 0 {
+    if !httproute_enums.is_empty() {
         let use_http_stmt = gen_use_stmt(httproute_enums, "httproutes".to_string());
         println!("{}\n", use_http_stmt);
     }
-    if grpcroute_enums.len() > 0 {
+    if !grpcroute_enums.is_empty() {
         let use_grpc_stmt = gen_use_stmt(grpcroute_enums, "grpcroutes".to_string());
         println!("{}\n", use_grpc_stmt);
     }
@@ -123,7 +127,7 @@ fn gen_generated_file_warning() -> String {
 }
 
 fn gen_use_stmt(items: Vec<String>, module: String) -> String {
-    let mut stmt = String::from(format!("use super::{}::{{", module));
+    let mut stmt = format!("use super::{}::{{", module);
     for item in items {
         stmt.push_str(format!("{}, ", item).as_str());
     }
