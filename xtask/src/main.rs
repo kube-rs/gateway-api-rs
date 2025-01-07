@@ -25,12 +25,16 @@ gen_constants generates constants used for Conditions
 type DynError = Box<dyn std::error::Error>;
 
 fn gen_condition_constants() -> Result<(), DynError> {
+    let gateway_class_condition_types = env::var("GATEWAY_CLASS_CONDITION_CONSTANTS")?;
+    let gateway_class_reason_types = env::var("GATEWAY_CLASS_REASON_CONSTANTS")?;
     let gateway_condition_types = env::var("GATEWAY_CONDITION_CONSTANTS")?;
     let gateway_reason_types = env::var("GATEWAY_REASON_CONSTANTS")?;
     let listener_condition_types = env::var("LISTENER_CONDITION_CONSTANTS")?;
     let listener_reason_types = env::var("LISTENER_REASON_CONSTANTS")?;
 
     let mut scope = Scope::new();
+    gen_const_enums(&mut scope, gateway_class_condition_types);
+    gen_const_enums(&mut scope, gateway_class_reason_types);
     gen_const_enums(&mut scope, gateway_condition_types);
     gen_const_enums(&mut scope, gateway_reason_types);
     gen_const_enums(&mut scope, listener_condition_types);
