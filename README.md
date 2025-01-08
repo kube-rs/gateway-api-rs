@@ -4,9 +4,9 @@
 
 > **Warning**: EXPERIMENTAL. **Not ready for production use**.
 
-> **Note**: This library should be considered "unofficial". While the aspiration
-> is to eventually become the "official" Gateway API bindings for Rust,
-> [Kubernetes SIG Network] has not yet (and may never) officially endorsed it.
+> **Note**: While the aspiration is to eventually become the "official" Gateway
+> API bindings for Rust, [Kubernetes SIG Network] has not yet (and may never)
+> officially endorsed it so this should be considered "unofficial" for now.
 
 [Kubernetes SIG Network]:https://github.com/kubernetes/community/tree/master/sig-network
 
@@ -54,3 +54,22 @@ updates automatically generated for code in the `gateway-api/src/api` directory
 which you can then commit.
 
 [Kopium]:https://github.com/kube-rs/kopium
+
+## Contributions
+
+Contributions are welcome, and appreciated! In general (for larger changes)
+please create an issue describing the contribution needed prior to creating a
+PR.
+
+If you're looking for something to do, we organize the work for this project
+with a [project board][board], please check out the `next` column for
+unassigned tasks as these are the things prioritized to be worked on in the
+immediate.
+
+For development support we do have an org-wide [#kube channel on the Tokio
+Discord server][discord], but please note that for this project in particular we
+prefer questions be posted in the [discussions board][forum].
+
+[board]:https://github.com/orgs/kube-rs/projects/3
+[discord]:https://discord.gg/tokio
+[forum]:https://github.com/kube-rs/gateway-api-rs/discussions
