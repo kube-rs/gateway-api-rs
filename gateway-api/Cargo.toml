@@ -15,8 +15,8 @@ version.workspace = true
 
 [dependencies]
 delegate.workspace = true
-k8s-openapi.workspace = true
-kube.workspace = true
+k8s-openapi = { workspace = true, features = ["schemars"] }
+kube = { workspace = true, default-features = false, features = ["derive"] }
 once_cell.workspace = true
 regex.workspace = true
 schemars.workspace = true
