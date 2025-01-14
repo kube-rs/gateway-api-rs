@@ -20,7 +20,7 @@ schemars = "0.8.21"
 serde_json = "1.0.135"
 serde = { version = "1.0.217", features = ["derive"] }
 serde_yaml = "0.9.34"
-tokio = { version = "1.42.0", features = ["full"] }
+tokio = { version = "1.43.0", features = ["full"] }
 tower = { version = "0.5.2", features = ["limit"] }
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
