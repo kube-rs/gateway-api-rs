@@ -1,9 +1,14 @@
 .PHONY: all
-all: generate
+all: build generate
 
 .PHONY: clean
 clean:
 	cargo clean
+
+.PHONY: build
+build:
+	cargo build
+
 
 .PHONY: generate
 generate:
