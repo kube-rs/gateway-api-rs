@@ -40,7 +40,7 @@ Gateway API. Make sure you install `kopium` locally in order to run the
 generator:
 
 ```console
-$ cargo install kopium
+$ cargo install kopium --version 0.21.1
 ```
 
 After which you can run the `update.sh` script:
