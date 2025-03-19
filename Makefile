@@ -1,3 +1,6 @@
+.PHONY: all
+all: generate
+
 .PHONY: clean
 clean:
 	cargo clean
