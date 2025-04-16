@@ -19,6 +19,7 @@ STANDARD_APIS=(
     gatewayclasses
     gateways
     httproutes
+    grpcroutes
     referencegrants
 )
 
