@@ -7,6 +7,20 @@ use super::httproutes::{
     HTTPRouteRulesFiltersUrlRewritePathType,
 };
 
+use super::grpcroutes::{GRPCRouteRulesBackendRefsFiltersType, GRPCRouteRulesFiltersType};
+
+impl Default for GRPCRouteRulesBackendRefsFiltersType {
+    fn default() -> Self {
+        GRPCRouteRulesBackendRefsFiltersType::RequestHeaderModifier
+    }
+}
+
+impl Default for GRPCRouteRulesFiltersType {
+    fn default() -> Self {
+        GRPCRouteRulesFiltersType::RequestHeaderModifier
+    }
+}
+
 impl Default for HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType {
     fn default() -> Self {
         HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType::ReplaceFullPath

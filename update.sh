@@ -20,6 +20,7 @@ STANDARD_APIS=(
     gateways
     httproutes
     referencegrants
+    grpcroutes
 )
 
 EXPERIMENTAL_APIS=(
@@ -61,6 +62,8 @@ ENUMS=(
     HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType=ReplaceFullPath
     HTTPRouteRulesBackendRefsFiltersUrlRewritePathType=ReplaceFullPath
     HTTPRouteRulesBackendRefsFiltersType=RequestHeaderModifier
+    GRPCRouteRulesFiltersType=RequestHeaderModifier
+    GRPCRouteRulesBackendRefsFiltersType=RequestHeaderModifier
 )
 
 # Create a comma separated string out of $ENUMS.
