@@ -331,6 +331,7 @@ name = "gateway-api"
 version = "0.15.0"
 dependencies = [
  "anyhow",
+ "cfg-if",
  "delegate",
  "hyper-util",
  "k8s-openapi",
