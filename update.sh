@@ -34,24 +34,25 @@ EXPERIMENTAL_APIS=(
     udproutes
 )
 
-rm -rf gateway-api/src/apis/
+rm -rf gateway-api/src/standard/
+rm -rf gateway-api/src/experimental/
 
-mkdir -p gateway-api/src/apis/
-cat << EOF > gateway-api/src/apis/mod.rs
-pub mod experimental;
-pub mod standard;
-EOF
+# mkdir -p gateway-api/src/standard/
+# cat << EOF > gateway-api/src/standard/mod.rs
+# pub mod experimental;
+# pub mod standard;
+# EOF
 
-mkdir -p gateway-api/src/apis/standard/
-mkdir -p gateway-api/src/apis/experimental/
+mkdir -p gateway-api/src/standard/
+mkdir -p gateway-api/src/experimental/
 
-echo "// WARNING! generated file do not edit" > gateway-api/src/apis/standard/mod.rs
+echo "// WARNING! generated file do not edit" > gateway-api/src/standard/mod.rs
 
 for API in "${STANDARD_APIS[@]}"
 do
     echo "generating standard api ${API}"
-    curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${VERSION}/config/crd/standard/gateway.networking.k8s.io_${API}.yaml" | kopium --schema=derived --derive=JsonSchema --derive=Default --derive=PartialEq --docs -f - > gateway-api/src/apis/standard/${API}.rs
-    echo "pub mod ${API};" >> gateway-api/src/apis/standard/mod.rs
+    curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${VERSION}/config/crd/standard/gateway.networking.k8s.io_${API}.yaml" | kopium --schema=derived --derive=JsonSchema --derive=Default --derive=PartialEq --docs -f - > gateway-api/src/standard/${API}.rs
+    echo "pub mod ${API};" >> gateway-api/src/standard/mod.rs
 done
 
 # Standard API enums that need a Default trait impl along with their respective default variant.
@@ -71,8 +72,8 @@ ENUMS_WITH_DEFAULTS=$(printf ",%s" "${ENUMS[@]}")
 ENUMS_WITH_DEFAULTS=${ENUMS_WITH_DEFAULTS:1}
 
 # The task searches for $GATEWAY_API_ENUMS in the enviornment to get the enum names and their default variants.
-GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults >> gateway-api/src/apis/standard/enum_defaults.rs
-echo "mod enum_defaults;" >> gateway-api/src/apis/standard/mod.rs
+GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults >> gateway-api/src/standard/enum_defaults.rs
+echo "mod enum_defaults;" >> gateway-api/src/standard/mod.rs
 
 GATEWAY_CLASS_CONDITION_CONSTANTS="GatewayClassConditionType=Accepted"
 GATEWAY_CLASS_REASON_CONSTANTS="GatewayClassConditionReason=Accepted,InvalidParameters,Pending,Unsupported,Waiting"
@@ -84,16 +85,16 @@ LISTENER_REASON_CONSTANTS="ListenerConditionReason=HostnameConflict,ProtocolConf
 GATEWAY_CLASS_CONDITION_CONSTANTS=${GATEWAY_CLASS_CONDITION_CONSTANTS} GATEWAY_CLASS_REASON_CONSTANTS=${GATEWAY_CLASS_REASON_CONSTANTS} \
     GATEWAY_CONDITION_CONSTANTS=${GATEWAY_CONDITION_CONSTANTS} GATEWAY_REASON_CONSTANTS=${GATEWAY_REASON_CONSTANTS} \
     LISTENER_CONDITION_CONSTANTS=${LISTENER_CONDITION_CONSTANTS} LISTENER_REASON_CONSTANTS=${LISTENER_REASON_CONSTANTS} \
-    cargo xtask gen_condition_constants >> gateway-api/src/apis/standard/constants.rs
-echo "pub mod constants;" >> gateway-api/src/apis/standard/mod.rs
+    cargo xtask gen_condition_constants >> gateway-api/src/standard/constants.rs
+echo "pub mod constants;" >> gateway-api/src/standard/mod.rs
 
-echo "// WARNING! generated file do not edit" > gateway-api/src/apis/experimental/mod.rs
+echo "// WARNING! generated file do not edit" > gateway-api/src/experimental/mod.rs
 
 for API in "${EXPERIMENTAL_APIS[@]}"
 do
     echo "generating experimental api $API"
-    curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${VERSION}/config/crd/experimental/gateway.networking.k8s.io_${API}.yaml" | kopium --schema=derived --derive=JsonSchema --derive=Default --derive=PartialEq --docs -f - > gateway-api/src/apis/experimental/${API}.rs
-    echo "pub mod ${API};" >> gateway-api/src/apis/experimental/mod.rs
+    curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${VERSION}/config/crd/experimental/gateway.networking.k8s.io_${API}.yaml" | kopium --schema=derived --derive=JsonSchema --derive=Default --derive=PartialEq --docs -f - > gateway-api/src/experimental/${API}.rs
+    echo "pub mod ${API};" >> gateway-api/src/experimental/mod.rs
 done
 
 # Experimental API enums that need a Default trait impl along with their respective default variant.
@@ -110,8 +111,8 @@ ENUMS=(
 
 ENUMS_WITH_DEFAULTS=$(printf ",%s" "${ENUMS[@]}")
 ENUMS_WITH_DEFAULTS=${ENUMS_WITH_DEFAULTS:1}
-GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults >> gateway-api/src/apis/experimental/enum_defaults.rs
-echo "mod enum_defaults;" >> gateway-api/src/apis/experimental/mod.rs
+GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults >> gateway-api/src/experimental/enum_defaults.rs
+echo "mod enum_defaults;" >> gateway-api/src/experimental/mod.rs
 
 # GatewayClass conditions vary between standard and experimental
 GATEWAY_CLASS_CONDITION_CONSTANTS="${GATEWAY_CLASS_CONDITION_CONSTANTS},SupportedVersion"
@@ -120,8 +121,9 @@ GATEWAY_CLASS_REASON_CONSTANTS="${GATEWAY_CLASS_REASON_CONSTANTS},SupportedVersi
 GATEWAY_CLASS_CONDITION_CONSTANTS=${GATEWAY_CLASS_CONDITION_CONSTANTS} GATEWAY_CLASS_REASON_CONSTANTS=${GATEWAY_CLASS_REASON_CONSTANTS} \
     GATEWAY_CONDITION_CONSTANTS=${GATEWAY_CONDITION_CONSTANTS} GATEWAY_REASON_CONSTANTS=${GATEWAY_REASON_CONSTANTS} \
     LISTENER_CONDITION_CONSTANTS=${LISTENER_CONDITION_CONSTANTS} LISTENER_REASON_CONSTANTS=${LISTENER_REASON_CONSTANTS} \
-    cargo xtask gen_condition_constants >> gateway-api/src/apis/experimental/constants.rs
-echo "pub mod constants;" >> gateway-api/src/apis/experimental/mod.rs
+    cargo xtask gen_condition_constants >> gateway-api/src/experimental/constants.rs
+echo "pub mod constants;" >> gateway-api/src/experimental/mod.rs
 
 # Format the code.
 cargo fmt
+
