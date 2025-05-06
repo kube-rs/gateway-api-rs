@@ -3,14 +3,10 @@ pub use duration::Duration;
 pub mod standard;
 pub use standard::*;
 
-cfg_if::cfg_if! {
-   if #[cfg(feature = "experimental")] {
-        pub mod experimental;
-    } else {
 
-    }
-}
-
+#[cfg(feature = "experimental")]
+pub mod experimental;
+    
 #[cfg(test)]
 mod tests {
     use std::process::Command;

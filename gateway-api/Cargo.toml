@@ -23,10 +23,9 @@ schemars.workspace = true
 serde_json.workspace = true
 serde.workspace = true
 serde_yaml.workspace = true
-cfg-if.workspace = true
 
 [dev-dependencies]
-k8s-openapi = { workspace = true, features = [ "v1_32", "schemars" ] }
+k8s-openapi = { workspace = true, features = ["v1_32", "schemars"] }
 kube = { workspace = true, features = ["derive"] }
 
 anyhow.workspace = true
@@ -36,7 +35,7 @@ tower.workspace = true
 uuid.workspace = true
 
 [package.metadata.docs.rs]
-features = [ "k8s-openapi/v1_32" ]
+features = ["k8s-openapi/v1_32"]
 
 [features]
 default = []
