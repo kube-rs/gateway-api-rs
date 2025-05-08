@@ -1,12 +1,11 @@
 pub mod duration;
 pub use duration::Duration;
-pub mod standard;
-pub use standard::*;
-
+pub mod apis;
+pub use apis::standard::*;
 
 #[cfg(feature = "experimental")]
-pub mod experimental;
-    
+pub use apis::experimental;
+
 #[cfg(test)]
 mod tests {
     use std::process::Command;
