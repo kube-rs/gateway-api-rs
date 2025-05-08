@@ -1,7 +1,10 @@
-pub mod apis;
-
 pub mod duration;
 pub use duration::Duration;
+pub mod apis;
+pub use apis::standard::*;
+
+#[cfg(feature = "experimental")]
+pub use apis::experimental;
 
 #[cfg(test)]
 mod tests {
@@ -22,7 +25,7 @@ mod tests {
     use tower::ServiceBuilder;
     use uuid::Uuid;
 
-    use crate::apis::standard::{
+    use crate::{
         constants::{
             GatewayConditionReason, GatewayConditionType, ListenerConditionReason,
             ListenerConditionType,
