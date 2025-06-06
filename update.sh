@@ -47,6 +47,7 @@ EOF
 mkdir -p $APIS_DIR/standard/
 mkdir -p $APIS_DIR/experimental/
 
+
 echo "// WARNING! generated file do not edit" > $APIS_DIR/standard/mod.rs
 
 for API in "${STANDARD_APIS[@]}"
@@ -128,3 +129,13 @@ echo "pub mod constants;" >> $APIS_DIR/experimental/mod.rs
 # Format the code.
 cargo fmt
 
+
+rm -rf $APIS_DIR/processed
+mkdir -p  $APIS_DIR/processed
+export RUST_LOG=info
+cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/processed --current-pass-substitute-names ./type-reducer/customized_mapped_names_pass_1.txt
+cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/processed --out-dir $APIS_DIR/processed --previous-pass-derived-type-names ./type-reducer/reduced_types_pass_1.txt --current-pass-substitute-names ./type-reducer/customized_mapped_names_pass_2.txt
+
+cat << EOF >> $APIS_DIR/mod.rs
+pub mod processed;
+EOF

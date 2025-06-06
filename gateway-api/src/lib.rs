@@ -1,10 +1,15 @@
 pub mod duration;
 pub use duration::Duration;
 pub mod apis;
+
+#[cfg(feature = "standard")]
 pub use apis::standard::*;
 
 #[cfg(feature = "experimental")]
 pub use apis::experimental;
+
+#[cfg(feature = "processed")]
+pub use apis::processed::*;
 
 #[cfg(test)]
 mod tests {
@@ -26,12 +31,12 @@ mod tests {
     use uuid::Uuid;
 
     use crate::{
-        constants::{
+        apis::standard::constants::{
             GatewayConditionReason, GatewayConditionType, ListenerConditionReason,
             ListenerConditionType,
         },
-        gatewayclasses::{GatewayClass, GatewayClassSpec},
-        gateways::{
+        apis::standard::gatewayclasses::{GatewayClass, GatewayClassSpec},
+        apis::standard::gateways::{
             Gateway, GatewaySpec, GatewayStatus, GatewayStatusAddresses, GatewayStatusListeners,
         },
     };
