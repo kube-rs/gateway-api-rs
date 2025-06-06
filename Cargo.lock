@@ -255,7 +255,7 @@ checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 
 [[package]]
 name = "enum_default_generator"
-version = "0.15.0"
+version = "0.16.0"
 dependencies = [
  "codegen",
 ]
@@ -348,7 +348,7 @@ dependencies = [
 
 [[package]]
 name = "gateway-api"
-version = "0.15.0"
+version = "0.16.0"
 dependencies = [
  "anyhow",
  "delegate",
@@ -368,7 +368,7 @@ dependencies = [
 
 [[package]]
 name = "gateway-api-examples"
-version = "0.15.0"
+version = "0.16.0"
 dependencies = [
  "anyhow",
  "gateway-api",
