@@ -1,0 +1,21 @@
+[package]
+name = "type-reducer"
+version = "0.1.0"
+edition = "2024"
+author = "Dawid Nowak nowakd@gmail.com"
+
+[dependencies]
+syn = { version = "2", features = [
+    "full",
+    "extra-traits",
+    "visit",
+    "visit-mut",
+    "proc-macro",
+] }
+proc-macro2 = "1"
+prettyplease = "0.2"
+itertools = "0.14"
+multimap = "0.10"
+clap = { version = "4.5", features = ["derive"] }
+log = { version = "0.4", features = ["std", "serde"] }
+simple_logger = "5"

@@ -1,0 +1,6 @@
+AddressesGateway->GatewayAddress
+BackendFiltersMirrorRefRequestRouteRules->MirrorBackendRef
+ExtensionFiltersRefRouteRules->ExtensionBackendRef
+FiltersHeaderModifierRouteRules->HeaderModifierRules
+GatewayKindsListeners->Kind
+ParentRoute->RouteRef

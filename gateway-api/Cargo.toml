@@ -38,5 +38,7 @@ uuid.workspace = true
 features = ["k8s-openapi/v1_32"]
 
 [features]
-default = []
+default = ["processed"]
+standard = []
 experimental = []
+processed=[]
