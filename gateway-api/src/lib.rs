@@ -15,11 +15,11 @@ mod tests {
     use hyper_util::rt::TokioExecutor;
     use k8s_openapi::apimachinery::pkg::apis::meta::v1::{Condition, Time};
     use k8s_openapi::chrono::Utc;
+    use kube::Client as KubeClient;
     use kube::api::{Patch, PatchParams, PostParams};
     use kube::config::{KubeConfigOptions, Kubeconfig};
     use kube::core::ObjectMeta;
-    use kube::Client as KubeClient;
-    use kube::{client::ConfigExt, Api, Config, CustomResourceExt};
+    use kube::{Api, Config, CustomResourceExt, client::ConfigExt};
     use serde_json::json;
     use tower::BoxError;
     use tower::ServiceBuilder;
