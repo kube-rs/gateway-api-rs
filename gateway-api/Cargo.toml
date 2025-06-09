@@ -42,3 +42,10 @@ default = ["processed"]
 standard = []
 experimental = []
 processed=[]
+
+
+[lints.clippy]
+derivable_impls="allow"
+doc_lazy_continuation="allow"
+tabs_in_doc_comments="allow"
+empty_line_after_doc_comments="allow"

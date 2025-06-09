@@ -139,3 +139,19 @@ cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/proces
 cat << EOF >> $APIS_DIR/mod.rs
 pub mod processed;
 EOF
+
+ENUMS=(
+    FiltersHTTPRedirectRequestRouteRulesScheme=Http
+    FiltersGRPCRouteRulesType=RequestHeaderModifier
+    FiltersHTTPPathRouteRulesType=ReplaceFullPath
+    FiltersHTTPRouteRulesType=RequestHeaderModifier    
+)
+
+ENUMS_WITH_DEFAULTS=$(printf ",%s" "${ENUMS[@]}")
+ENUMS_WITH_DEFAULTS=${ENUMS_WITH_DEFAULTS:1}
+echo "use super::common_types::*;" > $APIS_DIR/processed/enum_defaults.rs
+GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults >> $APIS_DIR/processed/enum_defaults.rs
+
+
+
+

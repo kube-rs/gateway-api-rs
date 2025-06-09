@@ -2,7 +2,7 @@
 name = "type-reducer"
 version = "0.1.0"
 edition = "2024"
-author = "Dawid Nowak nowakd@gmail.com"
+authors = ["Dawid Nowak nowakd@gmail.com"]
 
 [dependencies]
 syn = { version = "2", features = [

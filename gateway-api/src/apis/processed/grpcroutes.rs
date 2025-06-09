@@ -428,20 +428,7 @@ pub struct GRPCRouteRulesBackendRefsFilters {
     ///
     ///
     #[serde(rename = "type")]
-    pub r#type: GRPCRouteRulesBackendRefsFiltersType,
-}
-/// GRPCRouteFilter defines processing steps that must be completed during the
-/// request or response lifecycle. GRPCRouteFilters are meant as an extension
-/// point to express processing that may be done in Gateway implementations. Some
-/// examples include request or response modification, implementing
-/// authentication strategies, rate-limiting, and traffic shaping. API
-/// guarantee/conformance is defined based on the type of the filter.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum GRPCRouteRulesBackendRefsFiltersType {
-    ResponseHeaderModifier,
-    RequestHeaderModifier,
-    RequestMirror,
-    ExtensionRef,
+    pub r#type: FiltersGRPCRouteRulesType,
 }
 /// GRPCRouteFilter defines processing steps that must be completed during the
 /// request or response lifecycle. GRPCRouteFilters are meant as an extension
@@ -521,20 +508,7 @@ pub struct GRPCRouteRulesFilters {
     ///
     ///
     #[serde(rename = "type")]
-    pub r#type: GRPCRouteRulesFiltersType,
-}
-/// GRPCRouteFilter defines processing steps that must be completed during the
-/// request or response lifecycle. GRPCRouteFilters are meant as an extension
-/// point to express processing that may be done in Gateway implementations. Some
-/// examples include request or response modification, implementing
-/// authentication strategies, rate-limiting, and traffic shaping. API
-/// guarantee/conformance is defined based on the type of the filter.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum GRPCRouteRulesFiltersType {
-    ResponseHeaderModifier,
-    RequestHeaderModifier,
-    RequestMirror,
-    ExtensionRef,
+    pub r#type: FiltersGRPCRouteRulesType,
 }
 /// GRPCRouteMatch defines the predicate used to match requests to a given
 /// action. Multiple match types are ANDed together, i.e. the match will
@@ -579,16 +553,9 @@ pub struct GRPCRouteRulesMatchesHeaders {
     pub name: String,
     /// Type specifies how to match against the value of the header.
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
-    pub r#type: Option<GRPCRouteRulesMatchesHeadersType>,
+    pub r#type: Option<MatchesRouteRulesType>,
     /// Value is the value of the gRPC Header to be matched.
     pub value: String,
-}
-/// GRPCHeaderMatch describes how to select a gRPC route by matching gRPC request
-/// headers.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum GRPCRouteRulesMatchesHeadersType {
-    Exact,
-    RegularExpression,
 }
 /// Method specifies a gRPC request service/method matcher. If this field is
 /// not specified, all services and methods will match.
@@ -613,14 +580,7 @@ pub struct GRPCRouteRulesMatchesMethod {
     ///
     /// Support: Implementation-specific (RegularExpression)
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
-    pub r#type: Option<GRPCRouteRulesMatchesMethodType>,
-}
-/// Method specifies a gRPC request service/method matcher. If this field is
-/// not specified, all services and methods will match.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum GRPCRouteRulesMatchesMethodType {
-    Exact,
-    RegularExpression,
+    pub r#type: Option<MatchesRouteRulesType>,
 }
 /// Status defines the current state of GRPCRoute.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]

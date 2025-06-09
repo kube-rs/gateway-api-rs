@@ -1,50 +1,26 @@
-// WARNING! generated file do not edit
+use super::common_types::*;
+// WARNING: generated file - manual changes will be overriden
 
-use super::httproutes::{
-    HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType,
-    HTTPRouteRulesBackendRefsFiltersType,
-    HTTPRouteRulesBackendRefsFiltersUrlRewritePathType,
-    HTTPRouteRulesFiltersRequestRedirectPathType, HTTPRouteRulesFiltersType,
-    HTTPRouteRulesFiltersUrlRewritePathType,
-};
-use super::grpcroutes::{GRPCRouteRulesBackendRefsFiltersType, GRPCRouteRulesFiltersType};
-impl Default for GRPCRouteRulesBackendRefsFiltersType {
+impl Default for FiltersGRPCRouteRulesType {
     fn default() -> Self {
-        GRPCRouteRulesBackendRefsFiltersType::RequestHeaderModifier
+        FiltersGRPCRouteRulesType::RequestHeaderModifier
     }
 }
-impl Default for GRPCRouteRulesFiltersType {
+
+impl Default for FiltersHTTPPathRouteRulesType {
     fn default() -> Self {
-        GRPCRouteRulesFiltersType::RequestHeaderModifier
+        FiltersHTTPPathRouteRulesType::ReplaceFullPath
     }
 }
-impl Default for HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType {
+
+impl Default for FiltersHTTPRedirectRequestRouteRulesScheme {
     fn default() -> Self {
-        HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType::ReplaceFullPath
+        FiltersHTTPRedirectRequestRouteRulesScheme::Http
     }
 }
-impl Default for HTTPRouteRulesBackendRefsFiltersType {
+
+impl Default for FiltersHTTPRouteRulesType {
     fn default() -> Self {
-        HTTPRouteRulesBackendRefsFiltersType::RequestHeaderModifier
-    }
-}
-impl Default for HTTPRouteRulesBackendRefsFiltersUrlRewritePathType {
-    fn default() -> Self {
-        HTTPRouteRulesBackendRefsFiltersUrlRewritePathType::ReplaceFullPath
-    }
-}
-impl Default for HTTPRouteRulesFiltersRequestRedirectPathType {
-    fn default() -> Self {
-        HTTPRouteRulesFiltersRequestRedirectPathType::ReplaceFullPath
-    }
-}
-impl Default for HTTPRouteRulesFiltersType {
-    fn default() -> Self {
-        HTTPRouteRulesFiltersType::RequestHeaderModifier
-    }
-}
-impl Default for HTTPRouteRulesFiltersUrlRewritePathType {
-    fn default() -> Self {
-        HTTPRouteRulesFiltersUrlRewritePathType::ReplaceFullPath
+        FiltersHTTPRouteRulesType::RequestHeaderModifier
     }
 }
