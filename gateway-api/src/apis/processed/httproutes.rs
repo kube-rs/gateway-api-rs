@@ -478,7 +478,7 @@ pub struct HTTPRouteRulesBackendRefsFilters {
     /// Accepted Condition for the Route to `status: False`, with a
     /// Reason of `UnsupportedValue`.
     #[serde(rename = "type")]
-    pub r#type: HTTPRouteRulesBackendRefsFiltersType,
+    pub r#type: FiltersHTTPRouteRulesType,
     /// URLRewrite defines a schema for a filter that modifies a request during forwarding.
     ///
     /// Support: Extended
@@ -544,7 +544,7 @@ pub struct HTTPRouteRulesBackendRefsFiltersRequestRedirect {
     ///
     /// Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub scheme: Option<HTTPRouteRulesBackendRefsFiltersRequestRedirectScheme>,
+    pub scheme: Option<FiltersHTTPRedirectRequestRouteRulesScheme>,
     /// StatusCode is the HTTP status code to be used in response.
     ///
     /// Note that values may be added to this enum, implementations
@@ -605,55 +605,7 @@ pub struct HTTPRouteRulesBackendRefsFiltersRequestRedirectPath {
     /// Accepted Condition for the Route to `status: False`, with a
     /// Reason of `UnsupportedValue`.
     #[serde(rename = "type")]
-    pub r#type: HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType,
-}
-/// Path defines parameters used to modify the path of the incoming request.
-/// The modified path is then used to construct the `Location` header. When
-/// empty, the request path is used as-is.
-///
-/// Support: Extended
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType {
-    ReplaceFullPath,
-    ReplacePrefixMatch,
-}
-/// RequestRedirect defines a schema for a filter that responds to the
-/// request with an HTTP redirection.
-///
-/// Support: Core
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HTTPRouteRulesBackendRefsFiltersRequestRedirectScheme {
-    #[serde(rename = "http")]
-    Http,
-    #[serde(rename = "https")]
-    Https,
-}
-/// RequestRedirect defines a schema for a filter that responds to the
-/// request with an HTTP redirection.
-///
-/// Support: Core
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HTTPRouteRulesBackendRefsFiltersRequestRedirectStatusCode {
-    #[serde(rename = "301")]
-    r#_301,
-    #[serde(rename = "302")]
-    r#_302,
-}
-/// HTTPRouteFilter defines processing steps that must be completed during the
-/// request or response lifecycle. HTTPRouteFilters are meant as an extension
-/// point to express processing that may be done in Gateway implementations. Some
-/// examples include request or response modification, implementing
-/// authentication strategies, rate-limiting, and traffic shaping. API
-/// guarantee/conformance is defined based on the type of the filter.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HTTPRouteRulesBackendRefsFiltersType {
-    RequestHeaderModifier,
-    ResponseHeaderModifier,
-    RequestMirror,
-    RequestRedirect,
-    #[serde(rename = "URLRewrite")]
-    UrlRewrite,
-    ExtensionRef,
+    pub r#type: FiltersHTTPPathRouteRulesType,
 }
 /// URLRewrite defines a schema for a filter that modifies a request during forwarding.
 ///
@@ -717,15 +669,7 @@ pub struct HTTPRouteRulesBackendRefsFiltersUrlRewritePath {
     /// Accepted Condition for the Route to `status: False`, with a
     /// Reason of `UnsupportedValue`.
     #[serde(rename = "type")]
-    pub r#type: HTTPRouteRulesBackendRefsFiltersUrlRewritePathType,
-}
-/// Path defines a path rewrite.
-///
-/// Support: Extended
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HTTPRouteRulesBackendRefsFiltersUrlRewritePathType {
-    ReplaceFullPath,
-    ReplacePrefixMatch,
+    pub r#type: FiltersHTTPPathRouteRulesType,
 }
 /// HTTPRouteFilter defines processing steps that must be completed during the
 /// request or response lifecycle. HTTPRouteFilters are meant as an extension
@@ -821,7 +765,7 @@ pub struct HTTPRouteRulesFilters {
     /// Accepted Condition for the Route to `status: False`, with a
     /// Reason of `UnsupportedValue`.
     #[serde(rename = "type")]
-    pub r#type: HTTPRouteRulesFiltersType,
+    pub r#type: FiltersHTTPRouteRulesType,
     /// URLRewrite defines a schema for a filter that modifies a request during forwarding.
     ///
     /// Support: Extended
@@ -887,7 +831,7 @@ pub struct HTTPRouteRulesFiltersRequestRedirect {
     ///
     /// Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub scheme: Option<HTTPRouteRulesFiltersRequestRedirectScheme>,
+    pub scheme: Option<FiltersHTTPRedirectRequestRouteRulesScheme>,
     /// StatusCode is the HTTP status code to be used in response.
     ///
     /// Note that values may be added to this enum, implementations
@@ -948,55 +892,7 @@ pub struct HTTPRouteRulesFiltersRequestRedirectPath {
     /// Accepted Condition for the Route to `status: False`, with a
     /// Reason of `UnsupportedValue`.
     #[serde(rename = "type")]
-    pub r#type: HTTPRouteRulesFiltersRequestRedirectPathType,
-}
-/// Path defines parameters used to modify the path of the incoming request.
-/// The modified path is then used to construct the `Location` header. When
-/// empty, the request path is used as-is.
-///
-/// Support: Extended
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HTTPRouteRulesFiltersRequestRedirectPathType {
-    ReplaceFullPath,
-    ReplacePrefixMatch,
-}
-/// RequestRedirect defines a schema for a filter that responds to the
-/// request with an HTTP redirection.
-///
-/// Support: Core
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HTTPRouteRulesFiltersRequestRedirectScheme {
-    #[serde(rename = "http")]
-    Http,
-    #[serde(rename = "https")]
-    Https,
-}
-/// RequestRedirect defines a schema for a filter that responds to the
-/// request with an HTTP redirection.
-///
-/// Support: Core
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HTTPRouteRulesFiltersRequestRedirectStatusCode {
-    #[serde(rename = "301")]
-    r#_301,
-    #[serde(rename = "302")]
-    r#_302,
-}
-/// HTTPRouteFilter defines processing steps that must be completed during the
-/// request or response lifecycle. HTTPRouteFilters are meant as an extension
-/// point to express processing that may be done in Gateway implementations. Some
-/// examples include request or response modification, implementing
-/// authentication strategies, rate-limiting, and traffic shaping. API
-/// guarantee/conformance is defined based on the type of the filter.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HTTPRouteRulesFiltersType {
-    RequestHeaderModifier,
-    ResponseHeaderModifier,
-    RequestMirror,
-    RequestRedirect,
-    #[serde(rename = "URLRewrite")]
-    UrlRewrite,
-    ExtensionRef,
+    pub r#type: FiltersHTTPPathRouteRulesType,
 }
 /// URLRewrite defines a schema for a filter that modifies a request during forwarding.
 ///
@@ -1060,15 +956,7 @@ pub struct HTTPRouteRulesFiltersUrlRewritePath {
     /// Accepted Condition for the Route to `status: False`, with a
     /// Reason of `UnsupportedValue`.
     #[serde(rename = "type")]
-    pub r#type: HTTPRouteRulesFiltersUrlRewritePathType,
-}
-/// Path defines a path rewrite.
-///
-/// Support: Extended
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HTTPRouteRulesFiltersUrlRewritePathType {
-    ReplaceFullPath,
-    ReplacePrefixMatch,
+    pub r#type: FiltersHTTPPathRouteRulesType,
 }
 /// HTTPRouteMatch defines the predicate used to match requests to a given
 /// action. Multiple match types are ANDed together, i.e. the match will
@@ -1143,16 +1031,9 @@ pub struct HTTPRouteRulesMatchesHeaders {
     /// of regular expressions. Please read the implementation's documentation to
     /// determine the supported dialect.
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
-    pub r#type: Option<HTTPRouteRulesMatchesHeadersType>,
+    pub r#type: Option<MatchesRouteRulesType>,
     /// Value is the value of HTTP Header to be matched.
     pub value: String,
-}
-/// HTTPHeaderMatch describes how to select a HTTP route by matching HTTP request
-/// headers.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HTTPRouteRulesMatchesHeadersType {
-    Exact,
-    RegularExpression,
 }
 /// HTTPRouteMatch defines the predicate used to match requests to a given
 /// action. Multiple match types are ANDed together, i.e. the match will
@@ -1248,16 +1129,9 @@ pub struct HTTPRouteRulesMatchesQueryParams {
     /// dialects of regular expressions. Please read the implementation's
     /// documentation to determine the supported dialect.
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
-    pub r#type: Option<HTTPRouteRulesMatchesQueryParamsType>,
+    pub r#type: Option<MatchesRouteRulesType>,
     /// Value is the value of HTTP query param to be matched.
     pub value: String,
-}
-/// HTTPQueryParamMatch describes how to select a HTTP route by matching HTTP
-/// query parameters.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HTTPRouteRulesMatchesQueryParamsType {
-    Exact,
-    RegularExpression,
 }
 /// Timeouts defines the timeouts that can be configured for an HTTP request.
 ///

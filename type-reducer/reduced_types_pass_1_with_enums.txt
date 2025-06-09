@@ -1,0 +1,12 @@
+GatewayAddress
+MirrorBackendRef
+ExtensionBackendRef
+HeaderModifierRules
+Kind
+RouteRef
+RedirectStatusCode
+GRPCFilterType
+HTTPPathType
+HTTPRedirectScheme
+HTTPFiltersType
+HeaderMatchesType

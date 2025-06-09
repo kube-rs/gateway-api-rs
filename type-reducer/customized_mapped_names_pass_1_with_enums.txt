@@ -1,0 +1,12 @@
+AddressesGateway->GatewayAddress
+BackendFiltersMirrorRefRequestRouteRules->MirrorBackendRef
+ExtensionFiltersRefRouteRules->ExtensionBackendRef
+FiltersHeaderModifierRouteRules->HeaderModifierRules
+GatewayKindsListeners->Kind
+ParentRoute->RouteRef
+CodeFiltersHTTPRedirectRequestRouteRulesStatus->RedirectStatusCode
+FiltersGRPCRouteRulesType->GRPCFilterType
+FiltersHTTPPathRouteRulesType->HTTPPathType
+FiltersHTTPRedirectRequestRouteRulesScheme->HTTPRedirectScheme
+FiltersHTTPRouteRulesType->HTTPFiltersType
+MatchesRouteRulesType->HeaderMatchesType
