@@ -8,6 +8,10 @@ HTTPPathType
 HTTPRedirectScheme
 HTTPFilterType
 HTTPHeader
+HeaderModifierRules
 Kind
 HeaderMatchesType
 RouteRef
+HTTPPathModifier
+HeaderModifier
+RequestMirrorModifier

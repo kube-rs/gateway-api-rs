@@ -252,7 +252,7 @@ pub fn find_similar_types(
 }
 
 pub fn prune_replaced_structs(
-    renaming_visitor: &mut StructRenamer,
+    renaming_visitor: &mut StructEnumRenamer,
     visitors: Vec<(String, File)>,
 ) -> Vec<(String, String, bool)> {
     visitors

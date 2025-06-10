@@ -1,26 +1,20 @@
 use super::common_types::*;
 // WARNING: generated file - manual changes will be overriden
 
-impl Default for FiltersGRPCRouteRulesType {
+impl Default for GRPCFilterType {
     fn default() -> Self {
-        FiltersGRPCRouteRulesType::RequestHeaderModifier
+        GRPCFilterType::RequestHeaderModifier
     }
 }
 
-impl Default for FiltersHTTPPathRouteRulesType {
+impl Default for HTTPFilterType {
     fn default() -> Self {
-        FiltersHTTPPathRouteRulesType::ReplaceFullPath
+        HTTPFilterType::RequestHeaderModifier
     }
 }
 
-impl Default for FiltersHTTPRedirectRequestRouteRulesScheme {
+impl Default for HTTPPathType {
     fn default() -> Self {
-        FiltersHTTPRedirectRequestRouteRulesScheme::Http
-    }
-}
-
-impl Default for FiltersHTTPRouteRulesType {
-    fn default() -> Self {
-        FiltersHTTPRouteRulesType::RequestHeaderModifier
+        HTTPPathType::ReplaceFullPath
     }
 }

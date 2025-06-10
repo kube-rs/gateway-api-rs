@@ -149,17 +149,13 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let (mapped_types, items): (Vec<BTreeMap<String, String>>, Vec<Item>) =
         struct_items.into_iter().chain(enum_items).unzip();
-    // let (mapped_types, items): (Vec<BTreeMap<String, String>>, Vec<Item>) =
-    //     all_items.into_iter().unzip();
 
-    let mut renaming_visitor = StructRenamer {
+    let mut renaming_visitor = StructEnumRenamer {
         changed: false,
         names: mapped_types.into_iter().flatten().collect(),
     };
 
-    if current_pass_substitute_names.is_none() {
-        write_type_names_to_file(&renaming_visitor.names)?
-    };
+    write_type_names_to_file(&renaming_visitor.names)?;
 
     let unparsed_files = prune_replaced_structs(&mut renaming_visitor, visitors);
 

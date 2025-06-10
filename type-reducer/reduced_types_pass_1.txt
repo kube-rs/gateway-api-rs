@@ -1,7 +1,0 @@
-GatewayAddress
-MirrorBackendRef
-ExtensionBackendRef
-HeaderModifierRules
-Kind
-ParentRouteRef
-

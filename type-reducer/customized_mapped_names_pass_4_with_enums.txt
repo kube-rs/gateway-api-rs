@@ -8,10 +8,14 @@ FiltersHTTPRedirectRequestRouteRulesScheme->HTTPRedirectScheme
 FiltersHTTPRouteRulesType->HTTPFilterType
 FiltersHeaderModifierRouteRules->HTTPHeader
 GatewayKindsListeners->Kind
-MatchesRouteRulesType->HeaderMatchesType
+MatchesRouteRulesTypey->HeaderMatchesType
 ParentRoute->RouteRef
 FiltersHTTPPathRouteRules->HTTPPathModifier
 FiltersHeaderModifierRouteRules->HeaderModifier
 FiltersMirrorRequestRouteRules->RequestMirrorModifier
+FiltersGRPCRouteRules->GRPCRouteFilter
+FiltersHTTPRedirectRequestRouteRules->HTTPRequestRedirect
+FiltersHTTPRewriteRouteRulesUrl->HTTPRequestRewrite
+FiltersHTTPRouteRules->HTTPRouteFilter
 
 

@@ -7,7 +7,16 @@ GRPCFilterType
 HTTPPathType
 HTTPRedirectScheme
 HTTPFilterType
+RouteHeaderModifier
 HTTPHeader
 Kind
 HeaderMatchesType
 RouteRef
+HTTPPathModifier
+HeaderModifier
+RequestMirrorModifier
+GRPCRouteFilter
+HTTPRequestRedirect
+HTTPRequestRewrite
+HTTPRouteFilter
+
