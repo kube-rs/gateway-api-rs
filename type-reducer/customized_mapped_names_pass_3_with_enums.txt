@@ -13,5 +13,8 @@ ParentRoute->RouteRef
 FiltersHTTPPathRouteRules->HTTPPathModifier
 FiltersHeaderModifierRouteRules->HeaderModifier
 FiltersMirrorRequestRouteRules->RequestMirrorModifier
+FiltersGRPCRouteRules->GRPCRouteFilter
+FiltersHTTPRedirectRequestRouteRules->HTTPRequestRedirect
+FiltersHTTPRewriteRouteRulesUrl->HTTPRequestRewrite
 
 

@@ -208,7 +208,7 @@ pub struct GRPCRouteRules {
     ///
     /// Support: Core
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub filters: Option<Vec<GRPCRouteRulesFilters>>,
+    pub filters: Option<Vec<GRPCRouteFilter>>,
     /// Matches define conditions used for matching the rule against incoming
     /// gRPC requests. Each match is independent, i.e. this rule will be matched
     /// if **any** one of the matches is satisfied.
@@ -293,7 +293,7 @@ pub struct GRPCRouteRulesBackendRefs {
     /// Support: Implementation-specific (For broader support of filters, use the
     /// Filters field in GRPCRouteRule.)
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub filters: Option<Vec<GRPCRouteRulesBackendRefsFilters>>,
+    pub filters: Option<Vec<GRPCRouteFilter>>,
     /// Group is the group of the referent. For example, "gateway.networking.k8s.io".
     /// When unspecified or empty string, core API group is inferred.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -350,166 +350,6 @@ pub struct GRPCRouteRulesBackendRefs {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub weight: Option<i32>,
 }
-/// GRPCRouteFilter defines processing steps that must be completed during the
-/// request or response lifecycle. GRPCRouteFilters are meant as an extension
-/// point to express processing that may be done in Gateway implementations. Some
-/// examples include request or response modification, implementing
-/// authentication strategies, rate-limiting, and traffic shaping. API
-/// guarantee/conformance is defined based on the type of the filter.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GRPCRouteRulesBackendRefsFilters {
-    /// ExtensionRef is an optional, implementation-specific extension to the
-    /// "filter" behavior.  For example, resource "myroutefilter" in group
-    /// "networking.example.net"). ExtensionRef MUST NOT be used for core and
-    /// extended filters.
-    ///
-    /// Support: Implementation-specific
-    ///
-    /// This filter can be used multiple times within the same rule.
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "extensionRef")]
-    pub extension_ref: Option<ExtensionBackendRef>,
-    /// RequestHeaderModifier defines a schema for a filter that modifies request
-    /// headers.
-    ///
-    /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "requestHeaderModifier"
-    )]
-    pub request_header_modifier: Option<FilterHeaderRouteRules>,
-    /// RequestMirror defines a schema for a filter that mirrors requests.
-    /// Requests are sent to the specified destination, but responses from
-    /// that destination are ignored.
-    ///
-    /// This filter can be used multiple times within the same rule. Note that
-    /// not all implementations will be able to support mirroring to multiple
-    /// backends.
-    ///
-    /// Support: Extended
-    ///
-    ///
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestMirror")]
-    pub request_mirror: Option<FilterMirrorRouteRules>,
-    /// ResponseHeaderModifier defines a schema for a filter that modifies response
-    /// headers.
-    ///
-    /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "responseHeaderModifier"
-    )]
-    pub response_header_modifier: Option<FilterHeaderRouteRules>,
-    /// Type identifies the type of filter to apply. As with other API fields,
-    /// types are classified into three conformance levels:
-    ///
-    /// - Core: Filter types and their corresponding configuration defined by
-    ///   "Support: Core" in this package, e.g. "RequestHeaderModifier". All
-    ///   implementations supporting GRPCRoute MUST support core filters.
-    ///
-    /// - Extended: Filter types and their corresponding configuration defined by
-    ///   "Support: Extended" in this package, e.g. "RequestMirror". Implementers
-    ///   are encouraged to support extended filters.
-    ///
-    /// - Implementation-specific: Filters that are defined and supported by specific vendors.
-    ///   In the future, filters showing convergence in behavior across multiple
-    ///   implementations will be considered for inclusion in extended or core
-    ///   conformance levels. Filter-specific configuration for such filters
-    ///   is specified using the ExtensionRef field. `Type` MUST be set to
-    ///   "ExtensionRef" for custom filters.
-    ///
-    /// Implementers are encouraged to define custom implementation types to
-    /// extend the core API with implementation-specific behavior.
-    ///
-    /// If a reference to a custom filter type cannot be resolved, the filter
-    /// MUST NOT be skipped. Instead, requests that would have been processed by
-    /// that filter MUST receive a HTTP error response.
-    ///
-    ///
-    #[serde(rename = "type")]
-    pub r#type: FiltersGRPCRouteRulesType,
-}
-/// GRPCRouteFilter defines processing steps that must be completed during the
-/// request or response lifecycle. GRPCRouteFilters are meant as an extension
-/// point to express processing that may be done in Gateway implementations. Some
-/// examples include request or response modification, implementing
-/// authentication strategies, rate-limiting, and traffic shaping. API
-/// guarantee/conformance is defined based on the type of the filter.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GRPCRouteRulesFilters {
-    /// ExtensionRef is an optional, implementation-specific extension to the
-    /// "filter" behavior.  For example, resource "myroutefilter" in group
-    /// "networking.example.net"). ExtensionRef MUST NOT be used for core and
-    /// extended filters.
-    ///
-    /// Support: Implementation-specific
-    ///
-    /// This filter can be used multiple times within the same rule.
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "extensionRef")]
-    pub extension_ref: Option<ExtensionBackendRef>,
-    /// RequestHeaderModifier defines a schema for a filter that modifies request
-    /// headers.
-    ///
-    /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "requestHeaderModifier"
-    )]
-    pub request_header_modifier: Option<FilterHeaderRouteRules>,
-    /// RequestMirror defines a schema for a filter that mirrors requests.
-    /// Requests are sent to the specified destination, but responses from
-    /// that destination are ignored.
-    ///
-    /// This filter can be used multiple times within the same rule. Note that
-    /// not all implementations will be able to support mirroring to multiple
-    /// backends.
-    ///
-    /// Support: Extended
-    ///
-    ///
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestMirror")]
-    pub request_mirror: Option<FilterMirrorRouteRules>,
-    /// ResponseHeaderModifier defines a schema for a filter that modifies response
-    /// headers.
-    ///
-    /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "responseHeaderModifier"
-    )]
-    pub response_header_modifier: Option<FilterHeaderRouteRules>,
-    /// Type identifies the type of filter to apply. As with other API fields,
-    /// types are classified into three conformance levels:
-    ///
-    /// - Core: Filter types and their corresponding configuration defined by
-    ///   "Support: Core" in this package, e.g. "RequestHeaderModifier". All
-    ///   implementations supporting GRPCRoute MUST support core filters.
-    ///
-    /// - Extended: Filter types and their corresponding configuration defined by
-    ///   "Support: Extended" in this package, e.g. "RequestMirror". Implementers
-    ///   are encouraged to support extended filters.
-    ///
-    /// - Implementation-specific: Filters that are defined and supported by specific vendors.
-    ///   In the future, filters showing convergence in behavior across multiple
-    ///   implementations will be considered for inclusion in extended or core
-    ///   conformance levels. Filter-specific configuration for such filters
-    ///   is specified using the ExtensionRef field. `Type` MUST be set to
-    ///   "ExtensionRef" for custom filters.
-    ///
-    /// Implementers are encouraged to define custom implementation types to
-    /// extend the core API with implementation-specific behavior.
-    ///
-    /// If a reference to a custom filter type cannot be resolved, the filter
-    /// MUST NOT be skipped. Instead, requests that would have been processed by
-    /// that filter MUST receive a HTTP error response.
-    ///
-    ///
-    #[serde(rename = "type")]
-    pub r#type: FiltersGRPCRouteRulesType,
-}
 /// GRPCRouteMatch defines the predicate used to match requests to a given
 /// action. Multiple match types are ANDed together, i.e. the match will
 /// evaluate to true only if all conditions are satisfied.
@@ -553,7 +393,7 @@ pub struct GRPCRouteRulesMatchesHeaders {
     pub name: String,
     /// Type specifies how to match against the value of the header.
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
-    pub r#type: Option<MatchesRouteRulesType>,
+    pub r#type: Option<HeaderMatchesType>,
     /// Value is the value of the gRPC Header to be matched.
     pub value: String,
 }
@@ -580,7 +420,7 @@ pub struct GRPCRouteRulesMatchesMethod {
     ///
     /// Support: Implementation-specific (RegularExpression)
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
-    pub r#type: Option<MatchesRouteRulesType>,
+    pub r#type: Option<HeaderMatchesType>,
 }
 /// Status defines the current state of GRPCRoute.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
@@ -599,50 +439,5 @@ pub struct GRPCRouteStatus {
     ///
     /// A maximum of 32 Gateways will be represented in this list. An empty list
     /// means the route has not been attached to any Gateway.
-    pub parents: Vec<GRPCRouteStatusParents>,
-}
-/// RouteParentStatus describes the status of a route with respect to an
-/// associated Parent.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GRPCRouteStatusParents {
-    /// Conditions describes the status of the route with respect to the Gateway.
-    /// Note that the route's availability is also subject to the Gateway's own
-    /// status conditions and listener status.
-    ///
-    /// If the Route's ParentRef specifies an existing Gateway that supports
-    /// Routes of this kind AND that Gateway's controller has sufficient access,
-    /// then that Gateway's controller MUST set the "Accepted" condition on the
-    /// Route, to indicate whether the route has been accepted or rejected by the
-    /// Gateway, and why.
-    ///
-    /// A Route MUST be considered "Accepted" if at least one of the Route's
-    /// rules is implemented by the Gateway.
-    ///
-    /// There are a number of cases where the "Accepted" condition may not be set
-    /// due to lack of controller visibility, that includes when:
-    ///
-    /// * The Route refers to a non-existent parent.
-    /// * The Route is of a type that the controller does not support.
-    /// * The Route is in a namespace the controller does not have access to.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub conditions: Option<Vec<Condition>>,
-    /// ControllerName is a domain/path string that indicates the name of the
-    /// controller that wrote this status. This corresponds with the
-    /// controllerName field on GatewayClass.
-    ///
-    /// Example: "example.net/gateway-controller".
-    ///
-    /// The format of this field is DOMAIN "/" PATH, where DOMAIN and PATH are
-    /// valid Kubernetes names
-    /// (https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names).
-    ///
-    /// Controllers MUST populate this field when writing status. Controllers should ensure that
-    /// entries to status populated with their ControllerName are cleaned up when they are no
-    /// longer necessary.
-    #[serde(rename = "controllerName")]
-    pub controller_name: String,
-    /// ParentRef corresponds with a ParentRef in the spec that this
-    /// RouteParentStatus struct describes the status of.
-    #[serde(rename = "parentRef")]
-    pub parent_ref: RouteRef,
+    pub parents: Vec<ParentsRouteStatus>,
 }

@@ -28,7 +28,7 @@ pub struct StructEnumVisitor<'ast, 'b> {
     pub derived_type_names: &'b BTreeSet<String>,
 }
 
-pub struct StructRenamer {
+pub struct StructEnumRenamer {
     pub changed: bool,
     pub names: BTreeMap<String, String>,
 }
@@ -59,41 +59,9 @@ fn rewrite_ident(path: &mut PathSegment, names: &BTreeMap<String, String>) -> bo
     file_changed
 }
 
-impl<'ast, 'b> Visit<'ast> for StructVisitor<'ast, 'b> {
-    fn visit_item_struct(&mut self, node: &'ast ItemStruct) {
-        debug!("Visiting Struct name == {}", node.ident);
-        //debug!("Visiting Struct name == {:#?}", node);
-        let mut is_simple_leaf = true;
-        node.fields.iter().for_each(|f| match &f.ty {
-            Type::Path(path_type) => {
-                trace!(
-                    "\twith field name = {:?} \n\t\tfield type = {:?}",
-                    f.ident, f.ty
-                );
-
-                for segment in &path_type.path.segments {
-                    check_simple_type(segment, &mut is_simple_leaf, self.derived_type_names);
-                }
-            }
-
-            _ => {
-                is_simple_leaf = false;
-            }
-        });
-        debug!(
-            "Visiting Struct name == {} is leaf {is_simple_leaf}",
-            node.ident
-        );
-        if is_simple_leaf {
-            self.structs.push(node);
-        }
-        visit::visit_item_struct(self, node);
-    }
-}
-
 impl<'ast, 'b> Visit<'ast> for StructEnumVisitor<'ast, 'b> {
     fn visit_item_struct(&mut self, node: &'ast ItemStruct) {
-        debug!("Visiting Struct name == {}", node.ident);
+        info!("Visiting Struct name == {}", node.ident);
         //debug!("Visiting Struct name == {:#?}", node);
         let mut is_simple_leaf = true;
         node.fields.iter().for_each(|f| match &f.ty {
@@ -136,7 +104,7 @@ impl<'ast, 'b> Visit<'ast> for StructEnumVisitor<'ast, 'b> {
     }
 }
 
-impl VisitMut for StructRenamer {
+impl VisitMut for StructEnumRenamer {
     fn visit_item_struct_mut(&mut self, node: &mut ItemStruct) {
         debug!(
             "Visiting and changing fields in struct name == {}",
@@ -168,6 +136,12 @@ fn check_simple_type(
 ) {
     if path.arguments.is_empty() {
         let ident = &path.ident;
+        debug!(
+            "Checking path segment {} {} ",
+            path.ident,
+            derived_type_names.contains(&ident.to_string())
+        );
+
         if ident == &Ident::new("String", Span::call_site())
             || ident == &Ident::new("i32", Span::call_site())
             || ident == &Ident::new("i64", Span::call_site())
