@@ -13,8 +13,8 @@ impl Default for HTTPFilterType {
     }
 }
 
-impl Default for HTTPPathType {
+impl Default for RequestOperationType {
     fn default() -> Self {
-        HTTPPathType::ReplaceFullPath
+        RequestOperationType::ReplaceFullPath
     }
 }

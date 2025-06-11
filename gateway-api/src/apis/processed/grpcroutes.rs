@@ -27,7 +27,7 @@ use self::prelude::*;
     plural = "grpcroutes"
 )]
 #[kube(namespaced)]
-#[kube(status = "GRPCRouteStatus")]
+#[kube(status = "RouteStatus")]
 #[kube(derive = "Default")]
 #[kube(derive = "PartialEq")]
 pub struct GRPCRouteSpec {
@@ -373,29 +373,11 @@ pub struct GRPCRouteRulesMatches {
     /// ANDed together, meaning, a request MUST match all the specified headers
     /// to select the route.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub headers: Option<Vec<GRPCRouteRulesMatchesHeaders>>,
+    pub headers: Option<Vec<MatchingHeaders>>,
     /// Method specifies a gRPC request service/method matcher. If this field is
     /// not specified, all services and methods will match.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub method: Option<GRPCRouteRulesMatchesMethod>,
-}
-/// GRPCHeaderMatch describes how to select a gRPC route by matching gRPC request
-/// headers.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GRPCRouteRulesMatchesHeaders {
-    /// Name is the name of the gRPC Header to be matched.
-    ///
-    /// If multiple entries specify equivalent header names, only the first
-    /// entry with an equivalent name MUST be considered for a match. Subsequent
-    /// entries with an equivalent header name MUST be ignored. Due to the
-    /// case-insensitivity of header names, "foo" and "Foo" are considered
-    /// equivalent.
-    pub name: String,
-    /// Type specifies how to match against the value of the header.
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
-    pub r#type: Option<HeaderMatchesType>,
-    /// Value is the value of the gRPC Header to be matched.
-    pub value: String,
 }
 /// Method specifies a gRPC request service/method matcher. If this field is
 /// not specified, all services and methods will match.
@@ -420,24 +402,5 @@ pub struct GRPCRouteRulesMatchesMethod {
     ///
     /// Support: Implementation-specific (RegularExpression)
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
-    pub r#type: Option<HeaderMatchesType>,
-}
-/// Status defines the current state of GRPCRoute.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GRPCRouteStatus {
-    /// Parents is a list of parent resources (usually Gateways) that are
-    /// associated with the route, and the status of the route with respect to
-    /// each parent. When this route attaches to a parent, the controller that
-    /// manages the parent must add an entry to this list when the controller
-    /// first sees the route and should update the entry as appropriate when the
-    /// route or gateway is modified.
-    ///
-    /// Note that parent references that cannot be resolved by an implementation
-    /// of this API will not be added to this list. Implementations of this API
-    /// can only populate Route status for the Gateways/parent resources they are
-    /// responsible for.
-    ///
-    /// A maximum of 32 Gateways will be represented in this list. An empty list
-    /// means the route has not been attached to any Gateway.
-    pub parents: Vec<ParentsRouteStatus>,
+    pub r#type: Option<HeaderMatchType>,
 }
