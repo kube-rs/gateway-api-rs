@@ -27,7 +27,7 @@ use self::prelude::*;
     plural = "httproutes"
 )]
 #[kube(namespaced)]
-#[kube(status = "HTTPRouteStatus")]
+#[kube(status = "RouteStatus")]
 #[kube(derive = "Default")]
 #[kube(derive = "PartialEq")]
 pub struct HTTPRouteSpec {
@@ -230,7 +230,7 @@ pub struct HTTPRouteRules {
     ///
     /// Support: Core
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub filters: Option<Vec<HTTPRouteFilter>>,
+    pub filters: Option<Vec<HTTPRouteRulesFilters>>,
     /// Matches define conditions used for matching the rule against incoming
     /// HTTP requests. Each match is independent, i.e. this rule will be matched
     /// if **any** one of the matches is satisfied.
@@ -327,7 +327,7 @@ pub struct HTTPRouteRulesBackendRefs {
     /// Support: Implementation-specific (For broader support of filters, use the
     /// Filters field in HTTPRouteRule.)
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub filters: Option<Vec<HTTPRouteFilter>>,
+    pub filters: Option<Vec<HTTPRouteRulesBackendRefsFilters>>,
     /// Group is the group of the referent. For example, "gateway.networking.k8s.io".
     /// When unspecified or empty string, core API group is inferred.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -384,6 +384,208 @@ pub struct HTTPRouteRulesBackendRefs {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub weight: Option<i32>,
 }
+/// HTTPRouteFilter defines processing steps that must be completed during the
+/// request or response lifecycle. HTTPRouteFilters are meant as an extension
+/// point to express processing that may be done in Gateway implementations. Some
+/// examples include request or response modification, implementing
+/// authentication strategies, rate-limiting, and traffic shaping. API
+/// guarantee/conformance is defined based on the type of the filter.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HTTPRouteRulesBackendRefsFilters {
+    /// ExtensionRef is an optional, implementation-specific extension to the
+    /// "filter" behavior.  For example, resource "myroutefilter" in group
+    /// "networking.example.net"). ExtensionRef MUST NOT be used for core and
+    /// extended filters.
+    ///
+    /// This filter can be used multiple times within the same rule.
+    ///
+    /// Support: Implementation-specific
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "extensionRef")]
+    pub extension_ref: Option<GatewayInfrastructureParametersRef>,
+    /// RequestHeaderModifier defines a schema for a filter that modifies request
+    /// headers.
+    ///
+    /// Support: Core
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "requestHeaderModifier"
+    )]
+    pub request_header_modifier: Option<HeaderModifier>,
+    /// RequestMirror defines a schema for a filter that mirrors requests.
+    /// Requests are sent to the specified destination, but responses from
+    /// that destination are ignored.
+    ///
+    /// This filter can be used multiple times within the same rule. Note that
+    /// not all implementations will be able to support mirroring to multiple
+    /// backends.
+    ///
+    /// Support: Extended
+    ///
+    ///
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestMirror")]
+    pub request_mirror: Option<RequestMirror>,
+    /// RequestRedirect defines a schema for a filter that responds to the
+    /// request with an HTTP redirection.
+    ///
+    /// Support: Core
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "requestRedirect"
+    )]
+    pub request_redirect: Option<HTTPRouteRequestRedirect>,
+    /// ResponseHeaderModifier defines a schema for a filter that modifies response
+    /// headers.
+    ///
+    /// Support: Extended
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "responseHeaderModifier"
+    )]
+    pub response_header_modifier: Option<HeaderModifier>,
+    /// Type identifies the type of filter to apply. As with other API fields,
+    /// types are classified into three conformance levels:
+    ///
+    /// - Core: Filter types and their corresponding configuration defined by
+    ///   "Support: Core" in this package, e.g. "RequestHeaderModifier". All
+    ///   implementations must support core filters.
+    ///
+    /// - Extended: Filter types and their corresponding configuration defined by
+    ///   "Support: Extended" in this package, e.g. "RequestMirror". Implementers
+    ///   are encouraged to support extended filters.
+    ///
+    /// - Implementation-specific: Filters that are defined and supported by
+    ///   specific vendors.
+    ///   In the future, filters showing convergence in behavior across multiple
+    ///   implementations will be considered for inclusion in extended or core
+    ///   conformance levels. Filter-specific configuration for such filters
+    ///   is specified using the ExtensionRef field. `Type` should be set to
+    ///   "ExtensionRef" for custom filters.
+    ///
+    /// Implementers are encouraged to define custom implementation types to
+    /// extend the core API with implementation-specific behavior.
+    ///
+    /// If a reference to a custom filter type cannot be resolved, the filter
+    /// MUST NOT be skipped. Instead, requests that would have been processed by
+    /// that filter MUST receive a HTTP error response.
+    ///
+    /// Note that values may be added to this enum, implementations
+    /// must ensure that unknown values will not cause a crash.
+    ///
+    /// Unknown values here must result in the implementation setting the
+    /// Accepted Condition for the Route to `status: False`, with a
+    /// Reason of `UnsupportedValue`.
+    #[serde(rename = "type")]
+    pub r#type: HTTPFilterType,
+    /// URLRewrite defines a schema for a filter that modifies a request during forwarding.
+    ///
+    /// Support: Extended
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "urlRewrite")]
+    pub url_rewrite: Option<HTTPRouteUrlRewrite>,
+}
+/// HTTPRouteFilter defines processing steps that must be completed during the
+/// request or response lifecycle. HTTPRouteFilters are meant as an extension
+/// point to express processing that may be done in Gateway implementations. Some
+/// examples include request or response modification, implementing
+/// authentication strategies, rate-limiting, and traffic shaping. API
+/// guarantee/conformance is defined based on the type of the filter.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HTTPRouteRulesFilters {
+    /// ExtensionRef is an optional, implementation-specific extension to the
+    /// "filter" behavior.  For example, resource "myroutefilter" in group
+    /// "networking.example.net"). ExtensionRef MUST NOT be used for core and
+    /// extended filters.
+    ///
+    /// This filter can be used multiple times within the same rule.
+    ///
+    /// Support: Implementation-specific
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "extensionRef")]
+    pub extension_ref: Option<GatewayInfrastructureParametersRef>,
+    /// RequestHeaderModifier defines a schema for a filter that modifies request
+    /// headers.
+    ///
+    /// Support: Core
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "requestHeaderModifier"
+    )]
+    pub request_header_modifier: Option<HeaderModifier>,
+    /// RequestMirror defines a schema for a filter that mirrors requests.
+    /// Requests are sent to the specified destination, but responses from
+    /// that destination are ignored.
+    ///
+    /// This filter can be used multiple times within the same rule. Note that
+    /// not all implementations will be able to support mirroring to multiple
+    /// backends.
+    ///
+    /// Support: Extended
+    ///
+    ///
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestMirror")]
+    pub request_mirror: Option<RequestMirror>,
+    /// RequestRedirect defines a schema for a filter that responds to the
+    /// request with an HTTP redirection.
+    ///
+    /// Support: Core
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "requestRedirect"
+    )]
+    pub request_redirect: Option<HTTPRouteRequestRedirect>,
+    /// ResponseHeaderModifier defines a schema for a filter that modifies response
+    /// headers.
+    ///
+    /// Support: Extended
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "responseHeaderModifier"
+    )]
+    pub response_header_modifier: Option<HeaderModifier>,
+    /// Type identifies the type of filter to apply. As with other API fields,
+    /// types are classified into three conformance levels:
+    ///
+    /// - Core: Filter types and their corresponding configuration defined by
+    ///   "Support: Core" in this package, e.g. "RequestHeaderModifier". All
+    ///   implementations must support core filters.
+    ///
+    /// - Extended: Filter types and their corresponding configuration defined by
+    ///   "Support: Extended" in this package, e.g. "RequestMirror". Implementers
+    ///   are encouraged to support extended filters.
+    ///
+    /// - Implementation-specific: Filters that are defined and supported by
+    ///   specific vendors.
+    ///   In the future, filters showing convergence in behavior across multiple
+    ///   implementations will be considered for inclusion in extended or core
+    ///   conformance levels. Filter-specific configuration for such filters
+    ///   is specified using the ExtensionRef field. `Type` should be set to
+    ///   "ExtensionRef" for custom filters.
+    ///
+    /// Implementers are encouraged to define custom implementation types to
+    /// extend the core API with implementation-specific behavior.
+    ///
+    /// If a reference to a custom filter type cannot be resolved, the filter
+    /// MUST NOT be skipped. Instead, requests that would have been processed by
+    /// that filter MUST receive a HTTP error response.
+    ///
+    /// Note that values may be added to this enum, implementations
+    /// must ensure that unknown values will not cause a crash.
+    ///
+    /// Unknown values here must result in the implementation setting the
+    /// Accepted Condition for the Route to `status: False`, with a
+    /// Reason of `UnsupportedValue`.
+    #[serde(rename = "type")]
+    pub r#type: HTTPFilterType,
+    /// URLRewrite defines a schema for a filter that modifies a request during forwarding.
+    ///
+    /// Support: Extended
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "urlRewrite")]
+    pub url_rewrite: Option<HTTPRouteUrlRewrite>,
+}
 /// HTTPRouteMatch defines the predicate used to match requests to a given
 /// action. Multiple match types are ANDed together, i.e. the match will
 /// evaluate to true only if all conditions are satisfied.
@@ -407,7 +609,7 @@ pub struct HTTPRouteRulesMatches {
     /// ANDed together, meaning, a request must match all the specified headers
     /// to select the route.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub headers: Option<Vec<HTTPRouteRulesMatchesHeaders>>,
+    pub headers: Option<Vec<MatchingHeaders>>,
     /// Method specifies HTTP method matcher.
     /// When specified, this route will be matched only if the request has the
     /// specified method.
@@ -425,41 +627,7 @@ pub struct HTTPRouteRulesMatches {
     ///
     /// Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "queryParams")]
-    pub query_params: Option<Vec<HTTPRouteRulesMatchesQueryParams>>,
-}
-/// HTTPHeaderMatch describes how to select a HTTP route by matching HTTP request
-/// headers.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HTTPRouteRulesMatchesHeaders {
-    /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
-    ///
-    /// If multiple entries specify equivalent header names, only the first
-    /// entry with an equivalent name MUST be considered for a match. Subsequent
-    /// entries with an equivalent header name MUST be ignored. Due to the
-    /// case-insensitivity of header names, "foo" and "Foo" are considered
-    /// equivalent.
-    ///
-    /// When a header is repeated in an HTTP request, it is
-    /// implementation-specific behavior as to how this is represented.
-    /// Generally, proxies should follow the guidance from the RFC:
-    /// https://www.rfc-editor.org/rfc/rfc7230.html#section-3.2.2 regarding
-    /// processing a repeated header, with special handling for "Set-Cookie".
-    pub name: String,
-    /// Type specifies how to match against the value of the header.
-    ///
-    /// Support: Core (Exact)
-    ///
-    /// Support: Implementation-specific (RegularExpression)
-    ///
-    /// Since RegularExpression HeaderMatchType has implementation-specific
-    /// conformance, implementations can support POSIX, PCRE or any other dialects
-    /// of regular expressions. Please read the implementation's documentation to
-    /// determine the supported dialect.
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
-    pub r#type: Option<HeaderMatchesType>,
-    /// Value is the value of HTTP Header to be matched.
-    pub value: String,
+    pub query_params: Option<Vec<MatchingHeaders>>,
 }
 /// HTTPRouteMatch defines the predicate used to match requests to a given
 /// action. Multiple match types are ANDed together, i.e. the match will
@@ -522,43 +690,6 @@ pub enum HTTPRouteRulesMatchesPathType {
     PathPrefix,
     RegularExpression,
 }
-/// HTTPQueryParamMatch describes how to select a HTTP route by matching HTTP
-/// query parameters.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HTTPRouteRulesMatchesQueryParams {
-    /// Name is the name of the HTTP query param to be matched. This must be an
-    /// exact string match. (See
-    /// https://tools.ietf.org/html/rfc7230#section-2.7.3).
-    ///
-    /// If multiple entries specify equivalent query param names, only the first
-    /// entry with an equivalent name MUST be considered for a match. Subsequent
-    /// entries with an equivalent query param name MUST be ignored.
-    ///
-    /// If a query param is repeated in an HTTP request, the behavior is
-    /// purposely left undefined, since different data planes have different
-    /// capabilities. However, it is *recommended* that implementations should
-    /// match against the first value of the param if the data plane supports it,
-    /// as this behavior is expected in other load balancing contexts outside of
-    /// the Gateway API.
-    ///
-    /// Users SHOULD NOT route traffic based on repeated query params to guard
-    /// themselves against potential differences in the implementations.
-    pub name: String,
-    /// Type specifies how to match against the value of the query parameter.
-    ///
-    /// Support: Extended (Exact)
-    ///
-    /// Support: Implementation-specific (RegularExpression)
-    ///
-    /// Since RegularExpression QueryParamMatchType has Implementation-specific
-    /// conformance, implementations can support POSIX, PCRE or any other
-    /// dialects of regular expressions. Please read the implementation's
-    /// documentation to determine the supported dialect.
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
-    pub r#type: Option<HeaderMatchesType>,
-    /// Value is the value of HTTP query param to be matched.
-    pub value: String,
-}
 /// Timeouts defines the timeouts that can be configured for an HTTP request.
 ///
 /// Support: Extended
@@ -609,23 +740,4 @@ pub struct HTTPRouteRulesTimeouts {
     /// Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub request: Option<String>,
-}
-/// Status defines the current state of HTTPRoute.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HTTPRouteStatus {
-    /// Parents is a list of parent resources (usually Gateways) that are
-    /// associated with the route, and the status of the route with respect to
-    /// each parent. When this route attaches to a parent, the controller that
-    /// manages the parent must add an entry to this list when the controller
-    /// first sees the route and should update the entry as appropriate when the
-    /// route or gateway is modified.
-    ///
-    /// Note that parent references that cannot be resolved by an implementation
-    /// of this API will not be added to this list. Implementations of this API
-    /// can only populate Route status for the Gateways/parent resources they are
-    /// responsible for.
-    ///
-    /// A maximum of 32 Gateways will be represented in this list. An empty list
-    /// means the route has not been attached to any Gateway.
-    pub parents: Vec<ParentsRouteStatus>,
 }

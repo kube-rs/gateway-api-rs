@@ -226,26 +226,6 @@ pub struct GatewayInfrastructure {
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "parametersRef")]
     pub parameters_ref: Option<GatewayInfrastructureParametersRef>,
 }
-/// ParametersRef is a reference to a resource that contains the configuration
-/// parameters corresponding to the Gateway. This is optional if the
-/// controller does not require any additional configuration.
-///
-/// This follows the same semantics as GatewayClass's `parametersRef`, but on a per-Gateway basis
-///
-/// The Gateway's GatewayClass may provide its own `parametersRef`. When both are specified,
-/// the merging behavior is implementation specific.
-/// It is generally recommended that GatewayClass provides defaults that can be overridden by a Gateway.
-///
-/// Support: Implementation-specific
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GatewayInfrastructureParametersRef {
-    /// Group is the group of the referent.
-    pub group: String,
-    /// Kind is kind of the referent.
-    pub kind: String,
-    /// Name is the name of the referent.
-    pub name: String,
-}
 /// Listener embodies the concept of a logical endpoint where a Gateway accepts
 /// network connections.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]

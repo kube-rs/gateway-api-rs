@@ -115,6 +115,14 @@ pub fn create_struct_type_name_substitute(
     }
 }
 
+pub fn read_substitute(customized_names_from_file: &BTreeMap<String, String>, i: &Ident) -> String {
+    if let Some(customized_name) = customized_names_from_file.get(&i.to_string()) {
+        customized_name.clone()
+    } else {
+        i.to_string()
+    }
+}
+
 pub fn create_enum_type_name_substitute(
     customized_names_from_file: &BTreeMap<String, String>,
     v: &[(Ident, ItemEnum)],
@@ -235,7 +243,20 @@ pub fn find_similar_types(
         .map(|(mut visitor, file)| {
             visitor.visit_file(&file);
             visitor.structs.into_iter().for_each(|i| {
-                similar_structs.insert(i.fields.clone(), (i.ident.clone(), (*i).clone()));
+                let mut fields = i.fields.clone();
+
+                fields.iter_mut().for_each(|f| {
+                    f.attrs = f
+                        .attrs
+                        .clone()
+                        .into_iter()
+                        .filter(|a| {
+                            a.meta.path().get_ident() != Some(&Ident::new("doc", Span::call_site()))
+                        })
+                        .collect::<Vec<_>>()
+                });
+
+                similar_structs.insert(fields, (i.ident.clone(), (*i).clone()));
             });
             visitor.enums.into_iter().for_each(|i| {
                 similar_enums.insert(i.variants.clone(), (i.ident.clone(), (*i).clone()));

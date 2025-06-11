@@ -91,11 +91,14 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             );
             let mapped_type_names = v.iter().map(|v| v.0.to_string()).collect::<Vec<_>>();
 
-            let type_new_name =
-                create_struct_type_name_substitute(&current_pass_type_name_substitutes, v);
+            // let type_new_name =
+            //     create_struct_type_name_substitute(&current_pass_type_name_substitutes, v);
 
-            if let Some((_i, s)) = v.first() {
-                let new_struct = create_common_type_struct(s, &type_new_name);
+            if let Some((i, s)) = v.first() {
+                let new_struct = create_common_type_struct(
+                    s,
+                    &read_substitute(&current_pass_type_name_substitutes, i),
+                );
 
                 let mut mapped = BTreeMap::new();
                 for mapped_type_name in mapped_type_names {
@@ -124,11 +127,14 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             );
             let mapped_type_names = v.iter().map(|v| v.0.to_string()).collect::<Vec<_>>();
 
-            let type_new_name =
-                create_enum_type_name_substitute(&current_pass_type_name_substitutes, v);
+            // let type_new_name =
+            //     create_enum_type_name_substitute(&current_pass_type_name_substitutes, v);
 
-            if let Some((_i, s)) = v.first() {
-                let new_enum = create_common_type_enum(s, &type_new_name);
+            if let Some((i, s)) = v.first() {
+                let new_enum = create_common_type_enum(
+                    s,
+                    &read_substitute(&current_pass_type_name_substitutes, i),
+                );
 
                 let mut mapped = BTreeMap::new();
                 for mapped_type_name in mapped_type_names {
