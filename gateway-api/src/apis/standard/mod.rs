@@ -1,4 +1,4 @@
-// WARNING! generated file do not edit
+// WARNING: generated file - manual changes will be overriden
 
 pub mod common;
 pub mod constants;

@@ -1,4 +1,4 @@
-// WARNING! generated file do not edit
+// WARNING: generated file - manual changes will be overriden
 
 #[allow(unused_imports)]
 mod prelude {

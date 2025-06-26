@@ -39,7 +39,8 @@ mod prelude {
 use self::prelude::*;";
 
 const COMMON_TYPES_USE_PREAMBLE: &str = "use super::common::*;\n";
-const GENERATED_PREAMBLE: &str = "// WARNING! generated file do not edit\n\n";
+const GENERATED_PREAMBLE: &str =
+    "// WARNING: generated file - manual changes will be overriden\n\n";
 
 pub fn read_substitute(customized_names_from_file: &BTreeMap<String, String>, i: &Ident) -> String {
     if let Some(customized_name) = customized_names_from_file.get(&i.to_string()) {
