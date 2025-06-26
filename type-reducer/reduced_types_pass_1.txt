@@ -1,12 +1,12 @@
 Condition
 GRPCFilterType
 GatewayAddress
-GatewayInfrastructureParametersRef
+GatewayInfrastructureParametersReference
 Kind
-RouteRef
-FilterExtensionRef
+ParentReference
+FilterExtensionReference
 HTTPHeader
-RequestMirrorRef
+RequestMirrorReference
 RequestOperationType
 RequestRedirectScheme
 RedirectStatusCode

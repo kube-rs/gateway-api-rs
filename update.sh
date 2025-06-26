@@ -130,47 +130,48 @@ echo "pub mod constants;" >> $APIS_DIR/experimental/mod.rs
 cargo fmt
 
 
-rm -rf $APIS_DIR/processed
-mkdir -p  $APIS_DIR/processed
+# rm -rf $APIS_DIR/processed
+# mkdir -p  $APIS_DIR/processed
 export RUST_LOG=info
 
 echo " **** PHASE 1 ***** "
 #cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/processed --previous-pass-derived-type-names ./type-reducer/reduced_types_pass_0_with_enums.txt
-cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/processed --previous-pass-derived-type-names ./type-reducer/reduced_types_pass_0.txt --current-pass-substitute-names ./type-reducer/customized_mapped_names.txt
+cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/standard reduce --previous-pass-derived-type-names ./type-reducer/reduced_types_pass_0.txt --current-pass-substitute-names ./type-reducer/customized_mapped_names.txt
 mv mapped_names.txt mapped_names_phase_1.txt
 mv mapped_types_to_names.txt mapped_types_to_names_pahse_1.txt
 echo " **** PHASE 2 ***** "
-cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/processed --out-dir $APIS_DIR/processed --previous-pass-derived-type-names ./type-reducer/reduced_types_pass_1.txt --current-pass-substitute-names ./type-reducer/customized_mapped_names.txt
+cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/standard reduce --previous-pass-derived-type-names ./type-reducer/reduced_types_pass_1.txt --current-pass-substitute-names ./type-reducer/customized_mapped_names.txt
 mv mapped_names.txt mapped_names_phase_2.txt
 mv mapped_types_to_names.txt mapped_types_to_names_pahse_2.txt
 echo " **** PHASE 3 ***** "
-cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/processed --out-dir $APIS_DIR/processed --previous-pass-derived-type-names ./type-reducer/reduced_types_pass_2.txt --current-pass-substitute-names ./type-reducer/customized_mapped_names.txt
+cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/standard reduce --previous-pass-derived-type-names ./type-reducer/reduced_types_pass_2.txt --current-pass-substitute-names ./type-reducer/customized_mapped_names.txt
 mv mapped_names.txt mapped_names_phase_3.txt
 mv mapped_types_to_names.txt mapped_types_to_names_pahse_3.txt
 echo " **** PHASE 4 ***** "
-cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/processed --out-dir $APIS_DIR/processed --previous-pass-derived-type-names ./type-reducer/reduced_types_pass_3.txt --current-pass-substitute-names ./type-reducer/customized_mapped_names.txt
-# cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/processed --out-dir $APIS_DIR/processed --previous-pass-derived-type-names ./type-reducer/reduced_types_pass_3_with_enums.txt --current-pass-substitute-names ./type-reducer/customized_mapped_names_pass_4_with_enums.txt
+cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/standard reduce --previous-pass-derived-type-names ./type-reducer/reduced_types_pass_3.txt --current-pass-substitute-names ./type-reducer/customized_mapped_names.txt
 mv mapped_names.txt mapped_names_phase_4.txt
 mv mapped_types_to_names.txt mapped_types_to_names_pahse_4.txt
+echo " **** PHASE 5 ***** "
+cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/standard rename --rename-only-substitute-names ./type-reducer/rename_only_mapped_names.txt
 
-cat << EOF >> $APIS_DIR/mod.rs
+# cat << EOF >> $APIS_DIR/mod.rs
 
-pub mod processed;
-EOF
+# pub mod processed;
+# EOF
 
 ENUMS=(
     GRPCFilterType=RequestHeaderModifier
     RequestOperationType=ReplaceFullPath
-    HTTPFilterType=RequestHeaderModifier
+    HTTPFilterType=RequestHeaderModifier    
 )
 
 ENUMS_WITH_DEFAULTS=$(printf ",%s" "${ENUMS[@]}")
 ENUMS_WITH_DEFAULTS=${ENUMS_WITH_DEFAULTS:1}
-echo "use super::common_types::*;" > $APIS_DIR/processed/enum_defaults.rs
-GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults >> $APIS_DIR/processed/enum_defaults.rs
+echo "use super::common::*;" > $APIS_DIR/standard/enum_defaults.rs
+GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults >> $APIS_DIR/standard/enum_defaults.rs
 
-sed -i '/#\[kube(status = "GRPCRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' ./gateway-api/src/apis/processed/grpcroutes.rs
-sed -i '/#\[kube(status = "HTTPRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' ./gateway-api/src/apis/processed/httproutes.rs
+sed -i '/#\[kube(status = "GRPCRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/grpcroutes.rs
+sed -i '/#\[kube(status = "HTTPRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/httproutes.rs
 
 
 

@@ -8,9 +8,6 @@ pub use apis::standard::*;
 #[cfg(feature = "experimental")]
 pub use apis::experimental;
 
-#[cfg(feature = "processed")]
-pub use apis::processed::*;
-
 #[cfg(test)]
 mod tests {
     use std::process::Command;
@@ -31,14 +28,13 @@ mod tests {
     use uuid::Uuid;
 
     use crate::{
+        apis::standard::common::GatewayAddress,
         apis::standard::constants::{
             GatewayConditionReason, GatewayConditionType, ListenerConditionReason,
             ListenerConditionType,
         },
         apis::standard::gatewayclasses::{GatewayClass, GatewayClassSpec},
-        apis::standard::gateways::{
-            Gateway, GatewaySpec, GatewayStatus, GatewayStatusAddresses, GatewayStatusListeners,
-        },
+        apis::standard::gateways::{Gateway, GatewaySpec, GatewayStatus, GatewayStatusListeners},
     };
 
     // -------------------------------------------------------------------------
@@ -92,29 +88,30 @@ mod tests {
         assert!(gw.metadata.name.is_some());
         assert!(gw.metadata.uid.is_some());
 
-        let mut gw_status = GatewayStatus::default();
-        gw_status.addresses = Some(vec![GatewayStatusAddresses::default()]);
-        gw_status.listeners = Some(vec![GatewayStatusListeners {
-            name: "tcp".into(),
-            attached_routes: 0,
-            supported_kinds: vec![],
-            conditions: vec![Condition {
+        let gw_status = GatewayStatus {
+            addresses: Some(vec![GatewayAddress::default()]),
+            listeners: Some(vec![GatewayStatusListeners {
+                name: "tcp".into(),
+                attached_routes: 0,
+                supported_kinds: vec![],
+                conditions: vec![Condition {
+                    last_transition_time: Time(Utc::now()),
+                    message: "testing gateway".to_string(),
+                    observed_generation: Some(1),
+                    reason: ListenerConditionReason::Programmed.to_string(),
+                    status: "True".to_string(),
+                    type_: ListenerConditionType::Programmed.to_string(),
+                }],
+            }]),
+            conditions: Some(vec![Condition {
                 last_transition_time: Time(Utc::now()),
                 message: "testing gateway".to_string(),
                 observed_generation: Some(1),
-                reason: ListenerConditionReason::Programmed.to_string(),
+                reason: GatewayConditionReason::Programmed.to_string(),
                 status: "True".to_string(),
-                type_: ListenerConditionType::Programmed.to_string(),
-            }],
-        }]);
-        gw_status.conditions = Some(vec![Condition {
-            last_transition_time: Time(Utc::now()),
-            message: "testing gateway".to_string(),
-            observed_generation: Some(1),
-            reason: GatewayConditionReason::Programmed.to_string(),
-            status: "True".to_string(),
-            type_: GatewayConditionType::Programmed.to_string(),
-        }]);
+                type_: GatewayConditionType::Programmed.to_string(),
+            }]),
+        };
 
         gw = Api::default_namespaced(client)
             .patch_status(
@@ -144,9 +141,8 @@ mod tests {
 
     impl Drop for Cluster {
         fn drop(&mut self) {
-            match delete_kind_cluster(&self.name) {
-                Err(err) => panic!("failed to cleanup kind cluster {}: {}", self.name, err),
-                Ok(()) => {}
+            if let Err(err) = delete_kind_cluster(&self.name) {
+                panic!("failed to cleanup kind cluster {}: {}", self.name, err)
             }
         }
     }

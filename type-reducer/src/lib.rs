@@ -9,7 +9,6 @@ use proc_macro2::{Ident, Span};
 use std::fs::OpenOptions;
 use std::io;
 use std::io::BufRead;
-use std::io::Seek;
 use std::io::Write;
 use std::path::Path;
 use syn::Fields;
@@ -28,6 +27,7 @@ use syn::visit_mut::VisitMut;
 mod visitors;
 pub use visitors::*;
 
+pub const COMMON_TYPES_MOD_NAME: &str = "common";
 const COMMON_TYPES_FILE_PREAMBLE: &str = "#[allow(unused_imports)]
 mod prelude {
     pub use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
@@ -38,108 +38,14 @@ mod prelude {
 }
 use self::prelude::*;";
 
-const COMMON_TYPES_USE_PREAMBLE: &str = "use super::common_types::*;";
+const COMMON_TYPES_USE_PREAMBLE: &str = "use super::common::*;\n";
 const GENERATED_PREAMBLE: &str = "// WARNING! generated file do not edit\n\n";
-
-fn break_into_words(type_name: &str) -> Vec<String> {
-    let mut words = vec![];
-    let mut current_word = String::new();
-
-    for t in type_name.chars().tuple_windows() {
-        let (current, next, next_next) = t;
-        if current.is_uppercase() {
-            if next.is_uppercase() {
-                current_word.push(current);
-                if !next_next.is_uppercase() {
-                    words.push(current_word);
-                    current_word = String::new();
-                }
-            } else {
-                current_word.push(current);
-            }
-        } else {
-            current_word.push(current);
-            if next.is_uppercase() {
-                words.push(current_word);
-                current_word = String::new();
-            }
-        }
-    }
-    let len = type_name.len() - 2;
-    if len > 0 {
-        current_word += &type_name[len..];
-        words.push(current_word);
-    } else {
-        words.push(type_name.to_owned());
-    }
-
-    words
-}
-
-pub fn common_words(words_sets: &[Vec<String>]) -> Vec<String> {
-    let word_sets: Vec<BTreeSet<String>> = words_sets
-        .iter()
-        .cloned()
-        .map(BTreeSet::from_iter)
-        .collect();
-
-    let mut intersection = if let Some(first) = word_sets.first() {
-        first.clone()
-    } else {
-        return vec![];
-    };
-
-    for word_set in word_sets {
-        intersection = intersection.intersection(&word_set).cloned().collect();
-    }
-    Vec::from_iter(intersection)
-}
-
-pub fn create_struct_type_name_substitute(
-    customized_names_from_file: &BTreeMap<String, String>,
-    v: &[(Ident, ItemStruct)],
-) -> String {
-    let words: Vec<Vec<String>> = v
-        .iter()
-        .map(|v| break_into_words(&v.0.to_string()))
-        .collect();
-
-    let common_words = common_words(&words);
-
-    let new_name = common_words.iter().cloned().collect::<String>();
-
-    if let Some(customized_name) = customized_names_from_file.get(&new_name) {
-        customized_name.clone()
-    } else {
-        new_name
-    }
-}
 
 pub fn read_substitute(customized_names_from_file: &BTreeMap<String, String>, i: &Ident) -> String {
     if let Some(customized_name) = customized_names_from_file.get(&i.to_string()) {
         customized_name.clone()
     } else {
         i.to_string()
-    }
-}
-
-pub fn create_enum_type_name_substitute(
-    customized_names_from_file: &BTreeMap<String, String>,
-    v: &[(Ident, ItemEnum)],
-) -> String {
-    let words: Vec<Vec<String>> = v
-        .iter()
-        .map(|v| break_into_words(&v.0.to_string()))
-        .collect();
-
-    let common_words = common_words(&words);
-
-    let new_name = common_words.iter().cloned().collect::<String>();
-
-    if let Some(customized_name) = customized_names_from_file.get(&new_name) {
-        customized_name.clone()
-    } else {
-        new_name
     }
 }
 
@@ -273,7 +179,7 @@ pub fn find_similar_types(
 }
 
 pub fn prune_replaced_structs(
-    renaming_visitor: &mut StructEnumRenamer,
+    renaming_visitor: &mut StructEnumFieldsRenamer,
     visitors: Vec<(String, File)>,
 ) -> Vec<(String, String, bool)> {
     visitors
@@ -292,15 +198,17 @@ pub fn prune_replaced_structs(
         .collect()
 }
 
-fn generate_file_preamble(
+pub fn generate_file_preamble(
     changed: bool,
     content: &str,
     output_path: &Path,
     name: &str,
 ) -> Result<std::fs::File, Box<dyn std::error::Error + Send + Sync>> {
+    let output_path = output_path.join(name);
+
     if changed {
-        info!("Writing changed file {name}");
-        let mut out_file = std::fs::File::create(output_path.join(name))?;
+        info!("Writing changed file {}", output_path.display());
+        let mut out_file = std::fs::File::create(output_path)?;
         if !content.starts_with(GENERATED_PREAMBLE) {
             out_file.write_all(GENERATED_PREAMBLE.as_bytes())?;
         }
@@ -310,8 +218,8 @@ fn generate_file_preamble(
         }
         Ok(out_file)
     } else {
-        info!("Writing NOT changed file {name}");
-        let mut out_file = std::fs::File::create(output_path.join(name))?;
+        info!("Writing NOT changed file {}", output_path.display());
+        let mut out_file = std::fs::File::create(output_path)?;
         if !content.starts_with(GENERATED_PREAMBLE) {
             out_file.write_all(GENERATED_PREAMBLE.as_bytes())?;
         }
@@ -336,7 +244,7 @@ pub fn recreate_project_files(
         let mut mod_file = std::fs::File::create(output_path.join("mod.rs"))?;
         mod_file.write_all(GENERATED_PREAMBLE.as_bytes())?;
 
-        let mut mod_names = vec!["pub mod common_types;".to_owned()];
+        let mut mod_names = vec![format!("pub mod {COMMON_TYPES_MOD_NAME};")];
 
         for (name, content, changed) in unparsed_files {
             let mut out_file = generate_file_preamble(changed, &content, output_path, &name)?;
@@ -348,14 +256,12 @@ pub fn recreate_project_files(
             mod_file.write_all((mod_name + "\n").as_bytes())?;
         }
 
-        let common_types_file_name = output_path.join("common_types.rs");
+        let common_types_file_name = output_path.join(COMMON_TYPES_MOD_NAME.to_owned() + ".rs");
 
         if common_types_file_name.exists() {
             let mut common_out_file = OpenOptions::new()
                 .append(true)
                 .open(common_types_file_name)?;
-
-            info!("Current position  {}", common_out_file.stream_position()?);
 
             common_out_file.write_all("\n\n// Next attempt \n\n".as_bytes())?;
             common_out_file.write_all(common_types.as_bytes())?;
@@ -395,72 +301,6 @@ pub fn create_common_type_struct(s: &ItemStruct, type_new_name: &str) -> ItemStr
 
 pub fn create_common_type_enum(s: &ItemEnum, type_new_name: &str) -> ItemEnum {
     let mut new_enum = s.clone();
-
-    // new_enum.attrs = s
-    //     .attrs
-    //     .iter()
-    //     .filter(|&a| a.meta.path().get_ident() != Some(&Ident::new("doc", Span::call_site())))
-    //     .cloned()
-    //     .collect();
-    // new_enum.attrs = s.attrs.clone();
-    // let attributes: Vec<_> = new_enum
-    //     .attrs
-    //     .iter_mut()
-    //     .filter(|a| {
-    //         if let Ok(s) = a.meta.require_list() {
-    //             if let Some(s) = s.path.segments.first() {
-    //                 s.ident == Ident::new("derive", Span::call_site())
-    //             } else {
-    //                 false
-    //             }
-    //         } else {
-    //             false
-    //         }
-    //     })
-    //     .map(|a| {
-    //         let mut new_attr = a.clone();
-    //         if let Ok(s) = a.meta.require_list() {
-    //             let mut new_meta = s.clone();
-    //             let mut new_tokens = new_meta.tokens.clone();
-    //             //new_tokens.extend(TokenStream::from_str(", Default").unwrap());
-    //             new_meta.tokens = new_tokens;
-    //             warn!("Enum tokens {:?}", new_meta.tokens.to_string());
-    //             new_attr.meta = Meta::List(new_meta);
-    //         }
-    //         new_attr
-    //     })
-    //     .collect();
-
-    // new_enum.attrs = attributes;
-    // warn!("New enum = {:?}", new_enum);
-
     new_enum.ident = Ident::new(type_new_name, Span::call_site());
     new_enum
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::break_into_words;
-
-    #[test]
-    fn test_word_breaking() {
-        let expected_words = [
-            "GRPC", "Route", "Rules", "Backend", "Refs", "Filters", "Request", "Mirror", "Backend",
-            "Ref",
-        ];
-        let words = break_into_words("GRPCRouteRulesBackendRefsFiltersRequestMirrorBackendRef");
-        assert_eq!(expected_words.to_vec(), words);
-
-        let expected_words = [
-            "GRPC", "Route", "Rules", "Backend", "Refs", "Filters", "Request", "HTTPS", "Mirror",
-            "Backend", "Ref",
-        ];
-        let words =
-            break_into_words("GRPCRouteRulesBackendRefsFiltersRequestHTTPSMirrorBackendRef");
-        assert_eq!(expected_words.to_vec(), words);
-
-        let expected_words = ["f", "RP"];
-        let words = break_into_words("fRP");
-        assert_eq!(expected_words.to_vec(), words);
-    }
 }

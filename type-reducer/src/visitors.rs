@@ -27,7 +27,12 @@ pub struct StructEnumVisitor<'ast, 'b> {
     pub derived_type_names: &'b BTreeSet<String>,
 }
 
-pub struct StructEnumRenamer {
+pub struct StructEnumFieldsRenamer {
+    pub changed: bool,
+    pub names: BTreeMap<String, String>,
+}
+
+pub struct StructEnumNameRenamer {
     pub changed: bool,
     pub names: BTreeMap<String, String>,
 }
@@ -103,7 +108,7 @@ impl<'ast, 'b> Visit<'ast> for StructEnumVisitor<'ast, 'b> {
     }
 }
 
-impl VisitMut for StructEnumRenamer {
+impl VisitMut for StructEnumFieldsRenamer {
     fn visit_item_struct_mut(&mut self, node: &mut ItemStruct) {
         debug!(
             "Visiting and changing fields in struct name == {}",
@@ -125,6 +130,50 @@ impl VisitMut for StructEnumRenamer {
         });
 
         visit_mut::visit_item_struct_mut(self, node);
+    }
+}
+
+impl VisitMut for StructEnumNameRenamer {
+    fn visit_item_struct_mut(&mut self, node: &mut ItemStruct) {
+        debug!(
+            "Visiting and renaming struct name in struct name == {}",
+            node.ident
+        );
+
+        if let Some(new_name) = self.names.get(&node.ident.to_string()) {
+            self.changed = true;
+            node.ident = Ident::new(new_name, Span::call_site());
+        };
+
+        debug!(
+            "Visiting and changing fields in struct name == {}",
+            node.ident
+        );
+
+        node.fields.iter_mut().for_each(|f| {
+            let ty = f.ty.clone();
+            if let Type::Path(path_type) = &mut f.ty {
+                trace!(
+                    "\twith field name = {:?} \n\t\tfield type = {:?}",
+                    f.ident, ty
+                );
+
+                for segment in &mut path_type.path.segments {
+                    self.changed |= rewrite_ident(segment, &self.names);
+                }
+            }
+        });
+
+        visit_mut::visit_item_struct_mut(self, node);
+    }
+
+    fn visit_item_enum_mut(&mut self, node: &mut ItemEnum) {
+        debug!("Visiting and renaming enum name  == {}", node.ident);
+
+        if let Some(new_name) = self.names.get(&node.ident.to_string()) {
+            self.changed = true;
+            node.ident = Ident::new(new_name, Span::call_site());
+        };
     }
 }
 
