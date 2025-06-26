@@ -11,16 +11,7 @@ mod prelude {
 }
 use self::prelude::*;
 /// Spec defines the desired state of Gateway.
-#[derive(
-    CustomResource,
-    Serialize,
-    Deserialize,
-    Clone,
-    Debug,
-    JsonSchema,
-    Default,
-    PartialEq
-)]
+#[derive(CustomResource, Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 #[kube(
     group = "gateway.networking.k8s.io",
     version = "v1",
@@ -223,7 +214,11 @@ pub struct GatewayInfrastructure {
     /// It is generally recommended that GatewayClass provides defaults that can be overridden by a Gateway.
     ///
     /// Support: Implementation-specific
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "parametersRef")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "parametersRef"
+    )]
     pub parameters_ref: Option<GatewayInfrastructureParametersReference>,
 }
 /// Listener embodies the concept of a logical endpoint where a Gateway accepts
@@ -254,7 +249,11 @@ pub struct GatewayListeners {
     /// of the rules within that Route should still be supported.
     ///
     /// Support: Core
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "allowedRoutes")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "allowedRoutes"
+    )]
     pub allowed_routes: Option<GatewayListenersAllowedRoutes>,
     /// Hostname specifies the virtual hostname to match for protocol types that
     /// define this concept. When unspecified, all hostnames are matched. This
@@ -406,13 +405,16 @@ pub struct GatewayListenersAllowedRoutesNamespacesSelector {
         skip_serializing_if = "Option::is_none",
         rename = "matchExpressions"
     )]
-    pub match_expressions: Option<
-        Vec<GatewayListenersAllowedRoutesNamespacesSelectorMatchExpressions>,
-    >,
+    pub match_expressions:
+        Option<Vec<GatewayListenersAllowedRoutesNamespacesSelectorMatchExpressions>>,
     /// matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
     /// map is equivalent to an element of matchExpressions, whose key field is "key", the
     /// operator is "In", and the values array contains only "value". The requirements are ANDed.
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "matchLabels")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "matchLabels"
+    )]
     pub match_labels: Option<BTreeMap<String, String>>,
 }
 /// A label selector requirement is a selector that contains values, a key, and an operator that

@@ -38,14 +38,13 @@ uuid.workspace = true
 features = ["k8s-openapi/v1_32"]
 
 [features]
-default = ["processed"]
+default = ["standard", "experimental"]
 standard = []
 experimental = []
-processed=[]
 
 
 [lints.clippy]
-derivable_impls="allow"
-doc_lazy_continuation="allow"
-tabs_in_doc_comments="allow"
-empty_line_after_doc_comments="allow"
+derivable_impls = "allow"
+doc_lazy_continuation = "allow"
+tabs_in_doc_comments = "allow"
+empty_line_after_doc_comments = "allow"

@@ -10,16 +10,7 @@ mod prelude {
 }
 use self::prelude::*;
 /// Spec defines the desired state of HTTPRoute.
-#[derive(
-    CustomResource,
-    Serialize,
-    Deserialize,
-    Clone,
-    Debug,
-    JsonSchema,
-    Default,
-    PartialEq
-)]
+#[derive(CustomResource, Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 #[kube(
     group = "gateway.networking.k8s.io",
     version = "v1",
@@ -143,7 +134,11 @@ pub struct HTTPRouteSpec {
     ///
     ///
     ///
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "parentRefs")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "parentRefs"
+    )]
     pub parent_refs: Option<Vec<ParentReference>>,
     /// Rules are a list of HTTP matchers, filters and actions.
     ///
@@ -191,7 +186,11 @@ pub struct HTTPRouteRule {
     /// Support: Implementation-specific for any other resource
     ///
     /// Support for weight: Core
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "backendRefs")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "backendRefs"
+    )]
     pub backend_refs: Option<Vec<HTTPBackendReference>>,
     /// Filters define the filters that are applied to requests that match
     /// this rule.
@@ -400,7 +399,11 @@ pub struct HTTPRouteBackendFilter {
     /// This filter can be used multiple times within the same rule.
     ///
     /// Support: Implementation-specific
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "extensionRef")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "extensionRef"
+    )]
     pub extension_ref: Option<GatewayInfrastructureParametersReference>,
     /// RequestHeaderModifier defines a schema for a filter that modifies request
     /// headers.
@@ -423,7 +426,11 @@ pub struct HTTPRouteBackendFilter {
     /// Support: Extended
     ///
     ///
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestMirror")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "requestMirror"
+    )]
     pub request_mirror: Option<RequestMirror>,
     /// RequestRedirect defines a schema for a filter that responds to the
     /// request with an HTTP redirection.
@@ -482,7 +489,11 @@ pub struct HTTPRouteBackendFilter {
     /// URLRewrite defines a schema for a filter that modifies a request during forwarding.
     ///
     /// Support: Extended
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "urlRewrite")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "urlRewrite"
+    )]
     pub url_rewrite: Option<HTTPRouteUrlRewrite>,
 }
 /// HTTPRouteFilter defines processing steps that must be completed during the
@@ -501,7 +512,11 @@ pub struct HTTPRouteFilter {
     /// This filter can be used multiple times within the same rule.
     ///
     /// Support: Implementation-specific
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "extensionRef")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "extensionRef"
+    )]
     pub extension_ref: Option<GatewayInfrastructureParametersReference>,
     /// RequestHeaderModifier defines a schema for a filter that modifies request
     /// headers.
@@ -524,7 +539,11 @@ pub struct HTTPRouteFilter {
     /// Support: Extended
     ///
     ///
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestMirror")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "requestMirror"
+    )]
     pub request_mirror: Option<RequestMirror>,
     /// RequestRedirect defines a schema for a filter that responds to the
     /// request with an HTTP redirection.
@@ -583,7 +602,11 @@ pub struct HTTPRouteFilter {
     /// URLRewrite defines a schema for a filter that modifies a request during forwarding.
     ///
     /// Support: Extended
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "urlRewrite")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "urlRewrite"
+    )]
     pub url_rewrite: Option<HTTPRouteUrlRewrite>,
 }
 /// HTTPRouteMatch defines the predicate used to match requests to a given
@@ -626,7 +649,11 @@ pub struct RouteMatch {
     /// specified query parameters to select the route.
     ///
     /// Support: Extended
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "queryParams")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "queryParams"
+    )]
     pub query_params: Option<Vec<HeaderMatch>>,
 }
 /// HTTPRouteMatch defines the predicate used to match requests to a given
@@ -714,7 +741,11 @@ pub struct HTTPRouteTimeout {
     /// Request timeout (since the Request timeout encompasses the BackendRequest timeout).
     ///
     /// Support: Extended
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "backendRequest")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "backendRequest"
+    )]
     pub backend_request: Option<String>,
     /// Request specifies the maximum duration for a gateway to respond to an HTTP request.
     /// If the gateway has not been able to respond before this deadline is met, the gateway

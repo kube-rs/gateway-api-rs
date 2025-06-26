@@ -130,34 +130,24 @@ echo "pub mod constants;" >> $APIS_DIR/experimental/mod.rs
 cargo fmt
 
 
-# rm -rf $APIS_DIR/processed
-# mkdir -p  $APIS_DIR/processed
 export RUST_LOG=info
 
 echo " **** PHASE 1 ***** "
-#cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/processed --previous-pass-derived-type-names ./type-reducer/reduced_types_pass_0_with_enums.txt
-cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/standard reduce --previous-pass-derived-type-names ./type-reducer/reduced_types_pass_0.txt --current-pass-substitute-names ./type-reducer/customized_mapped_names.txt
-mv mapped_names.txt mapped_names_phase_1.txt
-mv mapped_types_to_names.txt mapped_types_to_names_pahse_1.txt
+cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/standard reduce --previous-pass-derived-type-names ./type-reducer/standard_reduced_types_pass_0.txt --current-pass-substitute-names ./type-reducer/standard_customized_mapped_names.txt
+mv mapped_names.txt standard_mapped_names_phase_1.txt
+mv mapped_types_to_names.txt standard_mapped_types_to_names_phase_1.txt
 echo " **** PHASE 2 ***** "
-cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/standard reduce --previous-pass-derived-type-names ./type-reducer/reduced_types_pass_1.txt --current-pass-substitute-names ./type-reducer/customized_mapped_names.txt
-mv mapped_names.txt mapped_names_phase_2.txt
-mv mapped_types_to_names.txt mapped_types_to_names_pahse_2.txt
+cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/standard reduce --previous-pass-derived-type-names ./type-reducer/standard_reduced_types_pass_1.txt --current-pass-substitute-names ./type-reducer/standard_customized_mapped_names.txt
+mv mapped_names.txt standard_mapped_names_phase_2.txt
+mv mapped_types_to_names.txt standard_mapped_types_to_names_phase_2.txt
 echo " **** PHASE 3 ***** "
-cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/standard reduce --previous-pass-derived-type-names ./type-reducer/reduced_types_pass_2.txt --current-pass-substitute-names ./type-reducer/customized_mapped_names.txt
-mv mapped_names.txt mapped_names_phase_3.txt
-mv mapped_types_to_names.txt mapped_types_to_names_pahse_3.txt
-echo " **** PHASE 4 ***** "
-cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/standard reduce --previous-pass-derived-type-names ./type-reducer/reduced_types_pass_3.txt --current-pass-substitute-names ./type-reducer/customized_mapped_names.txt
-mv mapped_names.txt mapped_names_phase_4.txt
-mv mapped_types_to_names.txt mapped_types_to_names_pahse_4.txt
-echo " **** PHASE 5 ***** "
-cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/standard rename --rename-only-substitute-names ./type-reducer/rename_only_mapped_names.txt
+cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/standard reduce --previous-pass-derived-type-names ./type-reducer/standard_reduced_types_pass_2.txt --current-pass-substitute-names ./type-reducer/standard_customized_mapped_names.txt
+mv mapped_names.txt standard_mapped_names_phase_3.txt
+mv mapped_types_to_names.txt standard_mapped_types_to_names_phase_3.txt
 
-# cat << EOF >> $APIS_DIR/mod.rs
+echo " **** RENAMING PHASE ***** "
+cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/standard rename --rename-only-substitute-names ./type-reducer/standard_rename_only_mapped_names.txt
 
-# pub mod processed;
-# EOF
 
 ENUMS=(
     GRPCFilterType=RequestHeaderModifier
@@ -175,3 +165,40 @@ sed -i '/#\[kube(status = "HTTPRouteStatus")\]/c\#\[kube(status = "RouteStatus")
 
 
 
+export RUST_LOG=info
+cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/experimental --out-dir $APIS_DIR/experimental reduce --previous-pass-derived-type-names ./type-reducer/experimental_reduced_types_pass_0.txt --current-pass-substitute-names ./type-reducer/experimental_customized_mapped_names.txt
+mv mapped_names.txt experimental_mapped_names_phase_1.txt
+mv mapped_types_to_names.txt experimental_mapped_types_to_names_phase_1.txt
+echo " **** PHASE 2 ***** "
+cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/experimental --out-dir $APIS_DIR/experimental reduce --previous-pass-derived-type-names ./type-reducer/experimental_reduced_types_pass_1.txt --current-pass-substitute-names ./type-reducer/experimental_customized_mapped_names.txt
+mv mapped_names.txt experimental_mapped_names_phase_2.txt
+mv mapped_types_to_names.txt experimental_mapped_types_to_names_phase_2.txt
+echo " **** PHASE 3 ***** "
+cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/experimental --out-dir $APIS_DIR/experimental reduce --previous-pass-derived-type-names ./type-reducer/experimental_reduced_types_pass_2.txt --current-pass-substitute-names ./type-reducer/experimental_customized_mapped_names.txt --ignorable-type-names ./type-reducer/experimental_ignorable_mapped_names.txt
+mv mapped_names.txt experimental_mapped_names_phase_3.txt
+mv mapped_types_to_names.txt experimental_mapped_types_to_names_phase_3.txt
+echo " **** PHASE 4 ***** "
+cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/experimental --out-dir $APIS_DIR/experimental reduce --previous-pass-derived-type-names ./type-reducer/experimental_reduced_types_pass_3.txt --current-pass-substitute-names ./type-reducer/experimental_customized_mapped_names.txt --ignorable-type-names ./type-reducer/experimental_ignorable_mapped_names.txt
+mv mapped_names.txt experimental_mapped_names_phase_4.txt
+mv mapped_types_to_names.txt experimental_mapped_types_to_names_phase_4.txt
+
+echo " **** RENAMING PHASE ***** "
+cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/experimental --out-dir $APIS_DIR/experimental rename --rename-only-substitute-names ./type-reducer/experimental_rename_only_mapped_names.txt
+
+
+ENUMS=(
+    GRPCFilterType=RequestHeaderModifier
+    RequestOperationType=ReplaceFullPath
+    HTTPFilterType=RequestHeaderModifier    
+)
+
+ENUMS_WITH_DEFAULTS=$(printf ",%s" "${ENUMS[@]}")
+ENUMS_WITH_DEFAULTS=${ENUMS_WITH_DEFAULTS:1}
+echo "use super::common::*;" > $APIS_DIR/experimental/enum_defaults.rs
+GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults >> $APIS_DIR/experimental/enum_defaults.rs
+
+sed -i '/#\[kube(status = "GRPCRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/grpcroutes.rs
+sed -i '/#\[kube(status = "HTTPRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/httproutes.rs
+sed -i '/#\[kube(status = "TLSRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/tlsroutes.rs
+sed -i '/#\[kube(status = "UDPRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/udproutes.rs
+sed -i '/#\[kube(status = "TCPRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/tcproutes.rs

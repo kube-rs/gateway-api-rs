@@ -10,16 +10,7 @@ mod prelude {
 }
 use self::prelude::*;
 /// Spec defines the desired state of GRPCRoute.
-#[derive(
-    CustomResource,
-    Serialize,
-    Deserialize,
-    Clone,
-    Debug,
-    JsonSchema,
-    Default,
-    PartialEq
-)]
+#[derive(CustomResource, Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 #[kube(
     group = "gateway.networking.k8s.io",
     version = "v1",
@@ -140,7 +131,11 @@ pub struct GRPCRouteSpec {
     ///
     ///
     ///
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "parentRefs")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "parentRefs"
+    )]
     pub parent_refs: Option<Vec<ParentReference>>,
     /// Rules are a list of GRPC matchers, filters and actions.
     ///
@@ -181,7 +176,11 @@ pub struct GRPCRouteRule {
     /// Support: Implementation-specific for any other resource
     ///
     /// Support for weight: Core
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "backendRefs")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "backendRefs"
+    )]
     pub backend_refs: Option<Vec<GRPCBackendReference>>,
     /// Filters define the filters that are applied to requests that match
     /// this rule.

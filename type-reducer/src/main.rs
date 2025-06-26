@@ -1,6 +1,7 @@
 use clap::Parser;
 use clap::Subcommand;
 use itertools::Itertools;
+use log::debug;
 use log::info;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
@@ -25,6 +26,9 @@ struct ReduceArgs {
 
     #[arg(long)]
     previous_pass_derived_type_names: PathBuf,
+
+    #[arg(long)]
+    ignorable_type_names: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Parser)]
@@ -75,6 +79,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             let ReduceArgs {
                 current_pass_substitute_names,
                 previous_pass_derived_type_names,
+                ignorable_type_names,
             } = args;
             let previous_pass_derived_type_names =
                 read_type_names_from_file(previous_pass_derived_type_names.as_path())?;
@@ -82,8 +87,20 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             let current_pass_type_name_substitutes =
                 read_type_mappings_from_file(current_pass_substitute_names.as_path())?;
 
+            let ignorable_type_names =
+                if let Some(ignorable_type_names) = ignorable_type_names.as_ref() {
+                    read_type_mappings_from_file(ignorable_type_names.as_path())?
+                } else {
+                    BTreeMap::new()
+                };
+
             let visitors = create_visitors(&apis_dir, &previous_pass_derived_type_names)?;
-            handle_reduce_types(current_pass_type_name_substitutes, visitors, &out_dir)
+            handle_reduce_types(
+                current_pass_type_name_substitutes,
+                visitors,
+                &out_dir,
+                ignorable_type_names,
+            )
         }
     }
 }
@@ -92,6 +109,7 @@ fn handle_reduce_types(
     current_pass_type_name_substitutes: BTreeMap<String, String>,
     visitors: Vec<(StructEnumVisitor<'_, '_>, syn::File)>,
     out_dir: &str,
+    ignorable_types: BTreeMap<String, String>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let FindSimilarTypesResult {
         visitors,
@@ -108,6 +126,19 @@ fn handle_reduce_types(
                 v.iter().map(|(i, _)| i.to_string()).collect::<Vec<_>>()
             );
             let mapped_type_names = v.iter().map(|v| v.0.to_string()).collect::<Vec<_>>();
+
+            let mut ignore = false;
+            if !ignorable_types.is_empty() {
+                for mapped_type in &mapped_type_names {
+                    if ignorable_types.contains_key(mapped_type) {
+                        debug!("Ignoring type {mapped_type}");
+                        ignore = true;
+                    }
+                }
+            }
+            if ignore {
+                return None;
+            }
 
             // let type_new_name =
             //     create_struct_type_name_substitute(&current_pass_type_name_substitutes, v);

@@ -9,16 +9,7 @@ mod prelude {
 }
 use self::prelude::*;
 /// Spec defines the desired state of GatewayClass.
-#[derive(
-    CustomResource,
-    Serialize,
-    Deserialize,
-    Clone,
-    Debug,
-    JsonSchema,
-    Default,
-    PartialEq
-)]
+#[derive(CustomResource, Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 #[kube(
     group = "gateway.networking.k8s.io",
     version = "v1",
@@ -60,7 +51,11 @@ pub struct GatewayClassSpec {
     /// It is generally recommended that GatewayClass provides defaults that can be overridden by a Gateway.
     ///
     /// Support: Implementation-specific
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "parametersRef")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "parametersRef"
+    )]
     pub parameters_ref: Option<GatewayClassParametersRef>,
 }
 /// ParametersRef is a reference to a resource that contains the configuration

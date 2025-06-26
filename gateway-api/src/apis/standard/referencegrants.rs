@@ -8,16 +8,7 @@ mod prelude {
 }
 use self::prelude::*;
 /// Spec defines the desired state of ReferenceGrant.
-#[derive(
-    CustomResource,
-    Serialize,
-    Deserialize,
-    Clone,
-    Debug,
-    JsonSchema,
-    Default,
-    PartialEq
-)]
+#[derive(CustomResource, Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 #[kube(
     group = "gateway.networking.k8s.io",
     version = "v1beta1",
