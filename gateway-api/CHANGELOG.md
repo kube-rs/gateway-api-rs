@@ -10,7 +10,7 @@ The structure of APIs has changed to promote the re-use of types in the generate
 While with this approach we can significantly reduce the surface of exposed APIs, it is also a breaking change.
 See [issue](https://github.com/kube-rs/gateway-api-rs/issues/38) for more context.
 
-## 0.1.0
+## 0.16.0
 
 ### Changed
 Initial release. All types are generated with Kopium.
