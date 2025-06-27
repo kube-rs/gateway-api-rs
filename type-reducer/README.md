@@ -1,38 +1,48 @@
-# ast_parser
+## Type Reduction 
 
-Usage :
+This application will parse Kopium generated files and will try to identify the types that are potentially the same. The new types will be saved into "common" mod with a new, user selected name and the code will be updated with the new names.
+The overall approach has three steps.
 
-Will create common types and create APIs using those. Additionally will output the mapped types to "./mapped_types_to_names.txt" and "./mapped_names.txt" files. ./mapped_names.txt can be use as a source to provide some customer/more sensible substitutes for type names in step two.
+### 1. Reducing leaf types.
+The algorithm will try to identify the structs that can be reduced or "leaf" types. Leaf types are the types with fields which are simple types (String, u32, u64) or types reduced in the previous steps. As the output, the application will produce files with "mappings". 
 
-1. Step 1 - Reducing leaf types, all structs that only simple types or arrays of simple types such as String, u32, etc. 
-```bash
-cargo run -- --apis-dir ../gateway-api/src/apis/standard --out-dir ../gateway-api/src/apis/processed --previous-pass-derived-type-names mapped_names.txt  --current-pass-derived-type-prefix=Common
-```
+### 2. Provide new names
+The mappings from step 1 should be used to provide new, user selected names.
 
-2. Step 2 (Optional)
-Create a file with new type names. The file format is like this:
-```
-# type_name->new_type_name where type_name is taken from ./mapped_names.txt
 
-CommonAddressesGateway->AddressGateway
-CommonBackendFiltersMirrorRefRequestRouteRules->MirrorBackendRef
-CommonExtensionFiltersRefRouteRules->FilterExtensionRef
-CommonFiltersHeaderModifierRouteRules->HeaderModifier
-CommonGatewayKindsListeners->ListenerRouteKinds
-CommonParentRoute->ParentRef
+##### Before the change. 
+This shows that all above Kopium generated types are the same and we should replace "GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd" with a more meaningful name.
 
-```
-3. Step 3 (Optional)
+| Kopium generated names | |  User selected name| 
+|------------------------|--|-------------------|
+|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|->|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
+|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierSet|->|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
+|GRPCRouteRulesBackendRefsFiltersResponseHeaderModifierAdd|->|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
+|GRPCRouteRulesBackendRefsFiltersResponseHeaderModifierSet|->|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
+|HTTPRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|->|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
+|HTTPRouteRulesBackendRefsFiltersRequestHeaderModifierSet|->|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
+|HTTPRouteRulesBackendRefsFiltersResponseHeaderModifierAdd|->|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
+|HTTPRouteRulesBackendRefsFiltersResponseHeaderModifierSet|->|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
 
-Will read a file specified by --with-substitute-names and try to use those names as substitutions when modifying the APIs.
 
-```bash
-cargo run -- --apis-dir ../gateway-api/src/apis/standard --out-dir ../gateway-api/src/apis/processed --with-substitute-names ./custom_mapped_names.txt
-```
+##### After the change. 
+On subsequent runs, the algorithm will use HTTPHeader as new name for all those types.
 
-4. Step 4(Optional) - Reducing types further
 
-```bash
-cargo run -- --apis-dir ../gateway-api/src/apis/processed --out-dir ../gateway-api/src/apis/processed --previous-pass-derived-type-names mapped_names.txt  --current-pass-derived-type-prefix=Common
-```
+| Kopium generated names | |  User selected name| 
+|------------------------|--|-------------------|
+|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|->|HTTPHeader|
+|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierSet|->|HTTPHeader|
+|GRPCRouteRulesBackendRefsFiltersResponseHeaderModifierAdd|->|HTTPHeader|
+|GRPCRouteRulesBackendRefsFiltersResponseHeaderModifierSet|->|HTTPHeader|
+|HTTPRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|->|HTTPHeader|
+|HTTPRouteRulesBackendRefsFiltersRequestHeaderModifierSet|->|HTTPHeader|
+|HTTPRouteRulesBackendRefsFiltersResponseHeaderModifierAdd|->|HTTPHeader|
+|HTTPRouteRulesBackendRefsFiltersResponseHeaderModifierSet|->|HTTPHeader|
+
+
+### 3. Re-run the application to produce the code with desired types
+
+
+Steps 1 to 3 should be repeated until no similar types are detected. Check [update.sh](../update.sh) for more details on how to use it.
 
