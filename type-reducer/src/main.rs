@@ -140,9 +140,6 @@ fn handle_reduce_types(
                 return None;
             }
 
-            // let type_new_name =
-            //     create_struct_type_name_substitute(&current_pass_type_name_substitutes, v);
-
             if let Some((i, s)) = v.first() {
                 let new_struct = create_common_type_struct(
                     s,
@@ -175,9 +172,6 @@ fn handle_reduce_types(
                 v.iter().map(|(i, _)| i.to_string()).collect::<Vec<_>>()
             );
             let mapped_type_names = v.iter().map(|v| v.0.to_string()).collect::<Vec<_>>();
-
-            // let type_new_name =
-            //     create_enum_type_name_substitute(&current_pass_type_name_substitutes, v);
 
             if let Some((i, s)) = v.first() {
                 let new_enum = create_common_type_enum(
@@ -212,7 +206,7 @@ fn handle_reduce_types(
 
     write_type_names_to_file(&renaming_visitor.names)?;
 
-    let unparsed_files = prune_replaced_structs(&mut renaming_visitor, visitors);
+    let unparsed_files = prune_replaced_types(&mut renaming_visitor, visitors);
 
     recreate_project_files(
         out_dir,

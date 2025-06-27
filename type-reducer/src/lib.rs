@@ -95,7 +95,7 @@ pub fn write_type_names_to_file(
     Ok(())
 }
 
-pub fn delete_replaced_structs(file: File, type_names: Vec<String>) -> File {
+pub fn delete_replaced_types(file: File, type_names: Vec<String>) -> File {
     let File {
         shebang,
         attrs,
@@ -179,7 +179,7 @@ pub fn find_similar_types(
     }
 }
 
-pub fn prune_replaced_structs(
+pub fn prune_replaced_types(
     renaming_visitor: &mut StructEnumFieldsRenamer,
     visitors: Vec<(String, File)>,
 ) -> Vec<(String, String, bool)> {
@@ -189,7 +189,7 @@ pub fn prune_replaced_structs(
             renaming_visitor.changed = false;
             renaming_visitor.visit_file_mut(&mut f);
             let new_file =
-                delete_replaced_structs(f, renaming_visitor.names.keys().cloned().collect());
+                delete_replaced_types(f, renaming_visitor.names.keys().cloned().collect());
             (
                 name,
                 prettyplease::unparse(&new_file),
@@ -303,5 +303,11 @@ pub fn create_common_type_struct(s: &ItemStruct, type_new_name: &str) -> ItemStr
 pub fn create_common_type_enum(s: &ItemEnum, type_new_name: &str) -> ItemEnum {
     let mut new_enum = s.clone();
     new_enum.ident = Ident::new(type_new_name, Span::call_site());
+    new_enum.attrs = s
+        .attrs
+        .iter()
+        .filter(|&a| a.meta.path().get_ident() != Some(&Ident::new("doc", Span::call_site())))
+        .cloned()
+        .collect();
     new_enum
 }

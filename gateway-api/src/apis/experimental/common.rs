@@ -9,12 +9,6 @@ mod prelude {
     pub use std::collections::BTreeMap;
 }
 use self::prelude::*;
-/// GRPCRouteFilter defines processing steps that must be completed during the
-/// request or response lifecycle. GRPCRouteFilters are meant as an extension
-/// point to express processing that may be done in Gateway implementations. Some
-/// examples include request or response modification, implementing
-/// authentication strategies, rate-limiting, and traffic shaping. API
-/// guarantee/conformance is defined based on the type of the filter.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
 pub enum GRPCFilterType {
     ResponseHeaderModifier,
@@ -22,12 +16,6 @@ pub enum GRPCFilterType {
     RequestMirror,
     ExtensionRef,
 }
-/// HTTPRouteFilter defines processing steps that must be completed during the
-/// request or response lifecycle. HTTPRouteFilters are meant as an extension
-/// point to express processing that may be done in Gateway implementations. Some
-/// examples include request or response modification, implementing
-/// authentication strategies, rate-limiting, and traffic shaping. API
-/// guarantee/conformance is defined based on the type of the filter.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
 pub enum HTTPFilterType {
     RequestHeaderModifier,
@@ -38,26 +26,16 @@ pub enum HTTPFilterType {
     UrlRewrite,
     ExtensionRef,
 }
-/// GRPCHeaderMatch describes how to select a gRPC route by matching gRPC request
-/// headers.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
 pub enum HeaderMatchType {
     Exact,
     RegularExpression,
 }
-/// CookieConfig provides configuration settings that are specific
-/// to cookie-based session persistence.
-///
-/// Support: Core
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
 pub enum PersistenceCookieConfigLifetime {
     Permanent,
     Session,
 }
-/// RequestRedirect defines a schema for a filter that responds to the
-/// request with an HTTP redirection.
-///
-/// Support: Core
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
 pub enum RedirectStatusCode {
     #[serde(rename = "301")]
@@ -65,20 +43,11 @@ pub enum RedirectStatusCode {
     #[serde(rename = "302")]
     r#_302,
 }
-/// Path defines parameters used to modify the path of the incoming request.
-/// The modified path is then used to construct the `Location` header. When
-/// empty, the request path is used as-is.
-///
-/// Support: Extended
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
 pub enum RequestOperationType {
     ReplaceFullPath,
     ReplacePrefixMatch,
 }
-/// RequestRedirect defines a schema for a filter that responds to the
-/// request with an HTTP redirection.
-///
-/// Support: Core
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
 pub enum RequestRedirectScheme {
     #[serde(rename = "http")]
@@ -86,12 +55,6 @@ pub enum RequestRedirectScheme {
     #[serde(rename = "https")]
     Https,
 }
-/// SessionPersistence defines and configures session persistence
-/// for the route rule.
-///
-/// Support: Extended
-///
-///
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
 pub enum SessionPersistenceType {
     Cookie,
