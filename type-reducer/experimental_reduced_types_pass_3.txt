@@ -1,0 +1,33 @@
+Condition
+GRPCFilterType
+RequestMirrorFraction
+PersistenceCookieConfigLifetime
+SessionPersistenceType
+GatewayAddress
+BackendTlsClientCertificateReference
+ParametersReference
+GatewayInfrastructureParametersReference
+HTTPFilterType
+HTTPHeader
+HeaderMatchType
+Kind
+RedirectStatusCode
+RequestMirrorReference
+RequestOperationType
+RequestRedirectScheme
+ParentReference
+BackendReference
+#### Pass 2
+SessionPersistenceCookieConfig
+HeaderModifier
+HeaderMatch
+RequestMirror
+RequestRedirectPath
+ParentRouteStatus
+CommonRouteRule
+#### Pass 3
+GRPCRouteFilter
+HTTPRouteRequestRedirect
+HTTPRouteUrlRewrite
+RouteStatus
+SessionPersistence

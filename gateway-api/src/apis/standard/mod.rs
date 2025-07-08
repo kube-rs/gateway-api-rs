@@ -1,6 +1,8 @@
-// WARNING! generated file do not edit
+// WARNING: generated file - manual changes will be overriden
+
+pub mod common;
 pub mod constants;
-mod enum_defaults;
+pub mod enum_defaults;
 pub mod gatewayclasses;
 pub mod gateways;
 pub mod grpcroutes;

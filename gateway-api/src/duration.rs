@@ -389,13 +389,12 @@ impl FromStr for Duration {
         // This Lazy Regex::new should never ever fail, given that the regex
         // is a compile-time constant. But just in case.....
         static RE: Lazy<Regex> = Lazy::new(|| {
-            Regex::new(GEP2257_PATTERN).expect(
-                format!(
+            Regex::new(GEP2257_PATTERN).unwrap_or_else(|_| {
+                panic!(
                     r#"GEP2257 regex "{}" did not compile (this is a bug!)"#,
                     GEP2257_PATTERN
                 )
-                .as_str(),
-            )
+            })
         });
 
         // If the string doesn't match the regex, it's invalid.
