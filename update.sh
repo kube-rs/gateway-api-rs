@@ -183,7 +183,6 @@ mv mapped_types_to_names.txt experimental_mapped_types_to_names_phase_4.txt
 echo " **** RENAMING PHASE ***** "
 cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/experimental --out-dir $APIS_DIR/experimental rename --rename-only-substitute-names ./type-reducer/experimental_rename_only_mapped_names.txt
 
-
 ENUMS=(
     GRPCFilterType=RequestHeaderModifier
     RequestOperationType=ReplaceFullPath
