@@ -132,7 +132,8 @@ cargo fmt
 
 export RUST_LOG=info
 
-echo " **** PHASE 1 ***** "
+echo " **** Starting Type Reducer - Collapsing Duplicative Types **** "
+echo " **** Type Reducer - PHASE 1 - First Pass ***** "
 cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/standard reduce --previous-pass-derived-type-names ./type-reducer/standard_reduced_types_pass_0.txt --current-pass-substitute-names ./type-reducer/standard_customized_mapped_names.txt
 mv mapped_names.txt standard_mapped_names_phase_1.txt
 mv mapped_types_to_names.txt standard_mapped_types_to_names_phase_1.txt
