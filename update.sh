@@ -163,8 +163,6 @@ GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults >> $APIS_
 sed -i '/#\[kube(status = "GRPCRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/grpcroutes.rs
 sed -i '/#\[kube(status = "HTTPRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/httproutes.rs
 
-
-
 export RUST_LOG=info
 cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/experimental --out-dir $APIS_DIR/experimental reduce --previous-pass-derived-type-names ./type-reducer/experimental_reduced_types_pass_0.txt --current-pass-substitute-names ./type-reducer/experimental_customized_mapped_names.txt
 mv mapped_names.txt experimental_mapped_names_phase_1.txt
