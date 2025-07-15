@@ -5,13 +5,11 @@ pub enum GatewayClassConditionType {
     Accepted,
     SupportedVersion,
 }
-
 impl std::fmt::Display for GatewayClassConditionType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
 }
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum GatewayClassConditionReason {
     Accepted,
@@ -22,26 +20,22 @@ pub enum GatewayClassConditionReason {
     SupportedVersion,
     UnsupportedVersion,
 }
-
 impl std::fmt::Display for GatewayClassConditionReason {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
 }
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum GatewayConditionType {
     Programmed,
     Accepted,
     Ready,
 }
-
 impl std::fmt::Display for GatewayConditionType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
 }
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum GatewayConditionReason {
     Programmed,
@@ -57,13 +51,11 @@ pub enum GatewayConditionReason {
     Ready,
     ListenersNotReady,
 }
-
 impl std::fmt::Display for GatewayConditionReason {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
 }
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum ListenerConditionType {
     Conflicted,
@@ -72,13 +64,11 @@ pub enum ListenerConditionType {
     Programmed,
     Ready,
 }
-
 impl std::fmt::Display for ListenerConditionType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
 }
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum ListenerConditionReason {
     HostnameConflict,
@@ -96,7 +86,6 @@ pub enum ListenerConditionReason {
     Pending,
     Ready,
 }
-
 impl std::fmt::Display for ListenerConditionReason {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{:?}", self)

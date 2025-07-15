@@ -1,0 +1,14 @@
+### Rename only
+GRPCRouteRules->GRPCRouteRule
+HTTPRouteRules->HTTPRouteRule
+HTTPRouteRulesFilters->HTTPRouteFilter
+GRPCRouteRulesMatches->GRPCRouteMatch
+HTTPRouteRulesMatches->RouteMatch
+HTTPRouteRulesTimeouts->HTTPRouteTimeout
+GRPCRouteRulesBackendRefs->GRPCBackendReference
+HTTPRouteRulesBackendRefs->HTTPBackendReference
+GRPCRouteRulesMatchesMethod->GRPCMethodMatch
+HTTPRouteRulesMatchesMethod->HTTPMethodMatch
+HTTPRouteRulesBackendRefsFilters->HTTPRouteBackendFilter
+HTTPRouteRequestRedirect->RequestRedirect
+HTTPRouteRulesMatchesPath->PathMatch

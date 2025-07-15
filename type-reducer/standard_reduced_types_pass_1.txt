@@ -1,0 +1,14 @@
+Condition
+GRPCFilterType
+GatewayAddress
+GatewayInfrastructureParametersReference
+Kind
+ParentReference
+FilterExtensionReference
+HTTPHeader
+RequestMirrorReference
+RequestOperationType
+RequestRedirectScheme
+RedirectStatusCode
+FiltersType
+HeaderMatchType
