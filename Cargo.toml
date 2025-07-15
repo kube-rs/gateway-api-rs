@@ -10,7 +10,7 @@ version = "0.16.0"
 
 [workspace.dependencies]
 anyhow = "1.0.98"
-delegate = "0.13.3"
+delegate = "0.13.4"
 hyper-util = "0.1.15"
 kube = { version = "1.1.0" }
 k8s-openapi = { version = "0.25.0" }
