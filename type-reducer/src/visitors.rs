@@ -66,7 +66,6 @@ fn rewrite_ident(path: &mut PathSegment, names: &BTreeMap<String, String>) -> bo
 impl<'ast, 'b> Visit<'ast> for StructEnumVisitor<'ast, 'b> {
     fn visit_item_struct(&mut self, node: &'ast ItemStruct) {
         debug!("Visiting Struct name == {}", node.ident);
-        //debug!("Visiting Struct name == {:#?}", node);
         let mut is_simple_leaf = true;
         node.fields.iter().for_each(|f| match &f.ty {
             Type::Path(path_type) => {
