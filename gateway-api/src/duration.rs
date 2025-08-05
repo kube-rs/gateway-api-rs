@@ -11,7 +11,7 @@
 //! digits each. See https://gateway-api.sigs.k8s.io/geps/gep-2257 for the
 //! complete specification.
 
-use kube::core::Duration as k8sDuration;
+use kube_core::Duration as k8sDuration;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::fmt;

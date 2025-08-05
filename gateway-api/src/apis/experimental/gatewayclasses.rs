@@ -4,7 +4,7 @@ use super::common::*;
 #[allow(unused_imports)]
 mod prelude {
     pub use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
-    pub use kube::CustomResource;
+    pub use kube_derive::CustomResource;
     pub use schemars::JsonSchema;
     pub use serde::{Deserialize, Serialize};
 }
@@ -17,6 +17,7 @@ use self::prelude::*;
     kind = "GatewayClass",
     plural = "gatewayclasses"
 )]
+#[kube(crates(kube_core = "::kube_core"))]
 #[kube(status = "GatewayClassStatus")]
 #[kube(derive = "Default")]
 #[kube(derive = "PartialEq")]
