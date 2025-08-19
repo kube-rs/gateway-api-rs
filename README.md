@@ -4,29 +4,28 @@
 
 > **Warning**: EXPERIMENTAL. **Not ready for production use**.
 
-> **Note**: While the aspiration is to eventually become the "official" Gateway
-> API bindings for Rust, [Kubernetes SIG Network] has not yet (and may never)
-> officially endorsed it so this should be considered "unofficial" for now.
-
-[Kubernetes SIG Network]:https://github.com/kubernetes/community/tree/master/sig-network
-
 # Gateway API (Rust)
+
+This project provides bindings in [Rust] for [Kubernetes] [Gateway API].
 
 > **Note**: Currently supports [Gateway API version v1.2.1][gwv]
 
-This project provides bindings in [Rust] for [Kubernetes] [Gateway API].
+> **Note**: The aspiration is to eventually become the "official" Gateway
+> API bindings for Rust. However [Kubernetes SIG Network] has not
+> officially endorsed it so this should be considered "unofficial" for now.
 
 [gwv]:https://github.com/kubernetes-sigs/gateway-api/releases/tag/v1.2.1
 [Rust]:https://rust-lang.org
 [Kubernetes]:https://kubernetes.io/
 [Gateway API]:https://gateway-api.sigs.k8s.io/
+[Kubernetes SIG Network]:https://github.com/kubernetes/community/tree/master/sig-network
 
 ## Usage
 
-Basic usage involves using a [kube-rs] [Client] to perform create, read, update
-and delete (CRUD) operations on [Gateway API resources]. You can either use a
-basic `Client` to perform CRUD operations, or you can build a [Controller]. See
-the `gateway-api/examples/` directory for detailed (and specific) usage examples.
+Basic usage involves using a [kube-rs] [Client] to perform operations on
+[Gateway API resources]. You can either use a basic `Client` to perform
+operations, or you can build a [Controller]. See the `gateway-api/examples/`
+directory for detailed (and specific) usage examples.
 
 [kube-rs]:https://github.com/kube-rs/kube
 [Gateway API resources]:https://gateway-api.sigs.k8s.io/api-types/gateway/
@@ -40,7 +39,7 @@ Gateway API. Make sure you install `kopium` locally in order to run the
 generator:
 
 ```console
-$ cargo install kopium --version 0.21.1
+$ cargo install kopium --version 0.21.3
 ```
 
 After which you can run the `update.sh` script:
@@ -57,19 +56,13 @@ which you can then commit.
 
 ## Contributions
 
-Contributions are welcome, and appreciated! In general (for larger changes)
-please create an issue describing the contribution needed prior to creating a
-PR.
+Contributions are welcome. Please create an issue describing the contribution
+needed prior to creating a PR.
 
-If you're looking for something to do, we organize the work for this project
-with a [project board][board], please check out the `next` column for
-unassigned tasks as these are the things prioritized to be worked on in the
-immediate.
+Please check our [project board] to see what work has been accepted and is
+in need of an owner. The `next` column will hold high priority items.
 
-For development support we do have an org-wide [#kube channel on the Tokio
-Discord server][discord], but please note that for this project in particular we
-prefer questions be posted in the [discussions board][forum].
+For discussions we prefer the [discussion board].
 
-[board]:https://github.com/orgs/kube-rs/projects/3
-[discord]:https://discord.gg/tokio
-[forum]:https://github.com/kube-rs/gateway-api-rs/discussions
+[project board]:https://github.com/orgs/kube-rs/projects/3
+[discussion board]:https://github.com/kube-rs/gateway-api-rs/discussions
