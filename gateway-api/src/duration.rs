@@ -8,7 +8,7 @@
 //! Go's `time.ParseDuration`, with additional restrictions: negative
 //! durations, units smaller than millisecond, and floating point are not
 //! allowed, and durations are limited to four components of no more than five
-//! digits each. See https://gateway-api.sigs.k8s.io/geps/gep-2257 for the
+//! digits each. See <https://gateway-api.sigs.k8s.io/geps/gep-2257> for the
 //! complete specification.
 
 use kube_core::Duration as k8sDuration;
@@ -24,7 +24,7 @@ use std::time::Duration as stdDuration;
 /// obey GEP-2257. It is based on `std::time::Duration` and uses
 /// `kube::core::Duration` for the heavy lifting of parsing.
 ///
-/// See https://gateway-api.sigs.k8s.io/geps/gep-2257 for the complete
+/// See <https://gateway-api.sigs.k8s.io/geps/gep-2257> for the complete
 /// specification.
 ///
 /// Per GEP-2257, when parsing a `gateway_api::Duration` from a string, the
