@@ -3,7 +3,7 @@
 #[allow(unused_imports)]
 mod prelude {
     pub use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
-    pub use kube_derive::CustomResource;
+    pub use kube::CustomResource;
     pub use schemars::JsonSchema;
     pub use serde::{Deserialize, Serialize};
 }
@@ -16,7 +16,6 @@ use self::prelude::*;
     kind = "GatewayClass",
     plural = "gatewayclasses"
 )]
-#[kube(crates(kube_core = "::kube_core"))]
 #[kube(status = "GatewayClassStatus")]
 #[kube(derive = "Default")]
 #[kube(derive = "PartialEq")]
@@ -104,4 +103,18 @@ pub struct GatewayClassStatus {
     /// of GatewayClassConditionType for the type of each Condition.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub conditions: Option<Vec<Condition>>,
+    /// SupportedFeatures is the set of features the GatewayClass support.
+    /// It MUST be sorted in ascending alphabetical order by the Name key.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "supportedFeatures"
+    )]
+    pub supported_features: Option<Vec<GatewayClassStatusSupportedFeatures>>,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayClassStatusSupportedFeatures {
+    /// FeatureName is used to describe distinct features that are covered by
+    /// conformance tests.
+    pub name: String,
 }

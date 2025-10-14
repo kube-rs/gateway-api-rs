@@ -2,7 +2,7 @@
 
 #[allow(unused_imports)]
 mod prelude {
-    pub use kube_derive::CustomResource;
+    pub use kube::CustomResource;
     pub use schemars::JsonSchema;
     pub use serde::{Deserialize, Serialize};
 }
@@ -15,7 +15,6 @@ use self::prelude::*;
     kind = "ReferenceGrant",
     plural = "referencegrants"
 )]
-#[kube(crates(kube_core = "::kube_core"))]
 #[kube(namespaced)]
 #[kube(derive = "Default")]
 #[kube(derive = "PartialEq")]

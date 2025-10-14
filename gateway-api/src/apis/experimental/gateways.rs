@@ -4,7 +4,7 @@ use super::common::*;
 #[allow(unused_imports)]
 mod prelude {
     pub use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
-    pub use kube_derive::CustomResource;
+    pub use kube::CustomResource;
     pub use schemars::JsonSchema;
     pub use serde::{Deserialize, Serialize};
     pub use std::collections::BTreeMap;
@@ -18,7 +18,6 @@ use self::prelude::*;
     kind = "Gateway",
     plural = "gateways"
 )]
-#[kube(crates(kube_core = "::kube_core"))]
 #[kube(namespaced)]
 #[kube(status = "GatewayStatus")]
 #[kube(derive = "Default")]
@@ -27,7 +26,7 @@ pub struct GatewaySpec {
     /// Addresses requested for this Gateway. This is optional and behavior can
     /// depend on the implementation. If a value is set in the spec and the
     /// requested address is invalid or unavailable, the implementation MUST
-    /// indicate this in the associated entry in GatewayStatus.Addresses.
+    /// indicate this in an associated entry in GatewayStatus.Conditions.
     ///
     /// The Addresses field represents a request for the address(es) on the
     /// "outside of the Gateway", that traffic bound for this Gateway will use.
@@ -44,22 +43,39 @@ pub struct GatewaySpec {
     /// GatewayStatus.Addresses.
     ///
     /// Support: Extended
-    ///
-    ///
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub addresses: Option<Vec<GatewayAddress>>,
-    /// BackendTLS configures TLS settings for when this Gateway is connecting to
-    /// backends with TLS.
-    ///
-    /// Support: Core
-    ///
-    ///
+    pub addresses: Option<Vec<GatewayAddresses>>,
+    /// AllowedListeners defines which ListenerSets can be attached to this Gateway.
+    /// While this feature is experimental, the default value is to allow no ListenerSets.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
-        rename = "backendTLS"
+        rename = "allowedListeners"
     )]
-    pub backend_tls: Option<GatewayBackendTls>,
+    pub allowed_listeners: Option<GatewayAllowedListeners>,
+    /// DefaultScope, when set, configures the Gateway as a default Gateway,
+    /// meaning it will dynamically and implicitly have Routes (e.g. HTTPRoute)
+    /// attached to it, according to the scope configured here.
+    ///
+    /// If unset (the default) or set to None, the Gateway will not act as a
+    /// default Gateway; if set, the Gateway will claim any Route with a
+    /// matching scope set in its UseDefaultGateway field, subject to the usual
+    /// rules about which routes the Gateway can attach to.
+    ///
+    /// Think carefully before using this functionality! While the normal rules
+    /// about which Route can apply are still enforced, it is simply easier for
+    /// the wrong Route to be accidentally attached to this Gateway in this
+    /// configuration. If the Gateway operator is not also the operator in
+    /// control of the scope (e.g. namespace) with tight controls and checks on
+    /// what kind of workloads and Routes get added in that scope, we strongly
+    /// recommend not using this just because it seems convenient, and instead
+    /// stick to direct Route attachment.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "defaultScope"
+    )]
+    pub default_scope: Option<GatewayDefaultScope>,
     /// GatewayClassName used for this Gateway. This is the name of a
     /// GatewayClass resource.
     #[serde(rename = "gatewayClassName")]
@@ -73,6 +89,8 @@ pub struct GatewaySpec {
     /// logical endpoints that are bound on this Gateway's addresses.
     /// At least one Listener MUST be specified.
     ///
+    /// ## Distinct Listeners
+    ///
     /// Each Listener in a set of Listeners (for example, in a single Gateway)
     /// MUST be _distinct_, in that a traffic flow MUST be able to be assigned to
     /// exactly one listener. (This section uses "set of Listeners" rather than
@@ -84,55 +102,76 @@ pub struct GatewaySpec {
     /// combination of Port, Protocol, and, if supported by the protocol, Hostname.
     ///
     /// Some combinations of port, protocol, and TLS settings are considered
-    /// Core support and MUST be supported by implementations based on their
-    /// targeted conformance profile:
+    /// Core support and MUST be supported by implementations based on the objects
+    /// they support:
     ///
-    /// HTTP Profile
+    /// HTTPRoute
     ///
     /// 1. HTTPRoute, Port: 80, Protocol: HTTP
     /// 2. HTTPRoute, Port: 443, Protocol: HTTPS, TLS Mode: Terminate, TLS keypair provided
     ///
-    /// TLS Profile
+    /// TLSRoute
     ///
     /// 1. TLSRoute, Port: 443, Protocol: TLS, TLS Mode: Passthrough
     ///
     /// "Distinct" Listeners have the following property:
     ///
-    /// The implementation can match inbound requests to a single distinct
-    /// Listener. When multiple Listeners share values for fields (for
+    /// **The implementation can match inbound requests to a single distinct
+    /// Listener**.
+    ///
+    /// When multiple Listeners share values for fields (for
     /// example, two Listeners with the same Port value), the implementation
     /// can match requests to only one of the Listeners using other
     /// Listener fields.
     ///
-    /// For example, the following Listener scenarios are distinct:
+    /// When multiple listeners have the same value for the Protocol field, then
+    /// each of the Listeners with matching Protocol values MUST have different
+    /// values for other fields.
     ///
-    /// 1. Multiple Listeners with the same Port that all use the "HTTP"
-    ///    Protocol that all have unique Hostname values.
-    /// 2. Multiple Listeners with the same Port that use either the "HTTPS" or
-    ///    "TLS" Protocol that all have unique Hostname values.
-    /// 3. A mixture of "TCP" and "UDP" Protocol Listeners, where no Listener
-    ///    with the same Protocol has the same Port value.
+    /// The set of fields that MUST be different for a Listener differs per protocol.
+    /// The following rules define the rules for what fields MUST be considered for
+    /// Listeners to be distinct with each protocol currently defined in the
+    /// Gateway API spec.
     ///
-    /// Some fields in the Listener struct have possible values that affect
-    /// whether the Listener is distinct. Hostname is particularly relevant
-    /// for HTTP or HTTPS protocols.
+    /// The set of listeners that all share a protocol value MUST have _different_
+    /// values for _at least one_ of these fields to be distinct:
     ///
-    /// When using the Hostname value to select between same-Port, same-Protocol
-    /// Listeners, the Hostname value must be different on each Listener for the
-    /// Listener to be distinct.
+    /// * **HTTP, HTTPS, TLS**: Port, Hostname
+    /// * **TCP, UDP**: Port
     ///
-    /// When the Listeners are distinct based on Hostname, inbound request
+    /// One **very** important rule to call out involves what happens when an
+    /// implementation:
+    ///
+    /// * Supports TCP protocol Listeners, as well as HTTP, HTTPS, or TLS protocol
+    ///   Listeners, and
+    /// * sees HTTP, HTTPS, or TLS protocols with the same `port` as one with TCP
+    ///   Protocol.
+    ///
+    /// In this case all the Listeners that share a port with the
+    /// TCP Listener are not distinct and so MUST NOT be accepted.
+    ///
+    /// If an implementation does not support TCP Protocol Listeners, then the
+    /// previous rule does not apply, and the TCP Listeners SHOULD NOT be
+    /// accepted.
+    ///
+    /// Note that the `tls` field is not used for determining if a listener is distinct, because
+    /// Listeners that _only_ differ on TLS config will still conflict in all cases.
+    ///
+    /// ### Listeners that are distinct only by Hostname
+    ///
+    /// When the Listeners are distinct based only on Hostname, inbound request
     /// hostnames MUST match from the most specific to least specific Hostname
     /// values to choose the correct Listener and its associated set of Routes.
     ///
-    /// Exact matches must be processed before wildcard matches, and wildcard
-    /// matches must be processed before fallback (empty Hostname value)
+    /// Exact matches MUST be processed before wildcard matches, and wildcard
+    /// matches MUST be processed before fallback (empty Hostname value)
     /// matches. For example, `"foo.example.com"` takes precedence over
     /// `"*.example.com"`, and `"*.example.com"` takes precedence over `""`.
     ///
     /// Additionally, if there are multiple wildcard entries, more specific
     /// wildcard entries must be processed before less specific wildcard entries.
     /// For example, `"*.foo.example.com"` takes precedence over `"*.example.com"`.
+    ///
     /// The precise definition here is that the higher the number of dots in the
     /// hostname to the right of the wildcard character, the higher the precedence.
     ///
@@ -140,18 +179,26 @@ pub struct GatewaySpec {
     /// the left, however, so `"*.example.com"` will match both
     /// `"foo.bar.example.com"` _and_ `"bar.example.com"`.
     ///
+    /// ## Handling indistinct Listeners
+    ///
     /// If a set of Listeners contains Listeners that are not distinct, then those
-    /// Listeners are Conflicted, and the implementation MUST set the "Conflicted"
+    /// Listeners are _Conflicted_, and the implementation MUST set the "Conflicted"
     /// condition in the Listener Status to "True".
+    ///
+    /// The words "indistinct" and "conflicted" are considered equivalent for the
+    /// purpose of this documentation.
     ///
     /// Implementations MAY choose to accept a Gateway with some Conflicted
     /// Listeners only if they only accept the partial Listener set that contains
-    /// no Conflicted Listeners. To put this another way, implementations may
-    /// accept a partial Listener set only if they throw out *all* the conflicting
-    /// Listeners. No picking one of the conflicting listeners as the winner.
-    /// This also means that the Gateway must have at least one non-conflicting
-    /// Listener in this case, otherwise it violates the requirement that at
-    /// least one Listener must be present.
+    /// no Conflicted Listeners.
+    ///
+    /// Specifically, an implementation MAY accept a partial Listener set subject to
+    /// the following rules:
+    ///
+    /// * The implementation MUST NOT pick one conflicting Listener as the winner.
+    ///   ALL indistinct Listeners must not be accepted for processing.
+    /// * At least one distinct Listener MUST be present, or else the Gateway effectively
+    ///   contains _no_ Listeners, and must be rejected from processing as a whole.
     ///
     /// The implementation MUST set a "ListenersNotValid" condition on the
     /// Gateway Status when the Gateway contains Conflicted Listeners whether or
@@ -160,7 +207,25 @@ pub struct GatewaySpec {
     /// Accepted. Additionally, the Listener status for those listeners SHOULD
     /// indicate which Listeners are conflicted and not Accepted.
     ///
-    /// A Gateway's Listeners are considered "compatible" if:
+    /// ## General Listener behavior
+    ///
+    /// Note that, for all distinct Listeners, requests SHOULD match at most one Listener.
+    /// For example, if Listeners are defined for "foo.example.com" and "*.example.com", a
+    /// request to "foo.example.com" SHOULD only be routed using routes attached
+    /// to the "foo.example.com" Listener (and not the "*.example.com" Listener).
+    ///
+    /// This concept is known as "Listener Isolation", and it is an Extended feature
+    /// of Gateway API. Implementations that do not support Listener Isolation MUST
+    /// clearly document this, and MUST NOT claim support for the
+    /// `GatewayHTTPListenerIsolation` feature.
+    ///
+    /// Implementations that _do_ support Listener Isolation SHOULD claim support
+    /// for the Extended `GatewayHTTPListenerIsolation` feature and pass the associated
+    /// conformance tests.
+    ///
+    /// ## Compatible Listeners
+    ///
+    /// A Gateway's Listeners are considered _compatible_ if:
     ///
     /// 1. They are distinct.
     /// 2. The implementation can serve them in compliance with the Addresses
@@ -175,50 +240,95 @@ pub struct GatewaySpec {
     /// on the same address, or cannot mix HTTPS and generic TLS listens on the same port
     /// would not consider those cases compatible, even though they are distinct.
     ///
-    /// Note that requests SHOULD match at most one Listener. For example, if
-    /// Listeners are defined for "foo.example.com" and "*.example.com", a
-    /// request to "foo.example.com" SHOULD only be routed using routes attached
-    /// to the "foo.example.com" Listener (and not the "*.example.com" Listener).
-    /// This concept is known as "Listener Isolation". Implementations that do
-    /// not support Listener Isolation MUST clearly document this.
-    ///
     /// Implementations MAY merge separate Gateways onto a single set of
     /// Addresses if all Listeners across all Gateways are compatible.
     ///
+    /// In a future release the MinItems=1 requirement MAY be dropped.
+    ///
     /// Support: Core
     pub listeners: Vec<GatewayListeners>,
+    /// TLS specifies frontend and backend tls configuration for entire gateway.
+    ///
+    /// Support: Extended
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tls: Option<GatewayTls>,
 }
-/// BackendTLS configures TLS settings for when this Gateway is connecting to
-/// backends with TLS.
-///
-/// Support: Core
-///
-///
+/// GatewaySpecAddress describes an address that can be bound to a Gateway.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GatewayBackendTls {
-    /// ClientCertificateRef is a reference to an object that contains a Client
-    /// Certificate and the associated private key.
+pub struct GatewayAddresses {
+    /// Type of the address.
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
+    pub r#type: Option<String>,
+    /// When a value is unspecified, an implementation SHOULD automatically
+    /// assign an address matching the requested type if possible.
     ///
-    /// References to a resource in different namespace are invalid UNLESS there
-    /// is a ReferenceGrant in the target namespace that allows the certificate
-    /// to be attached. If a ReferenceGrant does not allow this reference, the
-    /// "ResolvedRefs" condition MUST be set to False for this listener with the
-    /// "RefNotPermitted" reason.
+    /// If an implementation does not support an empty value, they MUST set the
+    /// "Programmed" condition in status to False with a reason of "AddressNotAssigned".
     ///
-    /// ClientCertificateRef can reference to standard Kubernetes resources, i.e.
-    /// Secret, or implementation-specific custom resources.
+    /// Examples: `1.2.3.4`, `128::1`, `my-ip-address`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+}
+/// AllowedListeners defines which ListenerSets can be attached to this Gateway.
+/// While this feature is experimental, the default value is to allow no ListenerSets.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayAllowedListeners {
+    /// Namespaces defines which namespaces ListenerSets can be attached to this Gateway.
+    /// While this feature is experimental, the default value is to allow no ListenerSets.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub namespaces: Option<GatewayAllowedListenersNamespaces>,
+}
+/// Namespaces defines which namespaces ListenerSets can be attached to this Gateway.
+/// While this feature is experimental, the default value is to allow no ListenerSets.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayAllowedListenersNamespaces {
+    /// From indicates where ListenerSets can attach to this Gateway. Possible
+    /// values are:
     ///
-    /// This setting can be overridden on the service level by use of BackendTLSPolicy.
+    /// * Same: Only ListenerSets in the same namespace may be attached to this Gateway.
+    /// * Selector: ListenerSets in namespaces selected by the selector may be attached to this Gateway.
+    /// * All: ListenerSets in all namespaces may be attached to this Gateway.
+    /// * None: Only listeners defined in the Gateway's spec are allowed
     ///
-    /// Support: Core
-    ///
-    ///
+    /// While this feature is experimental, the default value None
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub from: Option<GatewayAllowedListenersNamespacesFrom>,
+    /// Selector must be specified when From is set to "Selector". In that case,
+    /// only ListenerSets in Namespaces matching this Selector will be selected by this
+    /// Gateway. This field is ignored for other values of "From".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selector: Option<GatewayAllowedListenersNamespacesSelector>,
+}
+/// Namespaces defines which namespaces ListenerSets can be attached to this Gateway.
+/// While this feature is experimental, the default value is to allow no ListenerSets.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
+pub enum GatewayAllowedListenersNamespacesFrom {
+    All,
+    Selector,
+    Same,
+    None,
+}
+/// Selector must be specified when From is set to "Selector". In that case,
+/// only ListenerSets in Namespaces matching this Selector will be selected by this
+/// Gateway. This field is ignored for other values of "From".
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayAllowedListenersNamespacesSelector {
+    /// matchExpressions is a list of label selector requirements. The requirements are ANDed.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
-        rename = "clientCertificateRef"
+        rename = "matchExpressions"
     )]
-    pub client_certificate_ref: Option<BackendTlsClientCertificateReference>,
+    pub match_expressions: Option<Vec<GatewayAllowedListenersNamespacesSelectorMatchExpressions>>,
+    /// matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+    /// map is equivalent to an element of matchExpressions, whose key field is "key", the
+    /// operator is "In", and the values array contains only "value". The requirements are ANDed.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "matchLabels"
+    )]
+    pub match_labels: Option<BTreeMap<String, String>>,
 }
 /// Infrastructure defines infrastructure level attributes about this Gateway instance.
 ///
@@ -257,6 +367,11 @@ pub struct GatewayInfrastructure {
     /// The Gateway's GatewayClass may provide its own `parametersRef`. When both are specified,
     /// the merging behavior is implementation specific.
     /// It is generally recommended that GatewayClass provides defaults that can be overridden by a Gateway.
+    ///
+    /// If the referent cannot be found, refers to an unsupported kind, or when
+    /// the data within that resource is malformed, the Gateway SHOULD be
+    /// rejected with the "Accepted" status condition set to "False" and an
+    /// "InvalidParameters" reason.
     ///
     /// Support: Implementation-specific
     #[serde(
@@ -310,10 +425,31 @@ pub struct GatewayListeners {
     ///
     /// * TLS: The Listener Hostname MUST match the SNI.
     /// * HTTP: The Listener Hostname MUST match the Host header of the request.
-    /// * HTTPS: The Listener Hostname SHOULD match at both the TLS and HTTP
-    ///   protocol layers as described above. If an implementation does not
-    ///   ensure that both the SNI and Host header match the Listener hostname,
-    ///   it MUST clearly document that.
+    /// * HTTPS: The Listener Hostname SHOULD match both the SNI and Host header.
+    ///   Note that this does not require the SNI and Host header to be the same.
+    ///   The semantics of this are described in more detail below.
+    ///
+    /// To ensure security, Section 11.1 of RFC-6066 emphasizes that server
+    /// implementations that rely on SNI hostname matching MUST also verify
+    /// hostnames within the application protocol.
+    ///
+    /// Section 9.1.2 of RFC-7540 provides a mechanism for servers to reject the
+    /// reuse of a connection by responding with the HTTP 421 Misdirected Request
+    /// status code. This indicates that the origin server has rejected the
+    /// request because it appears to have been misdirected.
+    ///
+    /// To detect misdirected requests, Gateways SHOULD match the authority of
+    /// the requests with all the SNI hostname(s) configured across all the
+    /// Gateway Listeners on the same port and protocol:
+    ///
+    /// * If another Listener has an exact match or more specific wildcard entry,
+    ///   the Gateway SHOULD return a 421.
+    /// * If the current Listener (selected by SNI matching during ClientHello)
+    ///   does not match the Host:
+    ///     * If another Listener does match the Host the Gateway SHOULD return a
+    ///       421.
+    ///     * If no other Listener matches the Host, the Gateway MUST return a
+    ///       404.
     ///
     /// For HTTPRoute and TLSRoute resources, there is an interaction with the
     /// `spec.hostnames` array. When both listener and route specify hostnames,
@@ -346,7 +482,7 @@ pub struct GatewayListeners {
     /// the Protocol field is "HTTPS" or "TLS". It is invalid to set this field
     /// if the Protocol field is "HTTP", "TCP", or "UDP".
     ///
-    /// The association of SNIs to Certificate defined in GatewayTLSConfig is
+    /// The association of SNIs to Certificate defined in ListenerTLSConfig is
     /// defined based on the Hostname field for this listener.
     ///
     /// The GatewayClass MUST use the longest matching SNI out of all
@@ -450,8 +586,7 @@ pub struct GatewayListenersAllowedRoutesNamespacesSelector {
         skip_serializing_if = "Option::is_none",
         rename = "matchExpressions"
     )]
-    pub match_expressions:
-        Option<Vec<GatewayListenersAllowedRoutesNamespacesSelectorMatchExpressions>>,
+    pub match_expressions: Option<Vec<GatewayAllowedListenersNamespacesSelectorMatchExpressions>>,
     /// matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
     /// map is equivalent to an element of matchExpressions, whose key field is "key", the
     /// operator is "In", and the values array contains only "value". The requirements are ANDed.
@@ -462,27 +597,11 @@ pub struct GatewayListenersAllowedRoutesNamespacesSelector {
     )]
     pub match_labels: Option<BTreeMap<String, String>>,
 }
-/// A label selector requirement is a selector that contains values, a key, and an operator that
-/// relates the key and values.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GatewayListenersAllowedRoutesNamespacesSelectorMatchExpressions {
-    /// key is the label key that the selector applies to.
-    pub key: String,
-    /// operator represents a key's relationship to a set of values.
-    /// Valid operators are In, NotIn, Exists and DoesNotExist.
-    pub operator: String,
-    /// values is an array of string values. If the operator is In or NotIn,
-    /// the values array must be non-empty. If the operator is Exists or DoesNotExist,
-    /// the values array must be empty. This array is replaced during a strategic
-    /// merge patch.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub values: Option<Vec<String>>,
-}
 /// TLS is the TLS configuration for the Listener. This field is required if
 /// the Protocol field is "HTTPS" or "TLS". It is invalid to set this field
 /// if the Protocol field is "HTTP", "TCP", or "UDP".
 ///
-/// The association of SNIs to Certificate defined in GatewayTLSConfig is
+/// The association of SNIs to Certificate defined in ListenerTLSConfig is
 /// defined based on the Hostname field for this listener.
 ///
 /// The GatewayClass MUST use the longest matching SNI out of all
@@ -521,21 +640,6 @@ pub struct GatewayListenersTls {
         rename = "certificateRefs"
     )]
     pub certificate_refs: Option<Vec<BackendTlsClientCertificateReference>>,
-    /// FrontendValidation holds configuration information for validating the frontend (client).
-    /// Setting this field will require clients to send a client certificate
-    /// required for validation during the TLS handshake. In browsers this may result in a dialog appearing
-    /// that requests a user to specify the client certificate.
-    /// The maximum depth of a certificate chain accepted in verification is Implementation specific.
-    ///
-    /// Support: Extended
-    ///
-    ///
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "frontendValidation"
-    )]
-    pub frontend_validation: Option<GatewayListenersTlsFrontendValidation>,
     /// Mode defines the TLS behavior for the TLS session initiated by the client.
     /// There are two possible modes:
     ///
@@ -564,17 +668,118 @@ pub struct GatewayListenersTls {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub options: Option<BTreeMap<String, String>>,
 }
-/// FrontendValidation holds configuration information for validating the frontend (client).
-/// Setting this field will require clients to send a client certificate
-/// required for validation during the TLS handshake. In browsers this may result in a dialog appearing
+/// TLS is the TLS configuration for the Listener. This field is required if
+/// the Protocol field is "HTTPS" or "TLS". It is invalid to set this field
+/// if the Protocol field is "HTTP", "TCP", or "UDP".
+///
+/// The association of SNIs to Certificate defined in ListenerTLSConfig is
+/// defined based on the Hostname field for this listener.
+///
+/// The GatewayClass MUST use the longest matching SNI out of all
+/// available certificates for any TLS handshake.
+///
+/// Support: Core
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
+pub enum GatewayListenersTlsMode {
+    Terminate,
+    Passthrough,
+}
+/// TLS specifies frontend and backend tls configuration for entire gateway.
+///
+/// Support: Extended
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayTls {
+    /// Backend describes TLS configuration for gateway when connecting
+    /// to backends.
+    ///
+    /// Note that this contains only details for the Gateway as a TLS client,
+    /// and does _not_ imply behavior about how to choose which backend should
+    /// get a TLS connection. That is determined by the presence of a BackendTLSPolicy.
+    ///
+    /// Support: Core
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub backend: Option<GatewayTlsBackend>,
+    /// Frontend describes TLS config when client connects to Gateway.
+    /// Support: Core
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub frontend: Option<GatewayTlsFrontend>,
+}
+/// Backend describes TLS configuration for gateway when connecting
+/// to backends.
+///
+/// Note that this contains only details for the Gateway as a TLS client,
+/// and does _not_ imply behavior about how to choose which backend should
+/// get a TLS connection. That is determined by the presence of a BackendTLSPolicy.
+///
+/// Support: Core
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayTlsBackend {
+    /// ClientCertificateRef is a reference to an object that contains a Client
+    /// Certificate and the associated private key.
+    ///
+    /// References to a resource in different namespace are invalid UNLESS there
+    /// is a ReferenceGrant in the target namespace that allows the certificate
+    /// to be attached. If a ReferenceGrant does not allow this reference, the
+    /// "ResolvedRefs" condition MUST be set to False for this listener with the
+    /// "RefNotPermitted" reason.
+    ///
+    /// ClientCertificateRef can reference to standard Kubernetes resources, i.e.
+    /// Secret, or implementation-specific custom resources.
+    ///
+    /// Support: Core
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "clientCertificateRef"
+    )]
+    pub client_certificate_ref: Option<BackendTlsClientCertificateReference>,
+}
+/// Frontend describes TLS config when client connects to Gateway.
+/// Support: Core
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayTlsFrontend {
+    /// Default specifies the default client certificate validation configuration
+    /// for all Listeners handling HTTPS traffic, unless a per-port configuration
+    /// is defined.
+    ///
+    /// support: Core
+    pub default: GatewayTlsFrontendDefault,
+    /// PerPort specifies tls configuration assigned per port.
+    /// Per port configuration is optional. Once set this configuration overrides
+    /// the default configuration for all Listeners handling HTTPS traffic
+    /// that match this port.
+    /// Each override port requires a unique TLS configuration.
+    ///
+    /// support: Core
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "perPort")]
+    pub per_port: Option<Vec<GatewayTlsFrontendPerPort>>,
+}
+/// Default specifies the default client certificate validation configuration
+/// for all Listeners handling HTTPS traffic, unless a per-port configuration
+/// is defined.
+///
+/// support: Core
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayTlsFrontendDefault {
+    /// Validation holds configuration information for validating the frontend (client).
+    /// Setting this field will result in mutual authentication when connecting to the gateway.
+    /// In browsers this may result in a dialog appearing
+    /// that requests a user to specify the client certificate.
+    /// The maximum depth of a certificate chain accepted in verification is Implementation specific.
+    ///
+    /// Support: Core
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub validation: Option<GatewayTlsFrontendDefaultValidation>,
+}
+/// Validation holds configuration information for validating the frontend (client).
+/// Setting this field will result in mutual authentication when connecting to the gateway.
+/// In browsers this may result in a dialog appearing
 /// that requests a user to specify the client certificate.
 /// The maximum depth of a certificate chain accepted in verification is Implementation specific.
 ///
-/// Support: Extended
-///
-///
+/// Support: Core
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GatewayListenersTlsFrontendValidation {
+pub struct GatewayTlsFrontendDefaultValidation {
     /// CACertificateRefs contains one or more references to
     /// Kubernetes objects that contain TLS certificates of
     /// the Certificate Authorities that can be used
@@ -588,36 +793,115 @@ pub struct GatewayListenersTlsFrontendValidation {
     /// Support: Core - A single reference to a Kubernetes ConfigMap
     /// with the CA certificate in a key named `ca.crt`.
     ///
-    /// Support: Implementation-specific (More than one reference, or other kinds
-    /// of resources).
+    /// Support: Implementation-specific (More than one certificate in a ConfigMap
+    /// with different keys or more than one reference, or other kinds of resources).
     ///
     /// References to a resource in a different namespace are invalid UNLESS there
     /// is a ReferenceGrant in the target namespace that allows the certificate
     /// to be attached. If a ReferenceGrant does not allow this reference, the
     /// "ResolvedRefs" condition MUST be set to False for this listener with the
     /// "RefNotPermitted" reason.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "caCertificateRefs"
-    )]
-    pub ca_certificate_refs: Option<Vec<ParametersReference>>,
+    #[serde(rename = "caCertificateRefs")]
+    pub ca_certificate_refs: Vec<ParametersReference>,
+    /// FrontendValidationMode defines the mode for validating the client certificate.
+    /// There are two possible modes:
+    ///
+    /// - AllowValidOnly: In this mode, the gateway will accept connections only if
+    ///   the client presents a valid certificate. This certificate must successfully
+    ///   pass validation against the CA certificates specified in `CACertificateRefs`.
+    /// - AllowInsecureFallback: In this mode, the gateway will accept connections
+    ///   even if the client certificate is not presented or fails verification.
+    ///
+    ///   This approach delegates client authorization to the backend and introduce
+    ///   a significant security risk. It should be used in testing environments or
+    ///   on a temporary basis in non-testing environments.
+    ///
+    /// Defaults to AllowValidOnly.
+    ///
+    /// Support: Core
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<GatewayTlsFrontendDefaultValidationMode>,
 }
-/// TLS is the TLS configuration for the Listener. This field is required if
-/// the Protocol field is "HTTPS" or "TLS". It is invalid to set this field
-/// if the Protocol field is "HTTP", "TCP", or "UDP".
-///
-/// The association of SNIs to Certificate defined in GatewayTLSConfig is
-/// defined based on the Hostname field for this listener.
-///
-/// The GatewayClass MUST use the longest matching SNI out of all
-/// available certificates for any TLS handshake.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayTlsFrontendPerPort {
+    /// The Port indicates the Port Number to which the TLS configuration will be
+    /// applied. This configuration will be applied to all Listeners handling HTTPS
+    /// traffic that match this port.
+    ///
+    /// Support: Core
+    pub port: i32,
+    /// TLS store the configuration that will be applied to all Listeners handling
+    /// HTTPS traffic and matching given port.
+    ///
+    /// Support: Core
+    pub tls: GatewayTlsFrontendPerPortTls,
+}
+/// TLS store the configuration that will be applied to all Listeners handling
+/// HTTPS traffic and matching given port.
 ///
 /// Support: Core
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum GatewayListenersTlsMode {
-    Terminate,
-    Passthrough,
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayTlsFrontendPerPortTls {
+    /// Validation holds configuration information for validating the frontend (client).
+    /// Setting this field will result in mutual authentication when connecting to the gateway.
+    /// In browsers this may result in a dialog appearing
+    /// that requests a user to specify the client certificate.
+    /// The maximum depth of a certificate chain accepted in verification is Implementation specific.
+    ///
+    /// Support: Core
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub validation: Option<GatewayTlsFrontendPerPortTlsValidation>,
+}
+/// Validation holds configuration information for validating the frontend (client).
+/// Setting this field will result in mutual authentication when connecting to the gateway.
+/// In browsers this may result in a dialog appearing
+/// that requests a user to specify the client certificate.
+/// The maximum depth of a certificate chain accepted in verification is Implementation specific.
+///
+/// Support: Core
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayTlsFrontendPerPortTlsValidation {
+    /// CACertificateRefs contains one or more references to
+    /// Kubernetes objects that contain TLS certificates of
+    /// the Certificate Authorities that can be used
+    /// as a trust anchor to validate the certificates presented by the client.
+    ///
+    /// A single CA certificate reference to a Kubernetes ConfigMap
+    /// has "Core" support.
+    /// Implementations MAY choose to support attaching multiple CA certificates to
+    /// a Listener, but this behavior is implementation-specific.
+    ///
+    /// Support: Core - A single reference to a Kubernetes ConfigMap
+    /// with the CA certificate in a key named `ca.crt`.
+    ///
+    /// Support: Implementation-specific (More than one certificate in a ConfigMap
+    /// with different keys or more than one reference, or other kinds of resources).
+    ///
+    /// References to a resource in a different namespace are invalid UNLESS there
+    /// is a ReferenceGrant in the target namespace that allows the certificate
+    /// to be attached. If a ReferenceGrant does not allow this reference, the
+    /// "ResolvedRefs" condition MUST be set to False for this listener with the
+    /// "RefNotPermitted" reason.
+    #[serde(rename = "caCertificateRefs")]
+    pub ca_certificate_refs: Vec<ParametersReference>,
+    /// FrontendValidationMode defines the mode for validating the client certificate.
+    /// There are two possible modes:
+    ///
+    /// - AllowValidOnly: In this mode, the gateway will accept connections only if
+    ///   the client presents a valid certificate. This certificate must successfully
+    ///   pass validation against the CA certificates specified in `CACertificateRefs`.
+    /// - AllowInsecureFallback: In this mode, the gateway will accept connections
+    ///   even if the client certificate is not presented or fails verification.
+    ///
+    ///   This approach delegates client authorization to the backend and introduce
+    ///   a significant security risk. It should be used in testing environments or
+    ///   on a temporary basis in non-testing environments.
+    ///
+    /// Defaults to AllowValidOnly.
+    ///
+    /// Support: Core
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<GatewayTlsFrontendDefaultValidationMode>,
 }
 /// Status defines the current state of Gateway.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
@@ -631,10 +915,8 @@ pub struct GatewayStatus {
     ///   * no addresses are specified, all addresses are dynamically assigned
     ///   * a combination of specified and dynamic addresses are assigned
     ///   * a specified address was unusable (e.g. already in use)
-    ///
-    ///
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub addresses: Option<Vec<GatewayAddress>>,
+    pub addresses: Option<Vec<GatewayStatusAddresses>>,
     /// Conditions describe the current conditions of the Gateway.
     ///
     /// Implementations should prefer to express Gateway conditions
@@ -652,6 +934,18 @@ pub struct GatewayStatus {
     /// Listeners provide status for each unique listener port defined in the Spec.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub listeners: Option<Vec<GatewayStatusListeners>>,
+}
+/// GatewayStatusAddress describes a network address that is bound to a Gateway.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayStatusAddresses {
+    /// Type of the address.
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
+    pub r#type: Option<String>,
+    /// Value of the address. The validity of the values will depend
+    /// on the type and support by the controller.
+    ///
+    /// Examples: `1.2.3.4`, `128::1`, `my-ip-address`.
+    pub value: String,
 }
 /// ListenerStatus is the status associated with a Listener.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
