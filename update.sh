@@ -13,7 +13,7 @@
 
 set -eou pipefail
 
-VERSION="v1.2.1"
+VERSION="v1.4.0"
 
 STANDARD_APIS=(
     gatewayclasses

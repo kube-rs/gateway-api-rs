@@ -8,9 +8,9 @@
 
 [Rust] bindings for [Kubernetes] [Gateway API].
 
-> **Note**: Currently supports [Gateway API version v1.2.1][gwv]
+> **Note**: Currently supports [Gateway API version v1.4.0][gwv]
 
-[gwv]:https://github.com/kubernetes-sigs/gateway-api/releases/tag/v1.2.1
+[gwv]:https://github.com/kubernetes-sigs/gateway-api/releases/tag/v1.4.0
 [Rust]:https://rust-lang.org
 [Kubernetes]:https://kubernetes.io/
 [Gateway API]:https://gateway-api.sigs.k8s.io/
@@ -34,7 +34,7 @@ Gateway API. Make sure you install `kopium` locally in order to run the
 generator:
 
 ```console
-$ cargo install kopium --version 0.21.3
+$ cargo install kopium --version 0.22.5
 ```
 
 After which you can run the `update.sh` script:
