@@ -8,9 +8,9 @@
 
 [Rust] bindings for [Kubernetes] [Gateway API].
 
-> **Note**: Currently supports [Gateway API version v1.4.0][gwv]
+> **Note**: Currently supports [Gateway API version v1.2.1][gwv]
 
-[gwv]:https://github.com/kubernetes-sigs/gateway-api/releases/tag/v1.4.0
+[gwv]:https://github.com/kubernetes-sigs/gateway-api/releases/tag/v1.2.1
 [Rust]:https://rust-lang.org
 [Kubernetes]:https://kubernetes.io/
 [Gateway API]:https://gateway-api.sigs.k8s.io/
