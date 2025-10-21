@@ -18,9 +18,3 @@ impl Default for RequestOperationType {
         RequestOperationType::ReplaceFullPath
     }
 }
-
-impl Default for HTTPRouteRulesBackendRefsFiltersExternalAuthProtocol {
-    fn default() -> Self {
-        HTTPRouteRulesBackendRefsFiltersExternalAuthProtocol::Http
-    }
-}

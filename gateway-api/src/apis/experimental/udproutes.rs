@@ -83,6 +83,12 @@ pub struct UDPRouteSpec {
     /// connections originating from the same namespace as the Route, for which
     /// the intended destination of the connections are a Service targeted as a
     /// ParentRef of the Route.
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -90,23 +96,7 @@ pub struct UDPRouteSpec {
     )]
     pub parent_refs: Option<Vec<ParentReference>>,
     /// Rules are a list of UDP matchers and actions.
-    pub rules: Vec<CommonRouteRule>,
-    /// UseDefaultGateways indicates the default Gateway scope to use for this
-    /// Route. If unset (the default) or set to None, the Route will not be
-    /// attached to any default Gateway; if set, it will be attached to any
-    /// default Gateway supporting the named scope, subject to the usual rules
-    /// about which Routes a Gateway is allowed to claim.
     ///
-    /// Think carefully before using this functionality! The set of default
-    /// Gateways supporting the requested scope can change over time without
-    /// any notice to the Route author, and in many situations it will not be
-    /// appropriate to request a default Gateway for a given Route -- for
-    /// example, a Route with specific security requirements should almost
-    /// certainly not use a default Gateway.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "useDefaultGateways"
-    )]
-    pub use_default_gateways: Option<GatewayDefaultScope>,
+    ///
+    pub rules: Vec<CommonRouteRule>,
 }

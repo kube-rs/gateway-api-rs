@@ -127,6 +127,13 @@ pub struct HTTPRouteSpec {
     /// allowed by something in the namespace they are referring to. For example,
     /// Gateway has the AllowedRoutes field, and ReferenceGrant provides a
     /// generic way to enable other kinds of cross-namespace reference.
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -134,6 +141,8 @@ pub struct HTTPRouteSpec {
     )]
     pub parent_refs: Option<Vec<ParentReference>>,
     /// Rules are a list of HTTP matchers, filters and actions.
+    ///
+    ///
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rules: Option<Vec<HTTPRouteRule>>,
 }
@@ -190,7 +199,7 @@ pub struct HTTPRouteRule {
     /// they are specified.
     ///
     /// Implementations MAY choose to implement this ordering strictly, rejecting
-    /// any combination or order of filters that cannot be supported. If implementations
+    /// any combination or order of filters that can not be supported. If implementations
     /// choose a strict interpretation of filter ordering, they MUST clearly document
     /// that behavior.
     ///
@@ -212,7 +221,7 @@ pub struct HTTPRouteRule {
     ///
     /// All filters are expected to be compatible with each other except for the
     /// URLRewrite and RequestRedirect filters, which may not be combined. If an
-    /// implementation cannot support other combinations of filters, they must clearly
+    /// implementation can not support other combinations of filters, they must clearly
     /// document that limitation. In cases where incompatible or unsupported
     /// filters are specified and cause the `Accepted` condition to be set to status
     /// `False`, implementations may use the `IncompatibleFilters` reason to specify
@@ -279,11 +288,6 @@ pub struct HTTPRouteRule {
     /// parent a request is coming from, a HTTP 404 status code MUST be returned.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub matches: Option<Vec<RouteMatch>>,
-    /// Name is the name of the route rule. This name MUST be unique within a Route if it is set.
-    ///
-    /// Support: Extended
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
     /// Timeouts defines the timeouts that can be configured for an HTTP request.
     ///
     /// Support: Extended
@@ -296,6 +300,24 @@ pub struct HTTPRouteRule {
 /// ReferenceGrant object is required in the referent namespace to allow that
 /// namespace's owner to accept the reference. See the ReferenceGrant
 /// documentation for details.
+///
+/// <gateway:experimental:description>
+///
+/// When the BackendRef points to a Kubernetes Service, implementations SHOULD
+/// honor the appProtocol field if it is set for the target Service Port.
+///
+/// Implementations supporting appProtocol SHOULD recognize the Kubernetes
+/// Standard Application Protocols defined in KEP-3726.
+///
+/// If a Service appProtocol isn't specified, an implementation MAY infer the
+/// backend protocol through its own means. Implementations MAY infer the
+/// protocol from the Route type referring to the backend Service.
+///
+/// If a Route is not able to send traffic to the backend using the specified
+/// protocol then the backend is considered invalid. Implementations MUST set the
+/// "ResolvedRefs" condition to "False" with the "UnsupportedProtocol" reason.
+///
+/// </gateway:experimental:description>
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPBackendReference {
     /// Filters defined at this level should be executed if and only if the
@@ -402,12 +424,14 @@ pub struct HTTPRouteBackendFilter {
     /// backends.
     ///
     /// Support: Extended
+    ///
+    ///
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         rename = "requestMirror"
     )]
-    pub request_mirror: Option<HTTPRouteRulesBackendRefsFiltersRequestMirror>,
+    pub request_mirror: Option<RequestMirror>,
     /// RequestRedirect defines a schema for a filter that responds to the
     /// request with an HTTP redirection.
     ///
@@ -471,58 +495,6 @@ pub struct HTTPRouteBackendFilter {
         rename = "urlRewrite"
     )]
     pub url_rewrite: Option<HTTPRouteUrlRewrite>,
-}
-/// RequestMirror defines a schema for a filter that mirrors requests.
-/// Requests are sent to the specified destination, but responses from
-/// that destination are ignored.
-///
-/// This filter can be used multiple times within the same rule. Note that
-/// not all implementations will be able to support mirroring to multiple
-/// backends.
-///
-/// Support: Extended
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HTTPRouteRulesBackendRefsFiltersRequestMirror {
-    /// BackendRef references a resource where mirrored requests are sent.
-    ///
-    /// Mirrored requests must be sent only to a single destination endpoint
-    /// within this BackendRef, irrespective of how many endpoints are present
-    /// within this BackendRef.
-    ///
-    /// If the referent cannot be found, this BackendRef is invalid and must be
-    /// dropped from the Gateway. The controller must ensure the "ResolvedRefs"
-    /// condition on the Route status is set to `status: False` and not configure
-    /// this backend in the underlying implementation.
-    ///
-    /// If there is a cross-namespace reference to an *existing* object
-    /// that is not allowed by a ReferenceGrant, the controller must ensure the
-    /// "ResolvedRefs"  condition on the Route is set to `status: False`,
-    /// with the "RefNotPermitted" reason and not configure this backend in the
-    /// underlying implementation.
-    ///
-    /// In either error case, the Message of the `ResolvedRefs` Condition
-    /// should be used to provide more detail about the problem.
-    ///
-    /// Support: Extended for Kubernetes Service
-    ///
-    /// Support: Implementation-specific for any other resource
-    #[serde(rename = "backendRef")]
-    pub backend_ref: RequestMirrorReference,
-    /// Fraction represents the fraction of requests that should be
-    /// mirrored to BackendRef.
-    ///
-    /// Only one of Fraction or Percent may be specified. If neither field
-    /// is specified, 100% of requests will be mirrored.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub fraction: Option<HTTPRouteRulesBackendRefsFiltersRequestMirrorFraction>,
-    /// Percent represents the percentage of requests that should be
-    /// mirrored to BackendRef. Its minimum value is 0 (indicating 0% of
-    /// requests) and its maximum value is 100 (indicating 100% of requests).
-    ///
-    /// Only one of Fraction or Percent may be specified. If neither field
-    /// is specified, 100% of requests will be mirrored.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub percent: Option<i32>,
 }
 /// HTTPRouteFilter defines processing steps that must be completed during the
 /// request or response lifecycle. HTTPRouteFilters are meant as an extension
@@ -565,12 +537,14 @@ pub struct HTTPRouteFilter {
     /// backends.
     ///
     /// Support: Extended
+    ///
+    ///
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         rename = "requestMirror"
     )]
-    pub request_mirror: Option<HTTPRouteRulesFiltersRequestMirror>,
+    pub request_mirror: Option<RequestMirror>,
     /// RequestRedirect defines a schema for a filter that responds to the
     /// request with an HTTP redirection.
     ///
@@ -634,58 +608,6 @@ pub struct HTTPRouteFilter {
         rename = "urlRewrite"
     )]
     pub url_rewrite: Option<HTTPRouteUrlRewrite>,
-}
-/// RequestMirror defines a schema for a filter that mirrors requests.
-/// Requests are sent to the specified destination, but responses from
-/// that destination are ignored.
-///
-/// This filter can be used multiple times within the same rule. Note that
-/// not all implementations will be able to support mirroring to multiple
-/// backends.
-///
-/// Support: Extended
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HTTPRouteRulesFiltersRequestMirror {
-    /// BackendRef references a resource where mirrored requests are sent.
-    ///
-    /// Mirrored requests must be sent only to a single destination endpoint
-    /// within this BackendRef, irrespective of how many endpoints are present
-    /// within this BackendRef.
-    ///
-    /// If the referent cannot be found, this BackendRef is invalid and must be
-    /// dropped from the Gateway. The controller must ensure the "ResolvedRefs"
-    /// condition on the Route status is set to `status: False` and not configure
-    /// this backend in the underlying implementation.
-    ///
-    /// If there is a cross-namespace reference to an *existing* object
-    /// that is not allowed by a ReferenceGrant, the controller must ensure the
-    /// "ResolvedRefs"  condition on the Route is set to `status: False`,
-    /// with the "RefNotPermitted" reason and not configure this backend in the
-    /// underlying implementation.
-    ///
-    /// In either error case, the Message of the `ResolvedRefs` Condition
-    /// should be used to provide more detail about the problem.
-    ///
-    /// Support: Extended for Kubernetes Service
-    ///
-    /// Support: Implementation-specific for any other resource
-    #[serde(rename = "backendRef")]
-    pub backend_ref: RequestMirrorReference,
-    /// Fraction represents the fraction of requests that should be
-    /// mirrored to BackendRef.
-    ///
-    /// Only one of Fraction or Percent may be specified. If neither field
-    /// is specified, 100% of requests will be mirrored.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub fraction: Option<HTTPRouteRulesBackendRefsFiltersRequestMirrorFraction>,
-    /// Percent represents the percentage of requests that should be
-    /// mirrored to BackendRef. Its minimum value is 0 (indicating 0% of
-    /// requests) and its maximum value is 100 (indicating 100% of requests).
-    ///
-    /// Only one of Fraction or Percent may be specified. If neither field
-    /// is specified, 100% of requests will be mirrored.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub percent: Option<i32>,
 }
 /// HTTPRouteMatch defines the predicate used to match requests to a given
 /// action. Multiple match types are ANDed together, i.e. the match will
