@@ -2,7 +2,7 @@
 
 #[allow(unused_imports)]
 mod prelude {
-    pub use kube::CustomResource;
+    pub use kube_derive::CustomResource;
     pub use schemars::JsonSchema;
     pub use serde::{Deserialize, Serialize};
 }

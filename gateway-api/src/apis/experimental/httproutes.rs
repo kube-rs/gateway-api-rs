@@ -4,7 +4,7 @@ use super::common::*;
 #[allow(unused_imports)]
 mod prelude {
     pub use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
-    pub use kube::CustomResource;
+    pub use kube_derive::CustomResource;
     pub use schemars::JsonSchema;
     pub use serde::{Deserialize, Serialize};
 }
@@ -18,10 +18,10 @@ use self::prelude::*;
     plural = "httproutes"
 )]
 #[kube(namespaced)]
-#[kube(status = "HttpRouteStatus")]
+#[kube(status = "RouteStatus")]
 #[kube(derive = "Default")]
 #[kube(derive = "PartialEq")]
-pub struct HttpRouteSpec {
+pub struct HTTPRouteSpec {
     /// Hostnames defines a set of hostnames that should match against the HTTP Host
     /// header to select a HTTPRoute used to process the request. Implementations
     /// MUST ignore any port value specified in the HTTP Host header while
@@ -143,10 +143,10 @@ pub struct HttpRouteSpec {
         skip_serializing_if = "Option::is_none",
         rename = "parentRefs"
     )]
-    pub parent_refs: Option<Vec<HttpRouteParentRefs>>,
+    pub parent_refs: Option<Vec<ParentReference>>,
     /// Rules are a list of HTTP matchers, filters and actions.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rules: Option<Vec<HttpRouteRules>>,
+    pub rules: Option<Vec<HTTPRouteRule>>,
     /// UseDefaultGateways indicates the default Gateway scope to use for this
     /// Route. If unset (the default) or set to None, the Route will not be
     /// attached to any default Gateway; if set, it will be attached to any
@@ -170,7 +170,7 @@ pub struct HttpRouteSpec {
 /// conditions (matches), processing it (filters), and forwarding the request to
 /// an API object (backendRefs).
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRules {
+pub struct HTTPRouteRule {
     /// BackendRefs defines the backend(s) where matching requests should be
     /// sent.
     ///
@@ -211,7 +211,7 @@ pub struct HttpRouteRules {
         skip_serializing_if = "Option::is_none",
         rename = "backendRefs"
     )]
-    pub backend_refs: Option<Vec<HttpRouteRulesBackendRefs>>,
+    pub backend_refs: Option<Vec<HTTPBackendReference>>,
     /// Filters define the filters that are applied to requests that match
     /// this rule.
     ///
@@ -249,7 +249,7 @@ pub struct HttpRouteRules {
     ///
     /// Support: Core
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub filters: Option<Vec<HttpRouteRulesFilters>>,
+    pub filters: Option<Vec<HTTPRouteFilter>>,
     /// Matches define conditions used for matching the rule against incoming
     /// HTTP requests. Each match is independent, i.e. this rule will be matched
     /// if **any** one of the matches is satisfied.
@@ -307,7 +307,7 @@ pub struct HttpRouteRules {
     /// When no rules matching a request have been successfully attached to the
     /// parent a request is coming from, a HTTP 404 status code MUST be returned.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub matches: Option<Vec<HttpRouteRulesMatches>>,
+    pub matches: Option<Vec<RouteMatch>>,
     /// Name is the name of the route rule. This name MUST be unique within a Route if it is set.
     ///
     /// Support: Extended
@@ -317,7 +317,7 @@ pub struct HttpRouteRules {
     ///
     /// Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub retry: Option<HttpRouteRulesRetry>,
+    pub retry: Option<HTTPRouteRulesRetry>,
     /// SessionPersistence defines and configures session persistence
     /// for the route rule.
     ///
@@ -327,12 +327,12 @@ pub struct HttpRouteRules {
         skip_serializing_if = "Option::is_none",
         rename = "sessionPersistence"
     )]
-    pub session_persistence: Option<HttpRouteRulesSessionPersistence>,
+    pub session_persistence: Option<SessionPersistence>,
     /// Timeouts defines the timeouts that can be configured for an HTTP request.
     ///
     /// Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub timeouts: Option<HttpRouteRulesTimeouts>,
+    pub timeouts: Option<HTTPRouteTimeout>,
 }
 /// HTTPBackendRef defines how a HTTPRoute forwards a HTTP request.
 ///
@@ -356,14 +356,14 @@ pub struct HttpRouteRules {
 /// protocol then the backend is considered invalid. Implementations MUST set the
 /// "ResolvedRefs" condition to "False" with the "UnsupportedProtocol" reason.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesBackendRefs {
+pub struct HTTPBackendReference {
     /// Filters defined at this level should be executed if and only if the
     /// request is being forwarded to the backend defined here.
     ///
     /// Support: Implementation-specific (For broader support of filters, use the
     /// Filters field in HTTPRouteRule.)
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub filters: Option<Vec<HttpRouteRulesBackendRefsFilters>>,
+    pub filters: Option<Vec<HTTPRouteBackendFilter>>,
     /// Group is the group of the referent. For example, "gateway.networking.k8s.io".
     /// When unspecified or empty string, core API group is inferred.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -427,13 +427,13 @@ pub struct HttpRouteRulesBackendRefs {
 /// authentication strategies, rate-limiting, and traffic shaping. API
 /// guarantee/conformance is defined based on the type of the filter.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesBackendRefsFilters {
+pub struct HTTPRouteBackendFilter {
     /// CORS defines a schema for a filter that responds to the
     /// cross-origin request based on HTTP response header.
     ///
     /// Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub cors: Option<HttpRouteRulesBackendRefsFiltersCors>,
+    pub cors: Option<HTTPRouteRulesBackendRefsFiltersCors>,
     /// ExtensionRef is an optional, implementation-specific extension to the
     /// "filter" behavior.  For example, resource "myroutefilter" in group
     /// "networking.example.net"). ExtensionRef MUST NOT be used for core and
@@ -461,7 +461,7 @@ pub struct HttpRouteRulesBackendRefsFilters {
         skip_serializing_if = "Option::is_none",
         rename = "externalAuth"
     )]
-    pub external_auth: Option<HttpRouteRulesBackendRefsFiltersExternalAuth>,
+    pub external_auth: Option<HTTPRouteRulesBackendRefsFiltersExternalAuth>,
     /// RequestHeaderModifier defines a schema for a filter that modifies request
     /// headers.
     ///
@@ -471,7 +471,7 @@ pub struct HttpRouteRulesBackendRefsFilters {
         skip_serializing_if = "Option::is_none",
         rename = "requestHeaderModifier"
     )]
-    pub request_header_modifier: Option<HttpRouteRulesBackendRefsFiltersRequestHeaderModifier>,
+    pub request_header_modifier: Option<HeaderModifier>,
     /// RequestMirror defines a schema for a filter that mirrors requests.
     /// Requests are sent to the specified destination, but responses from
     /// that destination are ignored.
@@ -486,7 +486,7 @@ pub struct HttpRouteRulesBackendRefsFilters {
         skip_serializing_if = "Option::is_none",
         rename = "requestMirror"
     )]
-    pub request_mirror: Option<HttpRouteRulesBackendRefsFiltersRequestMirror>,
+    pub request_mirror: Option<HTTPRouteRulesBackendRefsFiltersRequestMirror>,
     /// RequestRedirect defines a schema for a filter that responds to the
     /// request with an HTTP redirection.
     ///
@@ -496,7 +496,7 @@ pub struct HttpRouteRulesBackendRefsFilters {
         skip_serializing_if = "Option::is_none",
         rename = "requestRedirect"
     )]
-    pub request_redirect: Option<HttpRouteRulesBackendRefsFiltersRequestRedirect>,
+    pub request_redirect: Option<RequestRedirect>,
     /// ResponseHeaderModifier defines a schema for a filter that modifies response
     /// headers.
     ///
@@ -506,7 +506,7 @@ pub struct HttpRouteRulesBackendRefsFilters {
         skip_serializing_if = "Option::is_none",
         rename = "responseHeaderModifier"
     )]
-    pub response_header_modifier: Option<HttpRouteRulesBackendRefsFiltersResponseHeaderModifier>,
+    pub response_header_modifier: Option<HeaderModifier>,
     /// Type identifies the type of filter to apply. As with other API fields,
     /// types are classified into three conformance levels:
     ///
@@ -540,7 +540,7 @@ pub struct HttpRouteRulesBackendRefsFilters {
     /// Accepted Condition for the Route to `status: False`, with a
     /// Reason of `UnsupportedValue`.
     #[serde(rename = "type")]
-    pub r#type: HttpRouteRulesBackendRefsFiltersType,
+    pub r#type: HTTPFilterType,
     /// URLRewrite defines a schema for a filter that modifies a request during forwarding.
     ///
     /// Support: Extended
@@ -549,14 +549,14 @@ pub struct HttpRouteRulesBackendRefsFilters {
         skip_serializing_if = "Option::is_none",
         rename = "urlRewrite"
     )]
-    pub url_rewrite: Option<HttpRouteRulesBackendRefsFiltersUrlRewrite>,
+    pub url_rewrite: Option<HTTPRouteUrlRewrite>,
 }
 /// CORS defines a schema for a filter that responds to the
 /// cross-origin request based on HTTP response header.
 ///
 /// Support: Extended
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesBackendRefsFiltersCors {
+pub struct HTTPRouteRulesBackendRefsFiltersCors {
     /// AllowCredentials indicates whether the actual cross-origin request allows
     /// to include credentials.
     ///
@@ -623,13 +623,13 @@ pub struct HttpRouteRulesBackendRefsFiltersCors {
     /// value `*`, which represents all HTTP methods are allowed.
     ///
     /// Method names are case sensitive, so these values are also case-sensitive.
-    /// (See <https://www.rfc-editor.org/rfc/rfc2616#section-5.1.1)>
+    /// (See https://www.rfc-editor.org/rfc/rfc2616#section-5.1.1)
     ///
     /// Multiple method names in the value of the `Access-Control-Allow-Methods`
     /// response header are separated by a comma (",").
     ///
     /// A CORS-safelisted method is a method that is `GET`, `HEAD`, or `POST`.
-    /// (See <https://fetch.spec.whatwg.org/#cors-safelisted-method)> The
+    /// (See https://fetch.spec.whatwg.org/#cors-safelisted-method) The
     /// CORS-safelisted methods are always allowed, regardless of whether they
     /// are specified in the `AllowMethods` field.
     ///
@@ -734,7 +734,7 @@ pub struct HttpRouteRulesBackendRefsFiltersCors {
     /// `Expires`
     /// `Last-Modified`
     /// `Pragma`
-    /// (See <https://fetch.spec.whatwg.org/#cors-safelisted-response-header-name)>
+    /// (See https://fetch.spec.whatwg.org/#cors-safelisted-response-header-name)
     /// The CORS-safelisted response headers are exposed to client by default.
     ///
     /// When an HTTP header name is specified using the `ExposeHeaders` field,
@@ -778,7 +778,7 @@ pub struct HttpRouteRulesBackendRefsFiltersCors {
 ///
 /// Support: Extended
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesBackendRefsFiltersExternalAuth {
+pub struct HTTPRouteRulesBackendRefsFiltersExternalAuth {
     /// BackendRef is a reference to a backend to send authorization
     /// requests to.
     ///
@@ -789,7 +789,7 @@ pub struct HttpRouteRulesBackendRefsFiltersExternalAuth {
     /// implementation to supply the TLS details to be used to connect to that
     /// backend.
     #[serde(rename = "backendRef")]
-    pub backend_ref: HttpRouteRulesBackendRefsFiltersExternalAuthBackendRef,
+    pub backend_ref: HTTPRouteRulesBackendRefsFiltersExternalAuthBackendRef,
     /// ForwardBody controls if requests to the authorization server should include
     /// the body of the client request; and if so, how big that body is allowed
     /// to be.
@@ -808,28 +808,28 @@ pub struct HttpRouteRulesBackendRefsFiltersExternalAuth {
         skip_serializing_if = "Option::is_none",
         rename = "forwardBody"
     )]
-    pub forward_body: Option<HttpRouteRulesBackendRefsFiltersExternalAuthForwardBody>,
+    pub forward_body: Option<HTTPRouteRulesBackendRefsFiltersExternalAuthForwardBody>,
     /// GRPCAuthConfig contains configuration for communication with ext_authz
     /// protocol-speaking backends.
     ///
     /// If unset, implementations must assume the default behavior for each
     /// included field is intended.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub grpc: Option<HttpRouteRulesBackendRefsFiltersExternalAuthGrpc>,
+    pub grpc: Option<HTTPRouteRulesBackendRefsFiltersExternalAuthGrpc>,
     /// HTTPAuthConfig contains configuration for communication with HTTP-speaking
     /// backends.
     ///
     /// If unset, implementations must assume the default behavior for each
     /// included field is intended.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub http: Option<HttpRouteRulesBackendRefsFiltersExternalAuthHttp>,
+    pub http: Option<HTTPRouteRulesBackendRefsFiltersExternalAuthHttp>,
     /// ExternalAuthProtocol describes which protocol to use when communicating with an
     /// ext_authz authorization server.
     ///
     /// When this is set to GRPC, each backend must use the Envoy ext_authz protocol
     /// on the port specified in `backendRefs`. Requests and responses are defined
     /// in the protobufs explained at:
-    /// <https://www.envoyproxy.io/docs/envoy/latest/api-v3/service/auth/v3/external_auth.proto>
+    /// https://www.envoyproxy.io/docs/envoy/latest/api-v3/service/auth/v3/external_auth.proto
     ///
     /// When this is set to HTTP, each backend must respond with a `200` status
     /// code in on a successful authorization. Any other code is considered
@@ -838,68 +838,7 @@ pub struct HttpRouteRulesBackendRefsFiltersExternalAuth {
     /// Feature Names:
     /// GRPC Support - HTTPRouteExternalAuthGRPC
     /// HTTP Support - HTTPRouteExternalAuthHTTP
-    pub protocol: HttpRouteRulesBackendRefsFiltersExternalAuthProtocol,
-}
-/// RequestHeaderModifier defines a schema for a filter that modifies request
-/// headers.
-///
-/// Support: Core
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesBackendRefsFiltersRequestHeaderModifier {
-    /// Add adds the given header(s) (name, value) to the request
-    /// before the action. It appends to any existing values associated
-    /// with the header name.
-    ///
-    /// Input:
-    ///   GET /foo HTTP/1.1
-    ///   my-header: foo
-    ///
-    /// Config:
-    ///   add:
-    ///   - name: "my-header"
-    ///     value: "bar,baz"
-    ///
-    /// Output:
-    ///   GET /foo HTTP/1.1
-    ///   my-header: foo,bar,baz
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub add: Option<Vec<HttpRouteRulesBackendRefsFiltersRequestHeaderModifierAdd>>,
-    /// Remove the given header(s) from the HTTP request before the action. The
-    /// value of Remove is a list of HTTP header names. Note that the header
-    /// names are case-insensitive (see
-    /// <https://datatracker.ietf.org/doc/html/rfc2616#section-4.2).>
-    ///
-    /// Input:
-    ///   GET /foo HTTP/1.1
-    ///   my-header1: foo
-    ///   my-header2: bar
-    ///   my-header3: baz
-    ///
-    /// Config:
-    ///   remove: ["my-header1", "my-header3"]
-    ///
-    /// Output:
-    ///   GET /foo HTTP/1.1
-    ///   my-header2: bar
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub remove: Option<Vec<String>>,
-    /// Set overwrites the request with the given header (name, value)
-    /// before the action.
-    ///
-    /// Input:
-    ///   GET /foo HTTP/1.1
-    ///   my-header: foo
-    ///
-    /// Config:
-    ///   set:
-    ///   - name: "my-header"
-    ///     value: "bar"
-    ///
-    /// Output:
-    ///   GET /foo HTTP/1.1
-    ///   my-header: bar
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub set: Option<Vec<HttpRouteRulesBackendRefsFiltersRequestHeaderModifierAdd>>,
+    pub protocol: HTTPRouteRulesBackendRefsFiltersExternalAuthProtocol,
 }
 /// RequestMirror defines a schema for a filter that mirrors requests.
 /// Requests are sent to the specified destination, but responses from
@@ -911,7 +850,7 @@ pub struct HttpRouteRulesBackendRefsFiltersRequestHeaderModifier {
 ///
 /// Support: Extended
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesBackendRefsFiltersRequestMirror {
+pub struct HTTPRouteRulesBackendRefsFiltersRequestMirror {
     /// BackendRef references a resource where mirrored requests are sent.
     ///
     /// Mirrored requests must be sent only to a single destination endpoint
@@ -936,14 +875,14 @@ pub struct HttpRouteRulesBackendRefsFiltersRequestMirror {
     ///
     /// Support: Implementation-specific for any other resource
     #[serde(rename = "backendRef")]
-    pub backend_ref: HttpRouteRulesBackendRefsFiltersExternalAuthBackendRef,
+    pub backend_ref: HTTPRouteRulesBackendRefsFiltersExternalAuthBackendRef,
     /// Fraction represents the fraction of requests that should be
     /// mirrored to BackendRef.
     ///
     /// Only one of Fraction or Percent may be specified. If neither field
     /// is specified, 100% of requests will be mirrored.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub fraction: Option<HttpRouteRulesBackendRefsFiltersRequestMirrorFraction>,
+    pub fraction: Option<RequestMirrorFraction>,
     /// Percent represents the percentage of requests that should be
     /// mirrored to BackendRef. Its minimum value is 0 (indicating 0% of
     /// requests) and its maximum value is 100 (indicating 100% of requests).
@@ -952,257 +891,6 @@ pub struct HttpRouteRulesBackendRefsFiltersRequestMirror {
     /// is specified, 100% of requests will be mirrored.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub percent: Option<i32>,
-}
-/// RequestRedirect defines a schema for a filter that responds to the
-/// request with an HTTP redirection.
-///
-/// Support: Core
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesBackendRefsFiltersRequestRedirect {
-    /// Hostname is the hostname to be used in the value of the `Location`
-    /// header in the response.
-    /// When empty, the hostname in the `Host` header of the request is used.
-    ///
-    /// Support: Core
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub hostname: Option<String>,
-    /// Path defines parameters used to modify the path of the incoming request.
-    /// The modified path is then used to construct the `Location` header. When
-    /// empty, the request path is used as-is.
-    ///
-    /// Support: Extended
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub path: Option<HttpRouteRulesBackendRefsFiltersRequestRedirectPath>,
-    /// Port is the port to be used in the value of the `Location`
-    /// header in the response.
-    ///
-    /// If no port is specified, the redirect port MUST be derived using the
-    /// following rules:
-    ///
-    /// * If redirect scheme is not-empty, the redirect port MUST be the well-known
-    ///   port associated with the redirect scheme. Specifically "http" to port 80
-    ///   and "https" to port 443. If the redirect scheme does not have a
-    ///   well-known port, the listener port of the Gateway SHOULD be used.
-    /// * If redirect scheme is empty, the redirect port MUST be the Gateway
-    ///   Listener port.
-    ///
-    /// Implementations SHOULD NOT add the port number in the 'Location'
-    /// header in the following cases:
-    ///
-    /// * A Location header that will use HTTP (whether that is determined via
-    ///   the Listener protocol or the Scheme field) _and_ use port 80.
-    /// * A Location header that will use HTTPS (whether that is determined via
-    ///   the Listener protocol or the Scheme field) _and_ use port 443.
-    ///
-    /// Support: Extended
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub port: Option<i32>,
-    /// Scheme is the scheme to be used in the value of the `Location` header in
-    /// the response. When empty, the scheme of the request is used.
-    ///
-    /// Scheme redirects can affect the port of the redirect, for more information,
-    /// refer to the documentation for the port field of this filter.
-    ///
-    /// Note that values may be added to this enum, implementations
-    /// must ensure that unknown values will not cause a crash.
-    ///
-    /// Unknown values here must result in the implementation setting the
-    /// Accepted Condition for the Route to `status: False`, with a
-    /// Reason of `UnsupportedValue`.
-    ///
-    /// Support: Extended
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub scheme: Option<HttpRouteRulesBackendRefsFiltersRequestRedirectScheme>,
-    /// StatusCode is the HTTP status code to be used in response.
-    ///
-    /// Note that values may be added to this enum, implementations
-    /// must ensure that unknown values will not cause a crash.
-    ///
-    /// Unknown values here must result in the implementation setting the
-    /// Accepted Condition for the Route to `status: False`, with a
-    /// Reason of `UnsupportedValue`.
-    ///
-    /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "statusCode"
-    )]
-    pub status_code: Option<i64>,
-}
-/// Path defines parameters used to modify the path of the incoming request.
-/// The modified path is then used to construct the `Location` header. When
-/// empty, the request path is used as-is.
-///
-/// Support: Extended
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesBackendRefsFiltersRequestRedirectPath {
-    /// ReplaceFullPath specifies the value with which to replace the full path
-    /// of a request during a rewrite or redirect.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "replaceFullPath"
-    )]
-    pub replace_full_path: Option<String>,
-    /// ReplacePrefixMatch specifies the value with which to replace the prefix
-    /// match of a request during a rewrite or redirect. For example, a request
-    /// to "/foo/bar" with a prefix match of "/foo" and a ReplacePrefixMatch
-    /// of "/xyz" would be modified to "/xyz/bar".
-    ///
-    /// Note that this matches the behavior of the PathPrefix match type. This
-    /// matches full path elements. A path element refers to the list of labels
-    /// in the path split by the `/` separator. When specified, a trailing `/` is
-    /// ignored. For example, the paths `/abc`, `/abc/`, and `/abc/def` would all
-    /// match the prefix `/abc`, but the path `/abcd` would not.
-    ///
-    /// ReplacePrefixMatch is only compatible with a `PathPrefix` HTTPRouteMatch.
-    /// Using any other HTTPRouteMatch type on the same HTTPRouteRule will result in
-    /// the implementation setting the Accepted Condition for the Route to `status: False`.
-    ///
-    /// Request Path | Prefix Match | Replace Prefix | Modified Path
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "replacePrefixMatch"
-    )]
-    pub replace_prefix_match: Option<String>,
-    /// Type defines the type of path modifier. Additional types may be
-    /// added in a future release of the API.
-    ///
-    /// Note that values may be added to this enum, implementations
-    /// must ensure that unknown values will not cause a crash.
-    ///
-    /// Unknown values here must result in the implementation setting the
-    /// Accepted Condition for the Route to `status: False`, with a
-    /// Reason of `UnsupportedValue`.
-    #[serde(rename = "type")]
-    pub r#type: HttpRouteRulesBackendRefsFiltersRequestRedirectPathType,
-}
-/// ResponseHeaderModifier defines a schema for a filter that modifies response
-/// headers.
-///
-/// Support: Extended
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesBackendRefsFiltersResponseHeaderModifier {
-    /// Add adds the given header(s) (name, value) to the request
-    /// before the action. It appends to any existing values associated
-    /// with the header name.
-    ///
-    /// Input:
-    ///   GET /foo HTTP/1.1
-    ///   my-header: foo
-    ///
-    /// Config:
-    ///   add:
-    ///   - name: "my-header"
-    ///     value: "bar,baz"
-    ///
-    /// Output:
-    ///   GET /foo HTTP/1.1
-    ///   my-header: foo,bar,baz
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub add: Option<Vec<HttpRouteRulesBackendRefsFiltersRequestHeaderModifierAdd>>,
-    /// Remove the given header(s) from the HTTP request before the action. The
-    /// value of Remove is a list of HTTP header names. Note that the header
-    /// names are case-insensitive (see
-    /// <https://datatracker.ietf.org/doc/html/rfc2616#section-4.2).>
-    ///
-    /// Input:
-    ///   GET /foo HTTP/1.1
-    ///   my-header1: foo
-    ///   my-header2: bar
-    ///   my-header3: baz
-    ///
-    /// Config:
-    ///   remove: ["my-header1", "my-header3"]
-    ///
-    /// Output:
-    ///   GET /foo HTTP/1.1
-    ///   my-header2: bar
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub remove: Option<Vec<String>>,
-    /// Set overwrites the request with the given header (name, value)
-    /// before the action.
-    ///
-    /// Input:
-    ///   GET /foo HTTP/1.1
-    ///   my-header: foo
-    ///
-    /// Config:
-    ///   set:
-    ///   - name: "my-header"
-    ///     value: "bar"
-    ///
-    /// Output:
-    ///   GET /foo HTTP/1.1
-    ///   my-header: bar
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub set: Option<Vec<HttpRouteRulesBackendRefsFiltersRequestHeaderModifierAdd>>,
-}
-/// URLRewrite defines a schema for a filter that modifies a request during forwarding.
-///
-/// Support: Extended
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesBackendRefsFiltersUrlRewrite {
-    /// Hostname is the value to be used to replace the Host header value during
-    /// forwarding.
-    ///
-    /// Support: Extended
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub hostname: Option<String>,
-    /// Path defines a path rewrite.
-    ///
-    /// Support: Extended
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub path: Option<HttpRouteRulesBackendRefsFiltersUrlRewritePath>,
-}
-/// Path defines a path rewrite.
-///
-/// Support: Extended
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesBackendRefsFiltersUrlRewritePath {
-    /// ReplaceFullPath specifies the value with which to replace the full path
-    /// of a request during a rewrite or redirect.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "replaceFullPath"
-    )]
-    pub replace_full_path: Option<String>,
-    /// ReplacePrefixMatch specifies the value with which to replace the prefix
-    /// match of a request during a rewrite or redirect. For example, a request
-    /// to "/foo/bar" with a prefix match of "/foo" and a ReplacePrefixMatch
-    /// of "/xyz" would be modified to "/xyz/bar".
-    ///
-    /// Note that this matches the behavior of the PathPrefix match type. This
-    /// matches full path elements. A path element refers to the list of labels
-    /// in the path split by the `/` separator. When specified, a trailing `/` is
-    /// ignored. For example, the paths `/abc`, `/abc/`, and `/abc/def` would all
-    /// match the prefix `/abc`, but the path `/abcd` would not.
-    ///
-    /// ReplacePrefixMatch is only compatible with a `PathPrefix` HTTPRouteMatch.
-    /// Using any other HTTPRouteMatch type on the same HTTPRouteRule will result in
-    /// the implementation setting the Accepted Condition for the Route to `status: False`.
-    ///
-    /// Request Path | Prefix Match | Replace Prefix | Modified Path
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "replacePrefixMatch"
-    )]
-    pub replace_prefix_match: Option<String>,
-    /// Type defines the type of path modifier. Additional types may be
-    /// added in a future release of the API.
-    ///
-    /// Note that values may be added to this enum, implementations
-    /// must ensure that unknown values will not cause a crash.
-    ///
-    /// Unknown values here must result in the implementation setting the
-    /// Accepted Condition for the Route to `status: False`, with a
-    /// Reason of `UnsupportedValue`.
-    #[serde(rename = "type")]
-    pub r#type: HttpRouteRulesBackendRefsFiltersRequestRedirectPathType,
 }
 /// HTTPRouteFilter defines processing steps that must be completed during the
 /// request or response lifecycle. HTTPRouteFilters are meant as an extension
@@ -1211,13 +899,13 @@ pub struct HttpRouteRulesBackendRefsFiltersUrlRewritePath {
 /// authentication strategies, rate-limiting, and traffic shaping. API
 /// guarantee/conformance is defined based on the type of the filter.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesFilters {
+pub struct HTTPRouteFilter {
     /// CORS defines a schema for a filter that responds to the
     /// cross-origin request based on HTTP response header.
     ///
     /// Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub cors: Option<HttpRouteRulesFiltersCors>,
+    pub cors: Option<HTTPRouteRulesFiltersCors>,
     /// ExtensionRef is an optional, implementation-specific extension to the
     /// "filter" behavior.  For example, resource "myroutefilter" in group
     /// "networking.example.net"). ExtensionRef MUST NOT be used for core and
@@ -1245,7 +933,7 @@ pub struct HttpRouteRulesFilters {
         skip_serializing_if = "Option::is_none",
         rename = "externalAuth"
     )]
-    pub external_auth: Option<HttpRouteRulesFiltersExternalAuth>,
+    pub external_auth: Option<HTTPRouteRulesFiltersExternalAuth>,
     /// RequestHeaderModifier defines a schema for a filter that modifies request
     /// headers.
     ///
@@ -1255,7 +943,7 @@ pub struct HttpRouteRulesFilters {
         skip_serializing_if = "Option::is_none",
         rename = "requestHeaderModifier"
     )]
-    pub request_header_modifier: Option<HttpRouteRulesFiltersRequestHeaderModifier>,
+    pub request_header_modifier: Option<HeaderModifier>,
     /// RequestMirror defines a schema for a filter that mirrors requests.
     /// Requests are sent to the specified destination, but responses from
     /// that destination are ignored.
@@ -1270,7 +958,7 @@ pub struct HttpRouteRulesFilters {
         skip_serializing_if = "Option::is_none",
         rename = "requestMirror"
     )]
-    pub request_mirror: Option<HttpRouteRulesFiltersRequestMirror>,
+    pub request_mirror: Option<HTTPRouteRulesFiltersRequestMirror>,
     /// RequestRedirect defines a schema for a filter that responds to the
     /// request with an HTTP redirection.
     ///
@@ -1280,7 +968,7 @@ pub struct HttpRouteRulesFilters {
         skip_serializing_if = "Option::is_none",
         rename = "requestRedirect"
     )]
-    pub request_redirect: Option<HttpRouteRulesFiltersRequestRedirect>,
+    pub request_redirect: Option<RequestRedirect>,
     /// ResponseHeaderModifier defines a schema for a filter that modifies response
     /// headers.
     ///
@@ -1290,7 +978,7 @@ pub struct HttpRouteRulesFilters {
         skip_serializing_if = "Option::is_none",
         rename = "responseHeaderModifier"
     )]
-    pub response_header_modifier: Option<HttpRouteRulesFiltersResponseHeaderModifier>,
+    pub response_header_modifier: Option<HeaderModifier>,
     /// Type identifies the type of filter to apply. As with other API fields,
     /// types are classified into three conformance levels:
     ///
@@ -1324,7 +1012,7 @@ pub struct HttpRouteRulesFilters {
     /// Accepted Condition for the Route to `status: False`, with a
     /// Reason of `UnsupportedValue`.
     #[serde(rename = "type")]
-    pub r#type: HttpRouteRulesBackendRefsFiltersType,
+    pub r#type: HTTPFilterType,
     /// URLRewrite defines a schema for a filter that modifies a request during forwarding.
     ///
     /// Support: Extended
@@ -1333,14 +1021,14 @@ pub struct HttpRouteRulesFilters {
         skip_serializing_if = "Option::is_none",
         rename = "urlRewrite"
     )]
-    pub url_rewrite: Option<HttpRouteRulesFiltersUrlRewrite>,
+    pub url_rewrite: Option<HTTPRouteUrlRewrite>,
 }
 /// CORS defines a schema for a filter that responds to the
 /// cross-origin request based on HTTP response header.
 ///
 /// Support: Extended
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesFiltersCors {
+pub struct HTTPRouteRulesFiltersCors {
     /// AllowCredentials indicates whether the actual cross-origin request allows
     /// to include credentials.
     ///
@@ -1407,13 +1095,13 @@ pub struct HttpRouteRulesFiltersCors {
     /// value `*`, which represents all HTTP methods are allowed.
     ///
     /// Method names are case sensitive, so these values are also case-sensitive.
-    /// (See <https://www.rfc-editor.org/rfc/rfc2616#section-5.1.1)>
+    /// (See https://www.rfc-editor.org/rfc/rfc2616#section-5.1.1)
     ///
     /// Multiple method names in the value of the `Access-Control-Allow-Methods`
     /// response header are separated by a comma (",").
     ///
     /// A CORS-safelisted method is a method that is `GET`, `HEAD`, or `POST`.
-    /// (See <https://fetch.spec.whatwg.org/#cors-safelisted-method)> The
+    /// (See https://fetch.spec.whatwg.org/#cors-safelisted-method) The
     /// CORS-safelisted methods are always allowed, regardless of whether they
     /// are specified in the `AllowMethods` field.
     ///
@@ -1518,7 +1206,7 @@ pub struct HttpRouteRulesFiltersCors {
     /// `Expires`
     /// `Last-Modified`
     /// `Pragma`
-    /// (See <https://fetch.spec.whatwg.org/#cors-safelisted-response-header-name)>
+    /// (See https://fetch.spec.whatwg.org/#cors-safelisted-response-header-name)
     /// The CORS-safelisted response headers are exposed to client by default.
     ///
     /// When an HTTP header name is specified using the `ExposeHeaders` field,
@@ -1562,7 +1250,7 @@ pub struct HttpRouteRulesFiltersCors {
 ///
 /// Support: Extended
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesFiltersExternalAuth {
+pub struct HTTPRouteRulesFiltersExternalAuth {
     /// BackendRef is a reference to a backend to send authorization
     /// requests to.
     ///
@@ -1573,7 +1261,7 @@ pub struct HttpRouteRulesFiltersExternalAuth {
     /// implementation to supply the TLS details to be used to connect to that
     /// backend.
     #[serde(rename = "backendRef")]
-    pub backend_ref: HttpRouteRulesBackendRefsFiltersExternalAuthBackendRef,
+    pub backend_ref: HTTPRouteRulesBackendRefsFiltersExternalAuthBackendRef,
     /// ForwardBody controls if requests to the authorization server should include
     /// the body of the client request; and if so, how big that body is allowed
     /// to be.
@@ -1592,28 +1280,28 @@ pub struct HttpRouteRulesFiltersExternalAuth {
         skip_serializing_if = "Option::is_none",
         rename = "forwardBody"
     )]
-    pub forward_body: Option<HttpRouteRulesBackendRefsFiltersExternalAuthForwardBody>,
+    pub forward_body: Option<HTTPRouteRulesBackendRefsFiltersExternalAuthForwardBody>,
     /// GRPCAuthConfig contains configuration for communication with ext_authz
     /// protocol-speaking backends.
     ///
     /// If unset, implementations must assume the default behavior for each
     /// included field is intended.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub grpc: Option<HttpRouteRulesBackendRefsFiltersExternalAuthGrpc>,
+    pub grpc: Option<HTTPRouteRulesBackendRefsFiltersExternalAuthGrpc>,
     /// HTTPAuthConfig contains configuration for communication with HTTP-speaking
     /// backends.
     ///
     /// If unset, implementations must assume the default behavior for each
     /// included field is intended.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub http: Option<HttpRouteRulesBackendRefsFiltersExternalAuthHttp>,
+    pub http: Option<HTTPRouteRulesBackendRefsFiltersExternalAuthHttp>,
     /// ExternalAuthProtocol describes which protocol to use when communicating with an
     /// ext_authz authorization server.
     ///
     /// When this is set to GRPC, each backend must use the Envoy ext_authz protocol
     /// on the port specified in `backendRefs`. Requests and responses are defined
     /// in the protobufs explained at:
-    /// <https://www.envoyproxy.io/docs/envoy/latest/api-v3/service/auth/v3/external_auth.proto>
+    /// https://www.envoyproxy.io/docs/envoy/latest/api-v3/service/auth/v3/external_auth.proto
     ///
     /// When this is set to HTTP, each backend must respond with a `200` status
     /// code in on a successful authorization. Any other code is considered
@@ -1622,68 +1310,7 @@ pub struct HttpRouteRulesFiltersExternalAuth {
     /// Feature Names:
     /// GRPC Support - HTTPRouteExternalAuthGRPC
     /// HTTP Support - HTTPRouteExternalAuthHTTP
-    pub protocol: HttpRouteRulesBackendRefsFiltersExternalAuthProtocol,
-}
-/// RequestHeaderModifier defines a schema for a filter that modifies request
-/// headers.
-///
-/// Support: Core
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesFiltersRequestHeaderModifier {
-    /// Add adds the given header(s) (name, value) to the request
-    /// before the action. It appends to any existing values associated
-    /// with the header name.
-    ///
-    /// Input:
-    ///   GET /foo HTTP/1.1
-    ///   my-header: foo
-    ///
-    /// Config:
-    ///   add:
-    ///   - name: "my-header"
-    ///     value: "bar,baz"
-    ///
-    /// Output:
-    ///   GET /foo HTTP/1.1
-    ///   my-header: foo,bar,baz
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub add: Option<Vec<HttpRouteRulesBackendRefsFiltersRequestHeaderModifierAdd>>,
-    /// Remove the given header(s) from the HTTP request before the action. The
-    /// value of Remove is a list of HTTP header names. Note that the header
-    /// names are case-insensitive (see
-    /// <https://datatracker.ietf.org/doc/html/rfc2616#section-4.2).>
-    ///
-    /// Input:
-    ///   GET /foo HTTP/1.1
-    ///   my-header1: foo
-    ///   my-header2: bar
-    ///   my-header3: baz
-    ///
-    /// Config:
-    ///   remove: ["my-header1", "my-header3"]
-    ///
-    /// Output:
-    ///   GET /foo HTTP/1.1
-    ///   my-header2: bar
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub remove: Option<Vec<String>>,
-    /// Set overwrites the request with the given header (name, value)
-    /// before the action.
-    ///
-    /// Input:
-    ///   GET /foo HTTP/1.1
-    ///   my-header: foo
-    ///
-    /// Config:
-    ///   set:
-    ///   - name: "my-header"
-    ///     value: "bar"
-    ///
-    /// Output:
-    ///   GET /foo HTTP/1.1
-    ///   my-header: bar
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub set: Option<Vec<HttpRouteRulesBackendRefsFiltersRequestHeaderModifierAdd>>,
+    pub protocol: HTTPRouteRulesBackendRefsFiltersExternalAuthProtocol,
 }
 /// RequestMirror defines a schema for a filter that mirrors requests.
 /// Requests are sent to the specified destination, but responses from
@@ -1695,7 +1322,7 @@ pub struct HttpRouteRulesFiltersRequestHeaderModifier {
 ///
 /// Support: Extended
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesFiltersRequestMirror {
+pub struct HTTPRouteRulesFiltersRequestMirror {
     /// BackendRef references a resource where mirrored requests are sent.
     ///
     /// Mirrored requests must be sent only to a single destination endpoint
@@ -1720,14 +1347,14 @@ pub struct HttpRouteRulesFiltersRequestMirror {
     ///
     /// Support: Implementation-specific for any other resource
     #[serde(rename = "backendRef")]
-    pub backend_ref: HttpRouteRulesBackendRefsFiltersExternalAuthBackendRef,
+    pub backend_ref: HTTPRouteRulesBackendRefsFiltersExternalAuthBackendRef,
     /// Fraction represents the fraction of requests that should be
     /// mirrored to BackendRef.
     ///
     /// Only one of Fraction or Percent may be specified. If neither field
     /// is specified, 100% of requests will be mirrored.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub fraction: Option<HttpRouteRulesBackendRefsFiltersRequestMirrorFraction>,
+    pub fraction: Option<RequestMirrorFraction>,
     /// Percent represents the percentage of requests that should be
     /// mirrored to BackendRef. Its minimum value is 0 (indicating 0% of
     /// requests) and its maximum value is 100 (indicating 100% of requests).
@@ -1736,257 +1363,6 @@ pub struct HttpRouteRulesFiltersRequestMirror {
     /// is specified, 100% of requests will be mirrored.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub percent: Option<i32>,
-}
-/// RequestRedirect defines a schema for a filter that responds to the
-/// request with an HTTP redirection.
-///
-/// Support: Core
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesFiltersRequestRedirect {
-    /// Hostname is the hostname to be used in the value of the `Location`
-    /// header in the response.
-    /// When empty, the hostname in the `Host` header of the request is used.
-    ///
-    /// Support: Core
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub hostname: Option<String>,
-    /// Path defines parameters used to modify the path of the incoming request.
-    /// The modified path is then used to construct the `Location` header. When
-    /// empty, the request path is used as-is.
-    ///
-    /// Support: Extended
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub path: Option<HttpRouteRulesFiltersRequestRedirectPath>,
-    /// Port is the port to be used in the value of the `Location`
-    /// header in the response.
-    ///
-    /// If no port is specified, the redirect port MUST be derived using the
-    /// following rules:
-    ///
-    /// * If redirect scheme is not-empty, the redirect port MUST be the well-known
-    ///   port associated with the redirect scheme. Specifically "http" to port 80
-    ///   and "https" to port 443. If the redirect scheme does not have a
-    ///   well-known port, the listener port of the Gateway SHOULD be used.
-    /// * If redirect scheme is empty, the redirect port MUST be the Gateway
-    ///   Listener port.
-    ///
-    /// Implementations SHOULD NOT add the port number in the 'Location'
-    /// header in the following cases:
-    ///
-    /// * A Location header that will use HTTP (whether that is determined via
-    ///   the Listener protocol or the Scheme field) _and_ use port 80.
-    /// * A Location header that will use HTTPS (whether that is determined via
-    ///   the Listener protocol or the Scheme field) _and_ use port 443.
-    ///
-    /// Support: Extended
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub port: Option<i32>,
-    /// Scheme is the scheme to be used in the value of the `Location` header in
-    /// the response. When empty, the scheme of the request is used.
-    ///
-    /// Scheme redirects can affect the port of the redirect, for more information,
-    /// refer to the documentation for the port field of this filter.
-    ///
-    /// Note that values may be added to this enum, implementations
-    /// must ensure that unknown values will not cause a crash.
-    ///
-    /// Unknown values here must result in the implementation setting the
-    /// Accepted Condition for the Route to `status: False`, with a
-    /// Reason of `UnsupportedValue`.
-    ///
-    /// Support: Extended
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub scheme: Option<HttpRouteRulesBackendRefsFiltersRequestRedirectScheme>,
-    /// StatusCode is the HTTP status code to be used in response.
-    ///
-    /// Note that values may be added to this enum, implementations
-    /// must ensure that unknown values will not cause a crash.
-    ///
-    /// Unknown values here must result in the implementation setting the
-    /// Accepted Condition for the Route to `status: False`, with a
-    /// Reason of `UnsupportedValue`.
-    ///
-    /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "statusCode"
-    )]
-    pub status_code: Option<i64>,
-}
-/// Path defines parameters used to modify the path of the incoming request.
-/// The modified path is then used to construct the `Location` header. When
-/// empty, the request path is used as-is.
-///
-/// Support: Extended
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesFiltersRequestRedirectPath {
-    /// ReplaceFullPath specifies the value with which to replace the full path
-    /// of a request during a rewrite or redirect.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "replaceFullPath"
-    )]
-    pub replace_full_path: Option<String>,
-    /// ReplacePrefixMatch specifies the value with which to replace the prefix
-    /// match of a request during a rewrite or redirect. For example, a request
-    /// to "/foo/bar" with a prefix match of "/foo" and a ReplacePrefixMatch
-    /// of "/xyz" would be modified to "/xyz/bar".
-    ///
-    /// Note that this matches the behavior of the PathPrefix match type. This
-    /// matches full path elements. A path element refers to the list of labels
-    /// in the path split by the `/` separator. When specified, a trailing `/` is
-    /// ignored. For example, the paths `/abc`, `/abc/`, and `/abc/def` would all
-    /// match the prefix `/abc`, but the path `/abcd` would not.
-    ///
-    /// ReplacePrefixMatch is only compatible with a `PathPrefix` HTTPRouteMatch.
-    /// Using any other HTTPRouteMatch type on the same HTTPRouteRule will result in
-    /// the implementation setting the Accepted Condition for the Route to `status: False`.
-    ///
-    /// Request Path | Prefix Match | Replace Prefix | Modified Path
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "replacePrefixMatch"
-    )]
-    pub replace_prefix_match: Option<String>,
-    /// Type defines the type of path modifier. Additional types may be
-    /// added in a future release of the API.
-    ///
-    /// Note that values may be added to this enum, implementations
-    /// must ensure that unknown values will not cause a crash.
-    ///
-    /// Unknown values here must result in the implementation setting the
-    /// Accepted Condition for the Route to `status: False`, with a
-    /// Reason of `UnsupportedValue`.
-    #[serde(rename = "type")]
-    pub r#type: HttpRouteRulesBackendRefsFiltersRequestRedirectPathType,
-}
-/// ResponseHeaderModifier defines a schema for a filter that modifies response
-/// headers.
-///
-/// Support: Extended
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesFiltersResponseHeaderModifier {
-    /// Add adds the given header(s) (name, value) to the request
-    /// before the action. It appends to any existing values associated
-    /// with the header name.
-    ///
-    /// Input:
-    ///   GET /foo HTTP/1.1
-    ///   my-header: foo
-    ///
-    /// Config:
-    ///   add:
-    ///   - name: "my-header"
-    ///     value: "bar,baz"
-    ///
-    /// Output:
-    ///   GET /foo HTTP/1.1
-    ///   my-header: foo,bar,baz
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub add: Option<Vec<HttpRouteRulesBackendRefsFiltersRequestHeaderModifierAdd>>,
-    /// Remove the given header(s) from the HTTP request before the action. The
-    /// value of Remove is a list of HTTP header names. Note that the header
-    /// names are case-insensitive (see
-    /// <https://datatracker.ietf.org/doc/html/rfc2616#section-4.2).>
-    ///
-    /// Input:
-    ///   GET /foo HTTP/1.1
-    ///   my-header1: foo
-    ///   my-header2: bar
-    ///   my-header3: baz
-    ///
-    /// Config:
-    ///   remove: ["my-header1", "my-header3"]
-    ///
-    /// Output:
-    ///   GET /foo HTTP/1.1
-    ///   my-header2: bar
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub remove: Option<Vec<String>>,
-    /// Set overwrites the request with the given header (name, value)
-    /// before the action.
-    ///
-    /// Input:
-    ///   GET /foo HTTP/1.1
-    ///   my-header: foo
-    ///
-    /// Config:
-    ///   set:
-    ///   - name: "my-header"
-    ///     value: "bar"
-    ///
-    /// Output:
-    ///   GET /foo HTTP/1.1
-    ///   my-header: bar
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub set: Option<Vec<HttpRouteRulesBackendRefsFiltersRequestHeaderModifierAdd>>,
-}
-/// URLRewrite defines a schema for a filter that modifies a request during forwarding.
-///
-/// Support: Extended
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesFiltersUrlRewrite {
-    /// Hostname is the value to be used to replace the Host header value during
-    /// forwarding.
-    ///
-    /// Support: Extended
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub hostname: Option<String>,
-    /// Path defines a path rewrite.
-    ///
-    /// Support: Extended
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub path: Option<HttpRouteRulesFiltersUrlRewritePath>,
-}
-/// Path defines a path rewrite.
-///
-/// Support: Extended
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesFiltersUrlRewritePath {
-    /// ReplaceFullPath specifies the value with which to replace the full path
-    /// of a request during a rewrite or redirect.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "replaceFullPath"
-    )]
-    pub replace_full_path: Option<String>,
-    /// ReplacePrefixMatch specifies the value with which to replace the prefix
-    /// match of a request during a rewrite or redirect. For example, a request
-    /// to "/foo/bar" with a prefix match of "/foo" and a ReplacePrefixMatch
-    /// of "/xyz" would be modified to "/xyz/bar".
-    ///
-    /// Note that this matches the behavior of the PathPrefix match type. This
-    /// matches full path elements. A path element refers to the list of labels
-    /// in the path split by the `/` separator. When specified, a trailing `/` is
-    /// ignored. For example, the paths `/abc`, `/abc/`, and `/abc/def` would all
-    /// match the prefix `/abc`, but the path `/abcd` would not.
-    ///
-    /// ReplacePrefixMatch is only compatible with a `PathPrefix` HTTPRouteMatch.
-    /// Using any other HTTPRouteMatch type on the same HTTPRouteRule will result in
-    /// the implementation setting the Accepted Condition for the Route to `status: False`.
-    ///
-    /// Request Path | Prefix Match | Replace Prefix | Modified Path
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "replacePrefixMatch"
-    )]
-    pub replace_prefix_match: Option<String>,
-    /// Type defines the type of path modifier. Additional types may be
-    /// added in a future release of the API.
-    ///
-    /// Note that values may be added to this enum, implementations
-    /// must ensure that unknown values will not cause a crash.
-    ///
-    /// Unknown values here must result in the implementation setting the
-    /// Accepted Condition for the Route to `status: False`, with a
-    /// Reason of `UnsupportedValue`.
-    #[serde(rename = "type")]
-    pub r#type: HttpRouteRulesBackendRefsFiltersRequestRedirectPathType,
 }
 /// HTTPRouteMatch defines the predicate used to match requests to a given
 /// action. Multiple match types are ANDed together, i.e. the match will
@@ -2006,23 +1382,23 @@ pub struct HttpRouteRulesFiltersUrlRewritePath {
 ///
 /// ```
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesMatches {
+pub struct RouteMatch {
     /// Headers specifies HTTP request header matchers. Multiple match values are
     /// ANDed together, meaning, a request must match all the specified headers
     /// to select the route.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub headers: Option<Vec<HttpRouteRulesMatchesHeaders>>,
+    pub headers: Option<Vec<HeaderMatch>>,
     /// Method specifies HTTP method matcher.
     /// When specified, this route will be matched only if the request has the
     /// specified method.
     ///
     /// Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub method: Option<HttpRouteRulesMatchesMethod>,
+    pub method: Option<HTTPMethodMatch>,
     /// Path specifies a HTTP request path matcher. If this field is not
     /// specified, a default prefix match on the "/" path is provided.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub path: Option<HttpRouteRulesMatchesPath>,
+    pub path: Option<PathMatch>,
     /// QueryParams specifies HTTP query parameter matchers. Multiple match
     /// values are ANDed together, meaning, a request must match all the
     /// specified query parameters to select the route.
@@ -2033,41 +1409,7 @@ pub struct HttpRouteRulesMatches {
         skip_serializing_if = "Option::is_none",
         rename = "queryParams"
     )]
-    pub query_params: Option<Vec<HttpRouteRulesMatchesQueryParams>>,
-}
-/// HTTPHeaderMatch describes how to select a HTTP route by matching HTTP request
-/// headers.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesMatchesHeaders {
-    /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case-insensitive. (See <https://tools.ietf.org/html/rfc7230#section-3.2).>
-    ///
-    /// If multiple entries specify equivalent header names, only the first
-    /// entry with an equivalent name MUST be considered for a match. Subsequent
-    /// entries with an equivalent header name MUST be ignored. Due to the
-    /// case-insensitivity of header names, "foo" and "Foo" are considered
-    /// equivalent.
-    ///
-    /// When a header is repeated in an HTTP request, it is
-    /// implementation-specific behavior as to how this is represented.
-    /// Generally, proxies should follow the guidance from the RFC:
-    /// <https://www.rfc-editor.org/rfc/rfc7230.html#section-3.2.2> regarding
-    /// processing a repeated header, with special handling for "Set-Cookie".
-    pub name: String,
-    /// Type specifies how to match against the value of the header.
-    ///
-    /// Support: Core (Exact)
-    ///
-    /// Support: Implementation-specific (RegularExpression)
-    ///
-    /// Since RegularExpression HeaderMatchType has implementation-specific
-    /// conformance, implementations can support POSIX, PCRE or any other dialects
-    /// of regular expressions. Please read the implementation's documentation to
-    /// determine the supported dialect.
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
-    pub r#type: Option<HttpRouteRulesMatchesHeadersType>,
-    /// Value is the value of HTTP Header to be matched.
-    pub value: String,
+    pub query_params: Option<Vec<HeaderMatch>>,
 }
 /// HTTPRouteMatch defines the predicate used to match requests to a given
 /// action. Multiple match types are ANDed together, i.e. the match will
@@ -2087,7 +1429,7 @@ pub struct HttpRouteRulesMatchesHeaders {
 ///
 /// ```
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HttpRouteRulesMatchesMethod {
+pub enum HTTPMethodMatch {
     #[serde(rename = "GET")]
     Get,
     #[serde(rename = "HEAD")]
@@ -2110,14 +1452,14 @@ pub enum HttpRouteRulesMatchesMethod {
 /// Path specifies a HTTP request path matcher. If this field is not
 /// specified, a default prefix match on the "/" path is provided.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesMatchesPath {
+pub struct PathMatch {
     /// Type specifies how to match against the path Value.
     ///
     /// Support: Core (Exact, PathPrefix)
     ///
     /// Support: Implementation-specific (RegularExpression)
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
-    pub r#type: Option<HttpRouteRulesMatchesPathType>,
+    pub r#type: Option<HTTPRouteRulesMatchesPathType>,
     /// Value of the HTTP path to match against.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub value: Option<String>,
@@ -2125,53 +1467,16 @@ pub struct HttpRouteRulesMatchesPath {
 /// Path specifies a HTTP request path matcher. If this field is not
 /// specified, a default prefix match on the "/" path is provided.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HttpRouteRulesMatchesPathType {
+pub enum HTTPRouteRulesMatchesPathType {
     Exact,
     PathPrefix,
     RegularExpression,
-}
-/// HTTPQueryParamMatch describes how to select a HTTP route by matching HTTP
-/// query parameters.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesMatchesQueryParams {
-    /// Name is the name of the HTTP query param to be matched. This must be an
-    /// exact string match. (See
-    /// <https://tools.ietf.org/html/rfc7230#section-2.7.3).>
-    ///
-    /// If multiple entries specify equivalent query param names, only the first
-    /// entry with an equivalent name MUST be considered for a match. Subsequent
-    /// entries with an equivalent query param name MUST be ignored.
-    ///
-    /// If a query param is repeated in an HTTP request, the behavior is
-    /// purposely left undefined, since different data planes have different
-    /// capabilities. However, it is *recommended* that implementations should
-    /// match against the first value of the param if the data plane supports it,
-    /// as this behavior is expected in other load balancing contexts outside of
-    /// the Gateway API.
-    ///
-    /// Users SHOULD NOT route traffic based on repeated query params to guard
-    /// themselves against potential differences in the implementations.
-    pub name: String,
-    /// Type specifies how to match against the value of the query parameter.
-    ///
-    /// Support: Extended (Exact)
-    ///
-    /// Support: Implementation-specific (RegularExpression)
-    ///
-    /// Since RegularExpression QueryParamMatchType has Implementation-specific
-    /// conformance, implementations can support POSIX, PCRE or any other
-    /// dialects of regular expressions. Please read the implementation's
-    /// documentation to determine the supported dialect.
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
-    pub r#type: Option<HttpRouteRulesMatchesHeadersType>,
-    /// Value is the value of HTTP query param to be matched.
-    pub value: String,
 }
 /// Retry defines the configuration for when to retry an HTTP request.
 ///
 /// Support: Extended
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesRetry {
+pub struct HTTPRouteRulesRetry {
     /// Attempts specifies the maximum number of times an individual request
     /// from the gateway to a backend should be retried.
     ///
@@ -2229,103 +1534,11 @@ pub struct HttpRouteRulesRetry {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub codes: Option<Vec<i64>>,
 }
-/// SessionPersistence defines and configures session persistence
-/// for the route rule.
-///
-/// Support: Extended
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesSessionPersistence {
-    /// AbsoluteTimeout defines the absolute timeout of the persistent
-    /// session. Once the AbsoluteTimeout duration has elapsed, the
-    /// session becomes invalid.
-    ///
-    /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "absoluteTimeout"
-    )]
-    pub absolute_timeout: Option<String>,
-    /// CookieConfig provides configuration settings that are specific
-    /// to cookie-based session persistence.
-    ///
-    /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "cookieConfig"
-    )]
-    pub cookie_config: Option<HttpRouteRulesSessionPersistenceCookieConfig>,
-    /// IdleTimeout defines the idle timeout of the persistent session.
-    /// Once the session has been idle for more than the specified
-    /// IdleTimeout duration, the session becomes invalid.
-    ///
-    /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "idleTimeout"
-    )]
-    pub idle_timeout: Option<String>,
-    /// SessionName defines the name of the persistent session token
-    /// which may be reflected in the cookie or the header. Users
-    /// should avoid reusing session names to prevent unintended
-    /// consequences, such as rejection or unpredictable behavior.
-    ///
-    /// Support: Implementation-specific
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sessionName"
-    )]
-    pub session_name: Option<String>,
-    /// Type defines the type of session persistence such as through
-    /// the use a header or cookie. Defaults to cookie based session
-    /// persistence.
-    ///
-    /// Support: Core for "Cookie" type
-    ///
-    /// Support: Extended for "Header" type
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
-    pub r#type: Option<HttpRouteRulesSessionPersistenceType>,
-}
-/// CookieConfig provides configuration settings that are specific
-/// to cookie-based session persistence.
-///
-/// Support: Core
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesSessionPersistenceCookieConfig {
-    /// LifetimeType specifies whether the cookie has a permanent or
-    /// session-based lifetime. A permanent cookie persists until its
-    /// specified expiry time, defined by the Expires or Max-Age cookie
-    /// attributes, while a session cookie is deleted when the current
-    /// session ends.
-    ///
-    /// When set to "Permanent", AbsoluteTimeout indicates the
-    /// cookie's lifetime via the Expires or Max-Age cookie attributes
-    /// and is required.
-    ///
-    /// When set to "Session", AbsoluteTimeout indicates the
-    /// absolute lifetime of the cookie tracked by the gateway and
-    /// is optional.
-    ///
-    /// Defaults to "Session".
-    ///
-    /// Support: Core for "Session" type
-    ///
-    /// Support: Extended for "Permanent" type
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "lifetimeType"
-    )]
-    pub lifetime_type: Option<HttpRouteRulesSessionPersistenceCookieConfigLifetimeType>,
-}
 /// Timeouts defines the timeouts that can be configured for an HTTP request.
 ///
 /// Support: Extended
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesTimeouts {
+pub struct HTTPRouteTimeout {
     /// BackendRequest specifies a timeout for an individual request from the gateway
     /// to a backend. This covers the time from when the request first starts being
     /// sent from the gateway to when the full response has been received from the backend.
@@ -2375,67 +1588,4 @@ pub struct HttpRouteRulesTimeouts {
     /// Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub request: Option<String>,
-}
-/// Status defines the current state of HTTPRoute.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteStatus {
-    /// Parents is a list of parent resources (usually Gateways) that are
-    /// associated with the route, and the status of the route with respect to
-    /// each parent. When this route attaches to a parent, the controller that
-    /// manages the parent must add an entry to this list when the controller
-    /// first sees the route and should update the entry as appropriate when the
-    /// route or gateway is modified.
-    ///
-    /// Note that parent references that cannot be resolved by an implementation
-    /// of this API will not be added to this list. Implementations of this API
-    /// can only populate Route status for the Gateways/parent resources they are
-    /// responsible for.
-    ///
-    /// A maximum of 32 Gateways will be represented in this list. An empty list
-    /// means the route has not been attached to any Gateway.
-    pub parents: Vec<HttpRouteStatusParents>,
-}
-/// RouteParentStatus describes the status of a route with respect to an
-/// associated Parent.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteStatusParents {
-    /// Conditions describes the status of the route with respect to the Gateway.
-    /// Note that the route's availability is also subject to the Gateway's own
-    /// status conditions and listener status.
-    ///
-    /// If the Route's ParentRef specifies an existing Gateway that supports
-    /// Routes of this kind AND that Gateway's controller has sufficient access,
-    /// then that Gateway's controller MUST set the "Accepted" condition on the
-    /// Route, to indicate whether the route has been accepted or rejected by the
-    /// Gateway, and why.
-    ///
-    /// A Route MUST be considered "Accepted" if at least one of the Route's
-    /// rules is implemented by the Gateway.
-    ///
-    /// There are a number of cases where the "Accepted" condition may not be set
-    /// due to lack of controller visibility, that includes when:
-    ///
-    /// * The Route refers to a nonexistent parent.
-    /// * The Route is of a type that the controller does not support.
-    /// * The Route is in a namespace the controller does not have access to.
-    pub conditions: Vec<Condition>,
-    /// ControllerName is a domain/path string that indicates the name of the
-    /// controller that wrote this status. This corresponds with the
-    /// controllerName field on GatewayClass.
-    ///
-    /// Example: "example.net/gateway-controller".
-    ///
-    /// The format of this field is DOMAIN "/" PATH, where DOMAIN and PATH are
-    /// valid Kubernetes names
-    /// (<https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names).>
-    ///
-    /// Controllers MUST populate this field when writing status. Controllers should ensure that
-    /// entries to status populated with their ControllerName are cleaned up when they are no
-    /// longer necessary.
-    #[serde(rename = "controllerName")]
-    pub controller_name: String,
-    /// ParentRef corresponds with a ParentRef in the spec that this
-    /// RouteParentStatus struct describes the status of.
-    #[serde(rename = "parentRef")]
-    pub parent_ref: HttpRouteParentRefs,
 }

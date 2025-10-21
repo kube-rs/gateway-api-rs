@@ -10,33 +10,14 @@ mod prelude {
 }
 use self::prelude::*;
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum GrpcRouteRulesBackendRefsFiltersType {
+pub enum GRPCFilterType {
     ResponseHeaderModifier,
     RequestHeaderModifier,
     RequestMirror,
     ExtensionRef,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HttpRouteRulesBackendRefsFiltersRequestRedirectPathType {
-    ReplaceFullPath,
-    ReplacePrefixMatch,
-}
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HttpRouteRulesBackendRefsFiltersRequestRedirectScheme {
-    #[serde(rename = "http")]
-    Http,
-    #[serde(rename = "https")]
-    Https,
-}
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HttpRouteRulesBackendRefsFiltersRequestRedirectStatusCode {
-    #[serde(rename = "301")]
-    r#_301,
-    #[serde(rename = "302")]
-    r#_302,
-}
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HttpRouteRulesBackendRefsFiltersType {
+pub enum HTTPFilterType {
     RequestHeaderModifier,
     ResponseHeaderModifier,
     RequestMirror,
@@ -46,9 +27,28 @@ pub enum HttpRouteRulesBackendRefsFiltersType {
     ExtensionRef,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HttpRouteRulesMatchesHeadersType {
+pub enum HeaderMatchType {
     Exact,
     RegularExpression,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
+pub enum RedirectStatusCode {
+    #[serde(rename = "301")]
+    r#_301,
+    #[serde(rename = "302")]
+    r#_302,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
+pub enum RequestOperationType {
+    ReplaceFullPath,
+    ReplacePrefixMatch,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
+pub enum RequestRedirectScheme {
+    #[serde(rename = "http")]
+    Http,
+    #[serde(rename = "https")]
+    Https,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GatewayInfrastructureParametersReference {
@@ -57,7 +57,24 @@ pub struct GatewayInfrastructureParametersReference {
     pub name: String,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteParentRefs {
+pub struct HTTPHeader {
+    pub name: String,
+    pub value: String,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HTTPRouteRulesBackendRefsFiltersRequestMirrorFraction {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub denominator: Option<i32>,
+    pub numerator: i32,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct Kind {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
+    pub kind: String,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct ParentReference {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -75,12 +92,7 @@ pub struct HttpRouteParentRefs {
     pub section_name: Option<String>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesBackendRefsFiltersRequestHeaderModifierAdd {
-    pub name: String,
-    pub value: String,
-}
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesBackendRefsFiltersRequestMirrorBackendRef {
+pub struct RequestMirrorReference {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -92,14 +104,71 @@ pub struct HttpRouteRulesBackendRefsFiltersRequestMirrorBackendRef {
     pub port: Option<i32>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesBackendRefsFiltersRequestMirrorFraction {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub denominator: Option<i32>,
-    pub numerator: i32,
+pub struct HeaderMatch {
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
+    pub r#type: Option<HeaderMatchType>,
+    pub value: String,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct Kind {
+pub struct HeaderModifier {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub group: Option<String>,
-    pub kind: String,
+    pub add: Option<Vec<HTTPHeader>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub remove: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub set: Option<Vec<HTTPHeader>>,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct ParentRouteStatus {
+    pub conditions: Vec<Condition>,
+    #[serde(rename = "controllerName")]
+    pub controller_name: String,
+    #[serde(rename = "parentRef")]
+    pub parent_ref: ParentReference,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct RequestRedirectPath {
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "replaceFullPath"
+    )]
+    pub replace_full_path: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "replacePrefixMatch"
+    )]
+    pub replace_prefix_match: Option<String>,
+    #[serde(rename = "type")]
+    pub r#type: RequestOperationType,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct RequestRedirect {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hostname: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<RequestRedirectPath>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub port: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scheme: Option<RequestRedirectScheme>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "statusCode"
+    )]
+    pub status_code: Option<i64>,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HTTPRouteUrlRewrite {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hostname: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<RequestRedirectPath>,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct RouteStatus {
+    pub parents: Vec<ParentRouteStatus>,
 }
