@@ -17,14 +17,13 @@
 
 ## Usage
 
-Basic usage involves using a [kube-rs] [Client] to perform operations on
+Basic usage involves using a [kube-rs Client] to perform operations on
 [Gateway API resources]. You can either use a basic `Client` to perform
 operations, or you can build a [Controller]. See the `gateway-api/examples/`
-directory for detailed (and specific) usage examples.
+directory for examples.
 
-[kube-rs]:https://github.com/kube-rs/kube
+[kube-rs Client]:https://docs.rs/kube/latest/kube/struct.Client.html
 [Gateway API resources]:https://gateway-api.sigs.k8s.io/api-types/gateway/
-[Client]:https://docs.rs/kube/latest/kube/struct.Client.html
 [Controller]:https://kube.rs/controllers/intro/
 
 ## Development
@@ -51,13 +50,13 @@ which you can then commit.
 
 ## Contributions
 
+For questions and general discussion, please use the [discussion board].
+
 Contributions are welcome. Please create an issue describing what changes are
 desired prior to creating a PR.
 
 Please check our [project board] to see what work has been accepted and is
-in need of an owner. The `next` column will hold high priority items.
-
-For questions and general discussion, please use the [discussion board].
+in need of an owner. The `next` column contains high priority items.
 
 [project board]:https://github.com/orgs/kube-rs/projects/3
 [discussion board]:https://github.com/kube-rs/gateway-api-rs/discussions
