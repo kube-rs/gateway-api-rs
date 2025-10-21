@@ -3,7 +3,7 @@ members = ["gateway-api", "gateway-api/examples", "xtask", "type-reducer"]
 resolver = "2"
 
 [workspace.package]
-authors = ["Shane Utt <shaneutt@linux.com>"]
+authors = ["kube-rs project (https://kube.rs)"]
 edition = "2024"
 license = "MIT"
 version = "0.16.0"
