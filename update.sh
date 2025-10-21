@@ -109,6 +109,7 @@ ENUMS=(
     HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType=ReplaceFullPath
     HTTPRouteRulesBackendRefsFiltersUrlRewritePathType=ReplaceFullPath
     HTTPRouteRulesBackendRefsFiltersType=RequestHeaderModifier
+    HTTPRouteRulesBackendRefsFiltersExternalAuthProtocol=HTTP
     GRPCRouteRulesFiltersType=RequestHeaderModifier
     GRPCRouteRulesBackendRefsFiltersType=RequestHeaderModifier
 )
