@@ -28,13 +28,14 @@ mod tests {
     use uuid::Uuid;
 
     use crate::{
+        apis::standard::common::GatewayAddress,
         apis::standard::constants::{
             GatewayConditionReason, GatewayConditionType, ListenerConditionReason,
             ListenerConditionType,
         },
         apis::standard::gatewayclasses::{GatewayClass, GatewayClassSpec},
         apis::standard::gateways::{
-            Gateway, GatewaySpec, GatewayStatus, GatewayStatusAddresses, GatewayStatusListeners,
+            Gateway, GatewaySpec, GatewayStatus, GatewayStatusListeners,
         },
     };
 
@@ -90,7 +91,7 @@ mod tests {
         assert!(gw.metadata.uid.is_some());
 
         let gw_status = GatewayStatus {
-            addresses: Some(vec![GatewayStatusAddresses::default()]),
+            addresses: Some(vec![GatewayAddress::default()]),
             listeners: Some(vec![GatewayStatusListeners {
                 name: "tcp".into(),
                 attached_routes: 0,
