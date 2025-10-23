@@ -84,10 +84,13 @@ GATEWAY_CONDITION_CONSTANTS="GatewayConditionType=Programmed,Accepted,Ready"
 GATEWAY_REASON_CONSTANTS="GatewayConditionReason=Programmed,Invalid,NoResources,AddressNotAssigned,AddressNotUsable,Accepted,ListenersNotValid,Pending,UnsupportedAddress,InvalidParameters,Ready,ListenersNotReady"
 LISTENER_CONDITION_CONSTANTS="ListenerConditionType=Conflicted,Accepted,ResolvedRefs,Programmed,Ready"
 LISTENER_REASON_CONSTANTS="ListenerConditionReason=HostnameConflict,ProtocolConflict,NoConflicts,Accepted,PortUnavailable,UnsupportedProtocol,ResolvedRefs,InvalidCertificateRef,InvalidRouteKinds,RefNotPermitted,Programmed,Invalid,Pending,Ready"
+ROUTE_CONDITION_CONSTANTS="RouteConditionType=Accepted,ResolvedRefs,PartiallyInvalid"
+ROUTE_REASON_CONSTANTS="RouteConditionReason=Accepted,NotAllowedByListeners,NoMatchingListenerHostname,NoMatchingParent,UnsupportedValue,Pending,IncompatibleFilters,ResolvedRefs,RefNotPermitted,InvalidKind,BackendNotFound,UnsupportedProtocol"
 
 GATEWAY_CLASS_CONDITION_CONSTANTS=${GATEWAY_CLASS_CONDITION_CONSTANTS} GATEWAY_CLASS_REASON_CONSTANTS=${GATEWAY_CLASS_REASON_CONSTANTS} \
     GATEWAY_CONDITION_CONSTANTS=${GATEWAY_CONDITION_CONSTANTS} GATEWAY_REASON_CONSTANTS=${GATEWAY_REASON_CONSTANTS} \
     LISTENER_CONDITION_CONSTANTS=${LISTENER_CONDITION_CONSTANTS} LISTENER_REASON_CONSTANTS=${LISTENER_REASON_CONSTANTS} \
+    ROUTE_CONDITION_CONSTANTS=${ROUTE_CONDITION_CONSTANTS} ROUTE_REASON_CONSTANTS=${ROUTE_REASON_CONSTANTS} \
     cargo xtask gen_condition_constants >> $APIS_DIR/standard/constants.rs
 echo "pub mod constants;" >> $APIS_DIR/standard/mod.rs
 
@@ -122,10 +125,13 @@ echo "mod enum_defaults;" >> $APIS_DIR/experimental/mod.rs
 # GatewayClass conditions vary between standard and experimental
 GATEWAY_CLASS_CONDITION_CONSTANTS="${GATEWAY_CLASS_CONDITION_CONSTANTS},SupportedVersion"
 GATEWAY_CLASS_REASON_CONSTANTS="${GATEWAY_CLASS_REASON_CONSTANTS},SupportedVersion,UnsupportedVersion"
+ROUTE_CONDITION_CONSTANTS="RouteConditionType=Accepted,ResolvedRefs"
+ROUTE_REASON_CONSTANTS="RouteConditionReason=Accepted,NotAllowedByListeners,NoMatchingListenerHostname,UnsupportedValue,Pending,ResolvedRefs,RefNotPermitted,InvalidKind,BackendNotFound"
 
 GATEWAY_CLASS_CONDITION_CONSTANTS=${GATEWAY_CLASS_CONDITION_CONSTANTS} GATEWAY_CLASS_REASON_CONSTANTS=${GATEWAY_CLASS_REASON_CONSTANTS} \
     GATEWAY_CONDITION_CONSTANTS=${GATEWAY_CONDITION_CONSTANTS} GATEWAY_REASON_CONSTANTS=${GATEWAY_REASON_CONSTANTS} \
     LISTENER_CONDITION_CONSTANTS=${LISTENER_CONDITION_CONSTANTS} LISTENER_REASON_CONSTANTS=${LISTENER_REASON_CONSTANTS} \
+    ROUTE_CONDITION_CONSTANTS=${ROUTE_CONDITION_CONSTANTS} ROUTE_REASON_CONSTANTS=${ROUTE_REASON_CONSTANTS} \
     cargo xtask gen_condition_constants >> $APIS_DIR/experimental/constants.rs
 echo "pub mod constants;" >> $APIS_DIR/experimental/mod.rs
 

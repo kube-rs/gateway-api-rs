@@ -88,3 +88,36 @@ impl std::fmt::Display for ListenerConditionReason {
         write!(f, "{:?}", self)
     }
 }
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum RouteConditionType {
+    Accepted,
+    ResolvedRefs,
+    PartiallyInvalid,
+}
+impl std::fmt::Display for RouteConditionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum RouteConditionReason {
+    Accepted,
+    NotAllowedByListeners,
+    NoMatchingListenerHostname,
+    NoMatchingParent,
+    UnsupportedValue,
+    Pending,
+    IncompatibleFilters,
+    ResolvedRefs,
+    RefNotPermitted,
+    InvalidKind,
+    BackendNotFound,
+    UnsupportedProtocol,
+}
+impl std::fmt::Display for RouteConditionReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
