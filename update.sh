@@ -16,6 +16,7 @@ set -eou pipefail
 VERSION="v1.4.0"
 
 STANDARD_APIS=(
+    backendtlspolicies
     gatewayclasses
     gateways
     httproutes
@@ -58,6 +59,7 @@ done
 
 # Standard API enums that need a Default trait impl along with their respective default variant.
 ENUMS=(
+    BackendTLSPolicyValidationSubjectAltNamesType=Hostname
     HTTPRouteRulesFiltersRequestRedirectPathType=ReplaceFullPath
     HTTPRouteRulesFiltersUrlRewritePathType=ReplaceFullPath
     HTTPRouteRulesFiltersType=RequestHeaderModifier

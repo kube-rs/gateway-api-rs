@@ -85,6 +85,7 @@ fn gen_enum_defaults() -> Result<(), DynError> {
     let mut scope = Scope::new();
     let mut httproute_enums = vec![];
     let mut grpcroute_enums = vec![];
+    let mut backendtlspolicy_enums = vec![];
 
     for (e, d) in enums_with_defaults {
         // The `fn default()` function.
@@ -103,6 +104,8 @@ fn gen_enum_defaults() -> Result<(), DynError> {
             httproute_enums.push(e);
         } else if e.starts_with("GRPCRoute") {
             grpcroute_enums.push(e);
+        } else if e.starts_with("BackendTLSPolicy") {
+            backendtlspolicy_enums.push(e);
         }
     }
 
@@ -116,6 +119,11 @@ fn gen_enum_defaults() -> Result<(), DynError> {
     if !grpcroute_enums.is_empty() {
         let use_grpc_stmt = gen_use_stmt(grpcroute_enums, "grpcroutes".to_string());
         println!("{}\n", use_grpc_stmt);
+    }
+    if !backendtlspolicy_enums.is_empty() {
+        let use_backendtlspolicy_stmt =
+            gen_use_stmt(backendtlspolicy_enums, "backendtlspolicies".to_string());
+        println!("{}\n", use_backendtlspolicy_stmt);
     }
 
     println!("{}", scope.to_string());
