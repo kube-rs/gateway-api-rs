@@ -12,7 +12,7 @@ pub use apis::experimental;
 mod tests {
     use std::process::Command;
 
-    use anyhow::Error;
+    use anyhow::{Error, Ok};
     use hyper_util::client::legacy::Client as HTTPClient;
     use hyper_util::rt::TokioExecutor;
     use k8s_openapi::apimachinery::pkg::apis::meta::v1::{Condition, Time};
@@ -35,7 +35,8 @@ mod tests {
         },
         apis::standard::gatewayclasses::{GatewayClass, GatewayClassSpec},
         apis::standard::gateways::{
-            Gateway, GatewaySpec, GatewayStatus, GatewayStatusAddresses, GatewayStatusListeners,
+            Gateway, GatewayListeners, GatewaySpec, GatewayStatus, GatewayStatusAddresses,
+            GatewayStatusListeners,
         },
         apis::standard::grpcroutes::GrpcRouteSpec,
         apis::standard::httproutes::HttpRouteSpec,
@@ -44,14 +45,16 @@ mod tests {
         },
     };
 
+    const DEFAULT_GATEWAY_API_VERSION: &str = "v1.4.0";
+
     // -------------------------------------------------------------------------
     // Tests
     // -------------------------------------------------------------------------
 
     #[ignore]
     #[tokio::test]
-    async fn deploy_resources() -> Result<(), Error> {
-        let (client, cluster) = get_client().await?;
+    async fn test_deploy_resources() -> Result<(), Error> {
+        let (client, cluster) = get_client(false).await?;
         let info = client.apiserver_version().await?;
 
         println!(
@@ -59,10 +62,40 @@ mod tests {
             cluster.name, info.git_version
         );
 
+        test_resource_deployment(client).await?;
+
+        println!("cleaning up kind cluster {}", cluster.name);
+
+        Ok(())
+    }
+
+    #[ignore]
+    #[tokio::test]
+    async fn test_deploy_resources_upstream_crds() -> Result<(), Error> {
+        let (client, cluster) = get_client(true).await?;
+        let info = client.apiserver_version().await?;
+
+        println!(
+            "kind cluster {} is running, server version: {}",
+            cluster.name, info.git_version
+        );
+
+        test_resource_deployment(client).await?;
+
+        println!("cleaning up kind cluster {}", cluster.name);
+
+        Ok(())
+    }
+
+    // -------------------------------------------------------------------------
+    // Test Resources
+    // -------------------------------------------------------------------------
+
+    async fn test_resource_deployment(client: kube::Client) -> Result<(), Error> {
         let mut gwc = GatewayClass {
             metadata: ObjectMeta::default(),
             spec: GatewayClassSpec {
-                controller_name: "test-controller".to_string(),
+                controller_name: "example.com/gateway-controller".to_string(),
                 description: None,
                 parameters_ref: None,
             },
@@ -83,7 +116,16 @@ mod tests {
                     .metadata
                     .name
                     .ok_or(Error::msg("could not find GatewayClass name"))?,
-                ..Default::default()
+                listeners: vec![GatewayListeners {
+                    name: "http".to_string(),
+                    port: 80,
+                    protocol: "HTTP".to_string(),
+                    hostname: None,
+                    allowed_routes: None,
+                    tls: None,
+                }],
+                addresses: None,
+                infrastructure: None,
             },
             status: None,
         };
@@ -96,9 +138,12 @@ mod tests {
         assert!(gw.metadata.uid.is_some());
 
         let gw_status = GatewayStatus {
-            addresses: Some(vec![GatewayStatusAddresses::default()]),
+            addresses: Some(vec![GatewayStatusAddresses {
+                r#type: Some("IPAddress".to_string()),
+                value: "10.0.0.1".to_string(),
+            }]),
             listeners: Some(vec![GatewayStatusListeners {
-                name: "tcp".into(),
+                name: "http".into(),
                 attached_routes: 0,
                 supported_kinds: vec![],
                 conditions: vec![Condition {
@@ -171,7 +216,7 @@ mod tests {
                     section_name: None,
                     port: None,
                 },
-                controller_name: "test-controller".to_string(),
+                controller_name: "example.com/gateway-controller".to_string(),
                 conditions: vec![Condition {
                     last_transition_time: Time(Utc::now()),
                     message: "testing http route".to_string(),
@@ -232,7 +277,7 @@ mod tests {
                     section_name: None,
                     port: None,
                 },
-                controller_name: "test-controller".to_string(),
+                controller_name: "example.com/gateway-controller".to_string(),
                 conditions: vec![Condition {
                     last_transition_time: Time(Utc::now()),
                     message: "testing grpc route".to_string(),
@@ -310,7 +355,7 @@ mod tests {
         }
     }
 
-    async fn get_client() -> Result<(kube::Client, Cluster), Error> {
+    async fn get_client(upstream: bool) -> Result<(kube::Client, Cluster), Error> {
         let cluster = create_kind_cluster()?;
         let kubeconfig_yaml = get_kind_kubeconfig(&cluster.name)?;
         let kubeconfig = Kubeconfig::from_yaml(&kubeconfig_yaml)?;
@@ -327,9 +372,54 @@ mod tests {
 
         let client = KubeClient::new(service, config.default_namespace);
 
-        deploy_crds(client.clone()).await?;
+        if upstream {
+            deploy_crds_upstream(&cluster.name).await?;
+        } else {
+            deploy_crds(client.clone()).await?;
+        }
 
         Ok((client, cluster))
+    }
+
+    async fn deploy_crds_upstream(cluster_name: &str) -> Result<(), Error> {
+        let version = std::env::var("GATEWAY_API_VERSION")
+            .unwrap_or_else(|_| DEFAULT_GATEWAY_API_VERSION.to_string());
+
+        let semver_pattern = regex::Regex::new(r"^v?\d+\.\d+\.\d+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$")
+            .map_err(|e| Error::msg(format!("Failed to compile regex: {}", e)))?;
+        if !semver_pattern.is_match(&version) {
+            return Err(Error::msg(format!(
+                "GATEWAY_API_VERSION '{}' is not a valid semver version",
+                version
+            )));
+        }
+
+        let kubeconfig_yaml = get_kind_kubeconfig(cluster_name)?;
+        let temp_dir = std::env::temp_dir();
+        let kubeconfig_path = temp_dir.join(format!("kubeconfig-{}", cluster_name));
+        std::fs::write(&kubeconfig_path, kubeconfig_yaml)?;
+
+        let url = format!(
+            "https://github.com/kubernetes-sigs/gateway-api/releases/download/{}/standard-install.yaml",
+            version
+        );
+
+        let output = Command::new("kubectl")
+            .arg("--kubeconfig")
+            .arg(&kubeconfig_path)
+            .arg("apply")
+            .arg("-f")
+            .arg(&url)
+            .output()?;
+
+        if !output.status.success() {
+            return Err(Error::msg(format!(
+                "Failed to apply CRDs: {}",
+                String::from_utf8_lossy(&output.stderr)
+            )));
+        }
+
+        Ok(())
     }
 
     async fn deploy_crds(client: kube::Client) -> Result<(), Error> {
