@@ -12,7 +12,7 @@ HTTPHeader
 HeaderMatchType
 Kind
 RedirectStatusCode
-RequestMirrorReference
+BackendObjectReference
 RequestOperationType
 RequestRedirectScheme
 ParentReference
