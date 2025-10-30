@@ -211,3 +211,15 @@ sed -i '/#\[kube(status = "UDPRouteStatus")\]/c\#\[kube(status = "RouteStatus")\
 sed -i '/#\[kube(status = "TCPRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/tcproutes.rs
 
 cargo fmt
+echo "API Generation complete"
+
+echo "Cleaning up temporary files"
+set -x
+rm -f standard_mapped_names_phase_*.txt
+rm -f standard_mapped_types_to_names_phase_*.txt
+rm -f experimental_mapped_names_phase_*.txt
+rm -f experimental_mapped_types_to_names_phase_*.txt
+rm -f mapped_names.txt
+rm -f mapped_types_to_names.txt
+set +x
+echo "Cleanup complete"
