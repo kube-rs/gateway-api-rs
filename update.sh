@@ -60,14 +60,14 @@ done
 
 # Standard API enums that need a Default trait impl along with their respective default variant.
 ENUMS=(
-    HTTPRouteRulesFiltersRequestRedirectPathType=ReplaceFullPath
-    HTTPRouteRulesFiltersUrlRewritePathType=ReplaceFullPath
-    HTTPRouteRulesFiltersType=RequestHeaderModifier
-    HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType=ReplaceFullPath
-    HTTPRouteRulesBackendRefsFiltersUrlRewritePathType=ReplaceFullPath
-    HTTPRouteRulesBackendRefsFiltersType=RequestHeaderModifier
-    GRPCRouteRulesFiltersType=RequestHeaderModifier
-    GRPCRouteRulesBackendRefsFiltersType=RequestHeaderModifier
+    HttpRouteRulesFiltersRequestRedirectPathType=ReplaceFullPath
+    HttpRouteRulesFiltersUrlRewritePathType=ReplaceFullPath
+    HttpRouteRulesFiltersType=RequestHeaderModifier
+    HttpRouteRulesBackendRefsFiltersRequestRedirectPathType=ReplaceFullPath
+    HttpRouteRulesBackendRefsFiltersUrlRewritePathType=ReplaceFullPath
+    HttpRouteRulesBackendRefsFiltersType=RequestHeaderModifier
+    GrpcRouteRulesFiltersType=RequestHeaderModifier
+    GrpcRouteRulesBackendRefsFiltersType=RequestHeaderModifier
 )
 
 # Create a comma separated string out of $ENUMS.
@@ -106,15 +106,15 @@ done
 
 # Experimental API enums that need a Default trait impl along with their respective default variant.
 ENUMS=(
-    HTTPRouteRulesFiltersRequestRedirectPathType=ReplaceFullPath
-    HTTPRouteRulesFiltersUrlRewritePathType=ReplaceFullPath
-    HTTPRouteRulesFiltersType=RequestHeaderModifier
-    HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType=ReplaceFullPath
-    HTTPRouteRulesBackendRefsFiltersUrlRewritePathType=ReplaceFullPath
-    HTTPRouteRulesBackendRefsFiltersType=RequestHeaderModifier
-    HTTPRouteRulesBackendRefsFiltersExternalAuthProtocol=HTTP
-    GRPCRouteRulesFiltersType=RequestHeaderModifier
-    GRPCRouteRulesBackendRefsFiltersType=RequestHeaderModifier
+    HttpRouteRulesFiltersRequestRedirectPathType=ReplaceFullPath
+    HttpRouteRulesFiltersUrlRewritePathType=ReplaceFullPath
+    HttpRouteRulesFiltersType=RequestHeaderModifier
+    HttpRouteRulesBackendRefsFiltersRequestRedirectPathType=ReplaceFullPath
+    HttpRouteRulesBackendRefsFiltersUrlRewritePathType=ReplaceFullPath
+    HttpRouteRulesBackendRefsFiltersType=RequestHeaderModifier
+    HttpRouteRulesBackendRefsFiltersExternalAuthProtocol=Http
+    GrpcRouteRulesFiltersType=RequestHeaderModifier
+    GrpcRouteRulesBackendRefsFiltersType=RequestHeaderModifier
 )
 
 ENUMS_WITH_DEFAULTS=$(printf ",%s" "${ENUMS[@]}")
@@ -169,8 +169,8 @@ ENUMS_WITH_DEFAULTS=$(printf ",%s" "${ENUMS[@]}")
 ENUMS_WITH_DEFAULTS=${ENUMS_WITH_DEFAULTS:1}
 GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults > $APIS_DIR/standard/enum_defaults.rs
 
-sed -i '/#\[kube(status = "GRPCRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/grpcroutes.rs
-sed -i '/#\[kube(status = "HTTPRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/httproutes.rs
+sed -i '/#\[kube(status = "GrpcRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/grpcroutes.rs
+sed -i '/#\[kube(status = "HttpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/httproutes.rs
 
 export RUST_LOG=info
 cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/experimental --out-dir $APIS_DIR/experimental reduce --previous-pass-derived-type-names ./type-reducer/experimental_reduced_types_pass_0.txt --current-pass-substitute-names ./type-reducer/experimental_customized_mapped_names.txt
@@ -202,11 +202,11 @@ ENUMS_WITH_DEFAULTS=$(printf ",%s" "${ENUMS[@]}")
 ENUMS_WITH_DEFAULTS=${ENUMS_WITH_DEFAULTS:1}
 GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults > $APIS_DIR/experimental/enum_defaults.rs
 
-sed -i '/#\[kube(status = "GRPCRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/grpcroutes.rs
-sed -i '/#\[kube(status = "HTTPRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/httproutes.rs
-sed -i '/#\[kube(status = "TLSRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/tlsroutes.rs
-sed -i '/#\[kube(status = "UDPRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/udproutes.rs
-sed -i '/#\[kube(status = "TCPRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/tcproutes.rs
+sed -i '/#\[kube(status = "GrpcRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/grpcroutes.rs
+sed -i '/#\[kube(status = "HttpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/httproutes.rs
+sed -i '/#\[kube(status = "TlsRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/tlsroutes.rs
+sed -i '/#\[kube(status = "UdpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/udproutes.rs
+sed -i '/#\[kube(status = "TcpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/tcproutes.rs
 
 cargo fmt
 echo "API Generation complete"

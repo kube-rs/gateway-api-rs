@@ -1,2 +1,2 @@
-TCPRouteSpec->RouteSpec
-UDPRouteSpec->RouteSpec
+TcpRouteSpec->RouteSpec
+UdpRouteSpec->RouteSpec

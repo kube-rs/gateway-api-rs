@@ -20,7 +20,7 @@ RequestMirror
 RequestRedirectPath
 ParentRouteStatus
 #### Pass 3
-GRPCRouteFilter
-HTTPRouteRequestRedirect
-HTTPRouteUrlRewrite
+GrpcRouteFilter
+HttpRouteRequestRedirect
+HttpRouteUrlRewrite
 RouteStatus

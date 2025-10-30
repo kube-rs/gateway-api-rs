@@ -26,10 +26,10 @@ RequestRedirectPath
 ParentRouteStatus
 CommonRouteRule
 #### Pass 3
-GRPCRouteFilter
-HTTPRouteRequestRedirect
-HTTPRouteUrlRewrite
+GrpcRouteFilter
+HttpRouteRequestRedirect
+HttpRouteUrlRewrite
 RouteStatus
 SessionPersistence
 #### Pass 4
-HTTPRouteBackendFilters
+HttpRouteBackendFilters

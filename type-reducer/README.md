@@ -11,18 +11,18 @@ The mappings from step 1 should be used to provide new, user selected names.
 
 
 ##### Before the change. 
-This shows that all above Kopium generated types are the same and we should replace "GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd" with a more meaningful name.
+This shows that all above Kopium generated types are the same and we should replace "GrpcRouteRulesBackendRefsFiltersRequestHeaderModifierAdd" with a more meaningful name.
 
 | Kopium generated names | |  User selected name| 
 |------------------------|--|-------------------|
-|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|->|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
-|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierSet|->|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
-|GRPCRouteRulesBackendRefsFiltersResponseHeaderModifierAdd|->|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
-|GRPCRouteRulesBackendRefsFiltersResponseHeaderModifierSet|->|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
-|HTTPRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|->|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
-|HTTPRouteRulesBackendRefsFiltersRequestHeaderModifierSet|->|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
-|HTTPRouteRulesBackendRefsFiltersResponseHeaderModifierAdd|->|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
-|HTTPRouteRulesBackendRefsFiltersResponseHeaderModifierSet|->|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
+|GrpcRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|->|GrpcRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
+|GrpcRouteRulesBackendRefsFiltersRequestHeaderModifierSet|->|GrpcRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
+|GrpcRouteRulesBackendRefsFiltersResponseHeaderModifierAdd|->|GrpcRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
+|GrpcRouteRulesBackendRefsFiltersResponseHeaderModifierSet|->|GrpcRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
+|HttpRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|->|GrpcRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
+|HttpRouteRulesBackendRefsFiltersRequestHeaderModifierSet|->|GrpcRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
+|HttpRouteRulesBackendRefsFiltersResponseHeaderModifierAdd|->|GrpcRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
+|HttpRouteRulesBackendRefsFiltersResponseHeaderModifierSet|->|GrpcRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|
 
 
 ##### After the change. 
@@ -31,14 +31,14 @@ On subsequent runs, the algorithm will use HTTPHeader as new name for all those 
 
 | Kopium generated names | |  User selected name| 
 |------------------------|--|-------------------|
-|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|->|HTTPHeader|
-|GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierSet|->|HTTPHeader|
-|GRPCRouteRulesBackendRefsFiltersResponseHeaderModifierAdd|->|HTTPHeader|
-|GRPCRouteRulesBackendRefsFiltersResponseHeaderModifierSet|->|HTTPHeader|
-|HTTPRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|->|HTTPHeader|
-|HTTPRouteRulesBackendRefsFiltersRequestHeaderModifierSet|->|HTTPHeader|
-|HTTPRouteRulesBackendRefsFiltersResponseHeaderModifierAdd|->|HTTPHeader|
-|HTTPRouteRulesBackendRefsFiltersResponseHeaderModifierSet|->|HTTPHeader|
+|GrpcRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|->|HTTPHeader|
+|GrpcRouteRulesBackendRefsFiltersRequestHeaderModifierSet|->|HTTPHeader|
+|GrpcRouteRulesBackendRefsFiltersResponseHeaderModifierAdd|->|HTTPHeader|
+|GrpcRouteRulesBackendRefsFiltersResponseHeaderModifierSet|->|HTTPHeader|
+|HttpRouteRulesBackendRefsFiltersRequestHeaderModifierAdd|->|HTTPHeader|
+|HttpRouteRulesBackendRefsFiltersRequestHeaderModifierSet|->|HTTPHeader|
+|HttpRouteRulesBackendRefsFiltersResponseHeaderModifierAdd|->|HTTPHeader|
+|HttpRouteRulesBackendRefsFiltersResponseHeaderModifierSet|->|HTTPHeader|
 
 
 ### 3. Re-run the application to produce the code with desired types
