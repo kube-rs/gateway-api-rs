@@ -7,6 +7,7 @@ ParentReference
 FilterExtensionReference
 HTTPHeader
 BackendObjectReference
+RequestMirrorFraction
 RequestOperationType
 RequestRedirectScheme
 RedirectStatusCode
