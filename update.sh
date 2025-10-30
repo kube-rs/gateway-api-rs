@@ -15,6 +15,26 @@
 set -eou pipefail
 
 GATEWAY_API_VERSION="v1.4.0"
+REQUIRED_KOPIUM_VERSION="0.22.5"
+KOPIUM_VERSION=$(kopium --version 2>/dev/null | grep -oP 'kopium \K[0-9]+\.[0-9]+\.[0-9]+' || echo "")
+
+if [ -z "$KOPIUM_VERSION" ]; then
+    echo "Error: kopium is not installed or not in PATH"
+    echo "Please install kopium version ${REQUIRED_KOPIUM_VERSION} with:"
+    echo "  cargo install kopium --version ${REQUIRED_KOPIUM_VERSION}"
+    exit 1
+fi
+
+if [ "$KOPIUM_VERSION" != "$REQUIRED_KOPIUM_VERSION" ]; then
+    echo "Error: kopium version mismatch"
+    echo "  Required: ${REQUIRED_KOPIUM_VERSION}"
+    echo "  Found: ${KOPIUM_VERSION}"
+    echo "Please install the correct version with:"
+    echo "  cargo install kopium --version ${REQUIRED_KOPIUM_VERSION}"
+    exit 1
+fi
+
+echo "Using kopium version ${KOPIUM_VERSION}"
 echo "Using Gateway API version ${GATEWAY_API_VERSION}"
 
 STANDARD_APIS=(
