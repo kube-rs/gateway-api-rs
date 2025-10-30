@@ -17,14 +17,16 @@
 
 ## Usage
 
-Basic usage involves using a [kube-rs Client] to perform operations on
-[Gateway API resources]. You can either use a basic `Client` to perform
-operations, or you can build a [Controller]. See the `gateway-api/examples/`
-directory for examples.
+This library is intended to be paired with [kube-rs]. Use a [Client] to perform
+operations on [Gateway API resources]. This enables you to build [Controllers],
+so you can create a [Gateway API Implementation] in Rust. See the
+`gateway-api/examples/` directory for example code.
 
-[kube-rs Client]:https://docs.rs/kube/latest/kube/struct.Client.html
+[kube-rs]:https://docs.rs/kube/latest/kube
+[Client]:https://docs.rs/kube/latest/kube/struct.Client.html
 [Gateway API resources]:https://gateway-api.sigs.k8s.io/api-types/gateway/
 [Controller]:https://kube.rs/controllers/intro/
+[Gateway API Implemention]:https://gateway-api.sigs.k8s.io/implementations/
 
 ## Development
 
