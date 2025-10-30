@@ -13,14 +13,14 @@ impl Default for HTTPFilterType {
     }
 }
 
-impl Default for RequestOperationType {
+impl Default for HttpRouteRulesBackendRefsFiltersExternalAuthProtocol {
     fn default() -> Self {
-        RequestOperationType::ReplaceFullPath
+        HttpRouteRulesBackendRefsFiltersExternalAuthProtocol::Http
     }
 }
 
-impl Default for HTTPRouteRulesBackendRefsFiltersExternalAuthProtocol {
+impl Default for RequestOperationType {
     fn default() -> Self {
-        HTTPRouteRulesBackendRefsFiltersExternalAuthProtocol::Http
+        RequestOperationType::ReplaceFullPath
     }
 }

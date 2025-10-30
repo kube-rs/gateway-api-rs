@@ -40,16 +40,16 @@ pub enum HTTPFilterType {
     ExternalAuth,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HTTPRouteRulesBackendRefsFiltersExternalAuthProtocol {
+pub enum HeaderMatchType {
+    Exact,
+    RegularExpression,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
+pub enum HttpRouteRulesBackendRefsFiltersExternalAuthProtocol {
     #[serde(rename = "HTTP")]
     Http,
     #[serde(rename = "GRPC")]
     Grpc,
-}
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HeaderMatchType {
-    Exact,
-    RegularExpression,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
 pub enum PersistenceCookieConfigLifetime {
@@ -123,7 +123,7 @@ pub struct HTTPHeader {
     pub value: String,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HTTPRouteRulesBackendRefsFiltersExternalAuthBackendRef {
+pub struct HttpRouteRulesBackendRefsFiltersExternalAuthBackendRef {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -135,12 +135,12 @@ pub struct HTTPRouteRulesBackendRefsFiltersExternalAuthBackendRef {
     pub port: Option<i32>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HTTPRouteRulesBackendRefsFiltersExternalAuthForwardBody {
+pub struct HttpRouteRulesBackendRefsFiltersExternalAuthForwardBody {
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "maxSize")]
     pub max_size: Option<i64>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HTTPRouteRulesBackendRefsFiltersExternalAuthGrpc {
+pub struct HttpRouteRulesBackendRefsFiltersExternalAuthGrpc {
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -149,7 +149,7 @@ pub struct HTTPRouteRulesBackendRefsFiltersExternalAuthGrpc {
     pub allowed_headers: Option<Vec<String>>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HTTPRouteRulesBackendRefsFiltersExternalAuthHttp {
+pub struct HttpRouteRulesBackendRefsFiltersExternalAuthHttp {
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -278,7 +278,7 @@ pub struct RequestRedirect {
     pub status_code: Option<i64>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HTTPRouteUrlRewrite {
+pub struct HttpRouteUrlRewrite {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hostname: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

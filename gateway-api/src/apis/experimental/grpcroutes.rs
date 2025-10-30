@@ -21,7 +21,7 @@ use self::prelude::*;
 #[kube(status = "RouteStatus")]
 #[kube(derive = "Default")]
 #[kube(derive = "PartialEq")]
-pub struct GRPCRouteSpec {
+pub struct GrpcRouteSpec {
     /// Hostnames defines a set of hostnames to match against the GRPC
     /// Host header to select a GRPCRoute to process the request. This matches
     /// the RFC 1123 definition of a hostname with 2 notable exceptions:
@@ -143,7 +143,7 @@ pub struct GRPCRouteSpec {
     pub parent_refs: Option<Vec<ParentReference>>,
     /// Rules are a list of GRPC matchers, filters and actions.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rules: Option<Vec<GRPCRouteRule>>,
+    pub rules: Option<Vec<GrpcRouteRule>>,
     /// UseDefaultGateways indicates the default Gateway scope to use for this
     /// Route. If unset (the default) or set to None, the Route will not be
     /// attached to any default Gateway; if set, it will be attached to any
@@ -167,7 +167,7 @@ pub struct GRPCRouteSpec {
 /// conditions (matches), processing it (filters), and forwarding the request to
 /// an API object (backendRefs).
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GRPCRouteRule {
+pub struct GrpcRouteRule {
     /// BackendRefs defines the backend(s) where matching requests should be
     /// sent.
     ///
@@ -227,7 +227,7 @@ pub struct GRPCRouteRule {
     ///
     /// Support: Core
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub filters: Option<Vec<GRPCRouteRulesFilters>>,
+    pub filters: Option<Vec<GrpcRouteRulesFilters>>,
     /// Matches define conditions used for matching the rule against incoming
     /// gRPC requests. Each match is independent, i.e. this rule will be matched
     /// if **any** one of the matches is satisfied.
@@ -278,7 +278,7 @@ pub struct GRPCRouteRule {
     /// matching precedence MUST be granted to the first matching rule meeting
     /// the above criteria.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub matches: Option<Vec<GRPCRouteMatch>>,
+    pub matches: Option<Vec<GrpcRouteMatch>>,
     /// Name is the name of the route rule. This name MUST be unique within a Route if it is set.
     ///
     /// Support: Extended
@@ -324,7 +324,7 @@ pub struct GRPCBackendReference {
     /// Support: Implementation-specific (For broader support of filters, use the
     /// Filters field in GRPCRouteRule.)
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub filters: Option<Vec<GRPCRouteRulesBackendRefsFilters>>,
+    pub filters: Option<Vec<GrpcRouteRulesBackendRefsFilters>>,
     /// Group is the group of the referent. For example, "gateway.networking.k8s.io".
     /// When unspecified or empty string, core API group is inferred.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -388,7 +388,7 @@ pub struct GRPCBackendReference {
 /// authentication strategies, rate-limiting, and traffic shaping. API
 /// guarantee/conformance is defined based on the type of the filter.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GRPCRouteRulesBackendRefsFilters {
+pub struct GrpcRouteRulesBackendRefsFilters {
     /// ExtensionRef is an optional, implementation-specific extension to the
     /// "filter" behavior.  For example, resource "myroutefilter" in group
     /// "networking.example.net"). ExtensionRef MUST NOT be used for core and
@@ -427,7 +427,7 @@ pub struct GRPCRouteRulesBackendRefsFilters {
         skip_serializing_if = "Option::is_none",
         rename = "requestMirror"
     )]
-    pub request_mirror: Option<GRPCRouteRulesBackendRefsFiltersRequestMirror>,
+    pub request_mirror: Option<GrpcRouteRulesBackendRefsFiltersRequestMirror>,
     /// ResponseHeaderModifier defines a schema for a filter that modifies response
     /// headers.
     ///
@@ -475,7 +475,7 @@ pub struct GRPCRouteRulesBackendRefsFilters {
 ///
 /// Support: Extended
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GRPCRouteRulesBackendRefsFiltersRequestMirror {
+pub struct GrpcRouteRulesBackendRefsFiltersRequestMirror {
     /// BackendRef references a resource where mirrored requests are sent.
     ///
     /// Mirrored requests must be sent only to a single destination endpoint
@@ -500,7 +500,7 @@ pub struct GRPCRouteRulesBackendRefsFiltersRequestMirror {
     ///
     /// Support: Implementation-specific for any other resource
     #[serde(rename = "backendRef")]
-    pub backend_ref: HTTPRouteRulesBackendRefsFiltersExternalAuthBackendRef,
+    pub backend_ref: HttpRouteRulesBackendRefsFiltersExternalAuthBackendRef,
     /// Fraction represents the fraction of requests that should be
     /// mirrored to BackendRef.
     ///
@@ -524,7 +524,7 @@ pub struct GRPCRouteRulesBackendRefsFiltersRequestMirror {
 /// authentication strategies, rate-limiting, and traffic shaping. API
 /// guarantee/conformance is defined based on the type of the filter.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GRPCRouteRulesFilters {
+pub struct GrpcRouteRulesFilters {
     /// ExtensionRef is an optional, implementation-specific extension to the
     /// "filter" behavior.  For example, resource "myroutefilter" in group
     /// "networking.example.net"). ExtensionRef MUST NOT be used for core and
@@ -563,7 +563,7 @@ pub struct GRPCRouteRulesFilters {
         skip_serializing_if = "Option::is_none",
         rename = "requestMirror"
     )]
-    pub request_mirror: Option<GRPCRouteRulesFiltersRequestMirror>,
+    pub request_mirror: Option<GrpcRouteRulesFiltersRequestMirror>,
     /// ResponseHeaderModifier defines a schema for a filter that modifies response
     /// headers.
     ///
@@ -611,7 +611,7 @@ pub struct GRPCRouteRulesFilters {
 ///
 /// Support: Extended
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GRPCRouteRulesFiltersRequestMirror {
+pub struct GrpcRouteRulesFiltersRequestMirror {
     /// BackendRef references a resource where mirrored requests are sent.
     ///
     /// Mirrored requests must be sent only to a single destination endpoint
@@ -636,7 +636,7 @@ pub struct GRPCRouteRulesFiltersRequestMirror {
     ///
     /// Support: Implementation-specific for any other resource
     #[serde(rename = "backendRef")]
-    pub backend_ref: HTTPRouteRulesBackendRefsFiltersExternalAuthBackendRef,
+    pub backend_ref: HttpRouteRulesBackendRefsFiltersExternalAuthBackendRef,
     /// Fraction represents the fraction of requests that should be
     /// mirrored to BackendRef.
     ///
@@ -671,7 +671,7 @@ pub struct GRPCRouteRulesFiltersRequestMirror {
 ///
 /// ```
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GRPCRouteMatch {
+pub struct GrpcRouteMatch {
     /// Headers specifies gRPC request header matchers. Multiple match values are
     /// ANDed together, meaning, a request MUST match all the specified headers
     /// to select the route.

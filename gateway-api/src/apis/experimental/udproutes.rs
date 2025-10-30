@@ -21,7 +21,7 @@ use self::prelude::*;
 #[kube(status = "RouteStatus")]
 #[kube(derive = "Default")]
 #[kube(derive = "PartialEq")]
-pub struct UDPRouteSpec {
+pub struct UdpRouteSpec {
     /// ParentRefs references the resources (usually Gateways) that a Route wants
     /// to be attached to. Note that the referenced parent resource needs to
     /// allow this for the attachment to be complete. For Gateways, that means

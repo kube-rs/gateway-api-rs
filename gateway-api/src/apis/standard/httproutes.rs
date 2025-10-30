@@ -21,7 +21,7 @@ use self::prelude::*;
 #[kube(status = "RouteStatus")]
 #[kube(derive = "Default")]
 #[kube(derive = "PartialEq")]
-pub struct HTTPRouteSpec {
+pub struct HttpRouteSpec {
     /// Hostnames defines a set of hostnames that should match against the HTTP Host
     /// header to select a HTTPRoute used to process the request. Implementations
     /// MUST ignore any port value specified in the HTTP Host header while
@@ -135,13 +135,13 @@ pub struct HTTPRouteSpec {
     pub parent_refs: Option<Vec<ParentReference>>,
     /// Rules are a list of HTTP matchers, filters and actions.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub rules: Option<Vec<HTTPRouteRule>>,
+    pub rules: Option<Vec<HttpRouteRule>>,
 }
 /// HTTPRouteRule defines semantics for matching an HTTP request based on
 /// conditions (matches), processing it (filters), and forwarding the request to
 /// an API object (backendRefs).
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HTTPRouteRule {
+pub struct HttpRouteRule {
     /// BackendRefs defines the backend(s) where matching requests should be
     /// sent.
     ///
@@ -220,7 +220,7 @@ pub struct HTTPRouteRule {
     ///
     /// Support: Core
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub filters: Option<Vec<HTTPRouteFilter>>,
+    pub filters: Option<Vec<HttpRouteFilter>>,
     /// Matches define conditions used for matching the rule against incoming
     /// HTTP requests. Each match is independent, i.e. this rule will be matched
     /// if **any** one of the matches is satisfied.
@@ -288,7 +288,7 @@ pub struct HTTPRouteRule {
     ///
     /// Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub timeouts: Option<HTTPRouteTimeout>,
+    pub timeouts: Option<HttpRouteTimeout>,
 }
 /// HTTPBackendRef defines how a HTTPRoute forwards a HTTP request.
 ///
@@ -304,7 +304,7 @@ pub struct HTTPBackendReference {
     /// Support: Implementation-specific (For broader support of filters, use the
     /// Filters field in HTTPRouteRule.)
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub filters: Option<Vec<HTTPRouteBackendFilter>>,
+    pub filters: Option<Vec<HttpRouteBackendFilter>>,
     /// Group is the group of the referent. For example, "gateway.networking.k8s.io".
     /// When unspecified or empty string, core API group is inferred.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -368,7 +368,7 @@ pub struct HTTPBackendReference {
 /// authentication strategies, rate-limiting, and traffic shaping. API
 /// guarantee/conformance is defined based on the type of the filter.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HTTPRouteBackendFilter {
+pub struct HttpRouteBackendFilter {
     /// ExtensionRef is an optional, implementation-specific extension to the
     /// "filter" behavior.  For example, resource "myroutefilter" in group
     /// "networking.example.net"). ExtensionRef MUST NOT be used for core and
@@ -407,7 +407,7 @@ pub struct HTTPRouteBackendFilter {
         skip_serializing_if = "Option::is_none",
         rename = "requestMirror"
     )]
-    pub request_mirror: Option<HTTPRouteRulesBackendRefsFiltersRequestMirror>,
+    pub request_mirror: Option<HttpRouteRulesBackendRefsFiltersRequestMirror>,
     /// RequestRedirect defines a schema for a filter that responds to the
     /// request with an HTTP redirection.
     ///
@@ -470,7 +470,7 @@ pub struct HTTPRouteBackendFilter {
         skip_serializing_if = "Option::is_none",
         rename = "urlRewrite"
     )]
-    pub url_rewrite: Option<HTTPRouteUrlRewrite>,
+    pub url_rewrite: Option<HttpRouteUrlRewrite>,
 }
 /// RequestMirror defines a schema for a filter that mirrors requests.
 /// Requests are sent to the specified destination, but responses from
@@ -482,7 +482,7 @@ pub struct HTTPRouteBackendFilter {
 ///
 /// Support: Extended
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HTTPRouteRulesBackendRefsFiltersRequestMirror {
+pub struct HttpRouteRulesBackendRefsFiltersRequestMirror {
     /// BackendRef references a resource where mirrored requests are sent.
     ///
     /// Mirrored requests must be sent only to a single destination endpoint
@@ -514,7 +514,7 @@ pub struct HTTPRouteRulesBackendRefsFiltersRequestMirror {
     /// Only one of Fraction or Percent may be specified. If neither field
     /// is specified, 100% of requests will be mirrored.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub fraction: Option<HTTPRouteRulesBackendRefsFiltersRequestMirrorFraction>,
+    pub fraction: Option<HttpRouteRulesBackendRefsFiltersRequestMirrorFraction>,
     /// Percent represents the percentage of requests that should be
     /// mirrored to BackendRef. Its minimum value is 0 (indicating 0% of
     /// requests) and its maximum value is 100 (indicating 100% of requests).
@@ -531,7 +531,7 @@ pub struct HTTPRouteRulesBackendRefsFiltersRequestMirror {
 /// authentication strategies, rate-limiting, and traffic shaping. API
 /// guarantee/conformance is defined based on the type of the filter.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HTTPRouteFilter {
+pub struct HttpRouteFilter {
     /// ExtensionRef is an optional, implementation-specific extension to the
     /// "filter" behavior.  For example, resource "myroutefilter" in group
     /// "networking.example.net"). ExtensionRef MUST NOT be used for core and
@@ -570,7 +570,7 @@ pub struct HTTPRouteFilter {
         skip_serializing_if = "Option::is_none",
         rename = "requestMirror"
     )]
-    pub request_mirror: Option<HTTPRouteRulesFiltersRequestMirror>,
+    pub request_mirror: Option<HttpRouteRulesFiltersRequestMirror>,
     /// RequestRedirect defines a schema for a filter that responds to the
     /// request with an HTTP redirection.
     ///
@@ -633,7 +633,7 @@ pub struct HTTPRouteFilter {
         skip_serializing_if = "Option::is_none",
         rename = "urlRewrite"
     )]
-    pub url_rewrite: Option<HTTPRouteUrlRewrite>,
+    pub url_rewrite: Option<HttpRouteUrlRewrite>,
 }
 /// RequestMirror defines a schema for a filter that mirrors requests.
 /// Requests are sent to the specified destination, but responses from
@@ -645,7 +645,7 @@ pub struct HTTPRouteFilter {
 ///
 /// Support: Extended
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HTTPRouteRulesFiltersRequestMirror {
+pub struct HttpRouteRulesFiltersRequestMirror {
     /// BackendRef references a resource where mirrored requests are sent.
     ///
     /// Mirrored requests must be sent only to a single destination endpoint
@@ -677,7 +677,7 @@ pub struct HTTPRouteRulesFiltersRequestMirror {
     /// Only one of Fraction or Percent may be specified. If neither field
     /// is specified, 100% of requests will be mirrored.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub fraction: Option<HTTPRouteRulesBackendRefsFiltersRequestMirrorFraction>,
+    pub fraction: Option<HttpRouteRulesBackendRefsFiltersRequestMirrorFraction>,
     /// Percent represents the percentage of requests that should be
     /// mirrored to BackendRef. Its minimum value is 0 (indicating 0% of
     /// requests) and its maximum value is 100 (indicating 100% of requests).
@@ -782,7 +782,7 @@ pub struct PathMatch {
     ///
     /// Support: Implementation-specific (RegularExpression)
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
-    pub r#type: Option<HTTPRouteRulesMatchesPathType>,
+    pub r#type: Option<HttpRouteRulesMatchesPathType>,
     /// Value of the HTTP path to match against.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub value: Option<String>,
@@ -790,7 +790,7 @@ pub struct PathMatch {
 /// Path specifies a HTTP request path matcher. If this field is not
 /// specified, a default prefix match on the "/" path is provided.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum HTTPRouteRulesMatchesPathType {
+pub enum HttpRouteRulesMatchesPathType {
     Exact,
     PathPrefix,
     RegularExpression,
@@ -799,7 +799,7 @@ pub enum HTTPRouteRulesMatchesPathType {
 ///
 /// Support: Extended
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HTTPRouteTimeout {
+pub struct HttpRouteTimeout {
     /// BackendRequest specifies a timeout for an individual request from the gateway
     /// to a backend. This covers the time from when the request first starts being
     /// sent from the gateway to when the full response has been received from the backend.

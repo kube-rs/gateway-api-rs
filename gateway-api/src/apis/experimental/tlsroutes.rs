@@ -21,7 +21,7 @@ use self::prelude::*;
 #[kube(status = "RouteStatus")]
 #[kube(derive = "Default")]
 #[kube(derive = "PartialEq")]
-pub struct TLSRouteSpec {
+pub struct TlsRouteSpec {
     /// Hostnames defines a set of SNI hostnames that should match against the
     /// SNI attribute of TLS ClientHello message in TLS handshake. This matches
     /// the RFC 1123 definition of a hostname with 2 notable exceptions:

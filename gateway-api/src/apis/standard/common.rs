@@ -62,7 +62,7 @@ pub struct HTTPHeader {
     pub value: String,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HTTPRouteRulesBackendRefsFiltersRequestMirrorFraction {
+pub struct HttpRouteRulesBackendRefsFiltersRequestMirrorFraction {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub denominator: Option<i32>,
     pub numerator: i32,
@@ -162,7 +162,7 @@ pub struct RequestRedirect {
     pub status_code: Option<i64>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HTTPRouteUrlRewrite {
+pub struct HttpRouteUrlRewrite {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hostname: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

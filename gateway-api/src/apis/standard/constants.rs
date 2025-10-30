@@ -88,7 +88,6 @@ impl std::fmt::Display for ListenerConditionReason {
         write!(f, "{:?}", self)
     }
 }
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum RouteConditionType {
     Accepted,
@@ -100,7 +99,6 @@ impl std::fmt::Display for RouteConditionType {
         write!(f, "{:?}", self)
     }
 }
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum RouteConditionReason {
     Accepted,
