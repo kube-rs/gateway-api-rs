@@ -122,5 +122,7 @@ fn get_enums_with_defaults_map(env_var_val: String) -> BTreeMap<String, String> 
         );
     });
 
+    eprintln!("Enums with defaults: {:#?}", &enums_with_defaults);
+
     enums_with_defaults
 }
