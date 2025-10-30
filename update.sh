@@ -167,8 +167,7 @@ ENUMS=(
 
 ENUMS_WITH_DEFAULTS=$(printf ",%s" "${ENUMS[@]}")
 ENUMS_WITH_DEFAULTS=${ENUMS_WITH_DEFAULTS:1}
-echo "use super::common::*;" > $APIS_DIR/standard/enum_defaults.rs
-GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults >> $APIS_DIR/standard/enum_defaults.rs
+GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults > $APIS_DIR/standard/enum_defaults.rs
 
 sed -i '/#\[kube(status = "GRPCRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/grpcroutes.rs
 sed -i '/#\[kube(status = "HTTPRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/httproutes.rs
@@ -201,8 +200,7 @@ ENUMS=(
 
 ENUMS_WITH_DEFAULTS=$(printf ",%s" "${ENUMS[@]}")
 ENUMS_WITH_DEFAULTS=${ENUMS_WITH_DEFAULTS:1}
-echo "use super::common::*;" > $APIS_DIR/experimental/enum_defaults.rs
-GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults >> $APIS_DIR/experimental/enum_defaults.rs
+GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults > $APIS_DIR/experimental/enum_defaults.rs
 
 sed -i '/#\[kube(status = "GRPCRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/grpcroutes.rs
 sed -i '/#\[kube(status = "HTTPRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/httproutes.rs

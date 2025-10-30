@@ -87,8 +87,6 @@ fn gen_enum_defaults() -> Result<(), DynError> {
     let enums_with_defaults = get_enums_with_defaults_map(gw_api_enums);
 
     let mut scope = Scope::new();
-    let mut httproute_enums = vec![];
-    let mut grpcroute_enums = vec![];
 
     for (e, d) in enums_with_defaults {
         // The `fn default()` function.
@@ -100,27 +98,11 @@ fn gen_enum_defaults() -> Result<(), DynError> {
             .new_impl(e.as_str())
             .impl_trait("Default")
             .push_fn(func);
-
-        // Determine which enums belong to the httproute module and which belong to the
-        // grpcroute module.
-        if e.starts_with("HTTPRoute") {
-            httproute_enums.push(e);
-        } else if e.starts_with("GRPCRoute") {
-            grpcroute_enums.push(e);
-        }
     }
 
+    // Print the common use statement first
+    println!("use super::common::*;");
     println!("{}", gen_generated_file_warning());
-
-    // Generate use statements for the enums.
-    if !httproute_enums.is_empty() {
-        let use_http_stmt = gen_use_stmt(httproute_enums, "httproutes".to_string());
-        println!("{}\n", use_http_stmt);
-    }
-    if !grpcroute_enums.is_empty() {
-        let use_grpc_stmt = gen_use_stmt(grpcroute_enums, "grpcroutes".to_string());
-        println!("{}\n", use_grpc_stmt);
-    }
 
     println!("{}", scope.to_string());
     Ok(())
@@ -128,15 +110,6 @@ fn gen_enum_defaults() -> Result<(), DynError> {
 
 fn gen_generated_file_warning() -> String {
     "// WARNING: generated file - manual changes will be overriden\n".into()
-}
-
-fn gen_use_stmt(items: Vec<String>, module: String) -> String {
-    let mut stmt = format!("use super::{}::{{", module);
-    for item in items {
-        stmt.push_str(format!("{}, ", item).as_str());
-    }
-    stmt.push_str("};");
-    stmt
 }
 
 fn get_enums_with_defaults_map(env_var_val: String) -> BTreeMap<String, String> {
