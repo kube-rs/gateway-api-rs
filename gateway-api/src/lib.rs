@@ -28,13 +28,19 @@ mod tests {
     use uuid::Uuid;
 
     use crate::{
+        apis::standard::common::{ParentReference, ParentRouteStatus, RouteStatus},
         apis::standard::constants::{
             GatewayConditionReason, GatewayConditionType, ListenerConditionReason,
-            ListenerConditionType,
+            ListenerConditionType, RouteConditionReason, RouteConditionType,
         },
         apis::standard::gatewayclasses::{GatewayClass, GatewayClassSpec},
         apis::standard::gateways::{
             Gateway, GatewaySpec, GatewayStatus, GatewayStatusAddresses, GatewayStatusListeners,
+        },
+        apis::standard::grpcroutes::GrpcRouteSpec,
+        apis::standard::httproutes::HttpRouteSpec,
+        apis::standard::referencegrants::{
+            ReferenceGrantFrom, ReferenceGrantSpec, ReferenceGrantTo,
         },
     };
 
@@ -44,7 +50,7 @@ mod tests {
 
     #[ignore]
     #[tokio::test]
-    async fn deploy_gateway() -> Result<(), Error> {
+    async fn deploy_resources() -> Result<(), Error> {
         let (client, cluster) = get_client().await?;
         let info = client.apiserver_version().await?;
 
@@ -114,7 +120,7 @@ mod tests {
             }]),
         };
 
-        gw = Api::default_namespaced(client)
+        gw = Api::default_namespaced(client.clone())
             .patch_status(
                 gw.metadata.name.clone().unwrap().as_str(),
                 &PatchParams::default(),
@@ -128,6 +134,162 @@ mod tests {
         assert!(gw.status.clone().unwrap().addresses.is_some());
         assert!(gw.status.clone().unwrap().listeners.is_some());
         assert!(gw.status.clone().unwrap().conditions.is_some());
+
+        let mut http_route = crate::apis::standard::httproutes::HTTPRoute {
+            metadata: ObjectMeta::default(),
+            spec: HttpRouteSpec {
+                hostnames: Some(vec!["example.com".to_string()]),
+                parent_refs: Some(vec![ParentReference {
+                    group: Some("gateway.networking.k8s.io".to_string()),
+                    kind: Some("Gateway".to_string()),
+                    namespace: Some("default".to_string()),
+                    name: gw.metadata.name.clone().unwrap(),
+                    section_name: None,
+                    port: None,
+                }]),
+                rules: Some(vec![]),
+            },
+            status: None,
+        };
+        http_route.metadata.name = Some("test-http-route".to_string());
+        http_route = Api::default_namespaced(client.clone())
+            .create(&PostParams::default(), &http_route)
+            .await?;
+
+        assert!(http_route.metadata.name.is_some());
+        assert!(http_route.metadata.uid.is_some());
+        assert!(http_route.spec.hostnames.is_some());
+        assert!(http_route.spec.parent_refs.is_some());
+
+        let http_route_status = RouteStatus {
+            parents: vec![ParentRouteStatus {
+                parent_ref: ParentReference {
+                    group: Some("gateway.networking.k8s.io".to_string()),
+                    kind: Some("Gateway".to_string()),
+                    namespace: Some("default".to_string()),
+                    name: gw.metadata.name.clone().unwrap(),
+                    section_name: None,
+                    port: None,
+                },
+                controller_name: "test-controller".to_string(),
+                conditions: vec![Condition {
+                    last_transition_time: Time(Utc::now()),
+                    message: "testing http route".to_string(),
+                    observed_generation: Some(1),
+                    reason: RouteConditionReason::Accepted.to_string(),
+                    status: "True".to_string(),
+                    type_: RouteConditionType::Accepted.to_string(),
+                }],
+            }],
+        };
+
+        http_route = Api::default_namespaced(client.clone())
+            .patch_status(
+                http_route.metadata.name.clone().unwrap().as_str(),
+                &PatchParams::default(),
+                &Patch::Merge(json!({
+                    "status": Some(http_route_status)
+                })),
+            )
+            .await?;
+
+        assert!(http_route.status.is_some());
+        assert!(!http_route.status.clone().unwrap().parents.is_empty());
+
+        let mut grpc_route = crate::apis::standard::grpcroutes::GRPCRoute {
+            metadata: ObjectMeta::default(),
+            spec: GrpcRouteSpec {
+                hostnames: Some(vec!["grpc.example.com".to_string()]),
+                parent_refs: Some(vec![ParentReference {
+                    group: Some("gateway.networking.k8s.io".to_string()),
+                    kind: Some("Gateway".to_string()),
+                    namespace: Some("default".to_string()),
+                    name: gw.metadata.name.clone().unwrap(),
+                    section_name: None,
+                    port: None,
+                }]),
+                rules: Some(vec![]),
+            },
+            status: None,
+        };
+        grpc_route.metadata.name = Some("test-grpc-route".to_string());
+        grpc_route = Api::default_namespaced(client.clone())
+            .create(&PostParams::default(), &grpc_route)
+            .await?;
+
+        assert!(grpc_route.metadata.name.is_some());
+        assert!(grpc_route.metadata.uid.is_some());
+        assert!(grpc_route.spec.hostnames.is_some());
+        assert!(grpc_route.spec.parent_refs.is_some());
+
+        let grpc_route_status = RouteStatus {
+            parents: vec![ParentRouteStatus {
+                parent_ref: ParentReference {
+                    group: Some("gateway.networking.k8s.io".to_string()),
+                    kind: Some("Gateway".to_string()),
+                    namespace: Some("default".to_string()),
+                    name: gw.metadata.name.clone().unwrap(),
+                    section_name: None,
+                    port: None,
+                },
+                controller_name: "test-controller".to_string(),
+                conditions: vec![Condition {
+                    last_transition_time: Time(Utc::now()),
+                    message: "testing grpc route".to_string(),
+                    observed_generation: Some(1),
+                    reason: RouteConditionReason::Accepted.to_string(),
+                    status: "True".to_string(),
+                    type_: RouteConditionType::Accepted.to_string(),
+                }],
+            }],
+        };
+
+        grpc_route = Api::default_namespaced(client.clone())
+            .patch_status(
+                grpc_route.metadata.name.clone().unwrap().as_str(),
+                &PatchParams::default(),
+                &Patch::Merge(json!({
+                    "status": Some(grpc_route_status)
+                })),
+            )
+            .await?;
+
+        assert!(grpc_route.status.is_some());
+        assert!(!grpc_route.status.clone().unwrap().parents.is_empty());
+
+        let mut ref_grant = crate::apis::standard::referencegrants::ReferenceGrant {
+            metadata: ObjectMeta::default(),
+            spec: ReferenceGrantSpec {
+                from: vec![ReferenceGrantFrom {
+                    group: "gateway.networking.k8s.io".to_string(),
+                    kind: "HTTPRoute".to_string(),
+                    namespace: "default".to_string(),
+                }],
+                to: vec![ReferenceGrantTo {
+                    group: "".to_string(),
+                    kind: "Service".to_string(),
+                    name: Some("backend-service".to_string()),
+                }],
+            },
+        };
+        ref_grant.metadata.name = Some("test-reference-grant".to_string());
+        ref_grant = Api::default_namespaced(client.clone())
+            .create(&PostParams::default(), &ref_grant)
+            .await?;
+
+        assert!(ref_grant.metadata.name.is_some());
+        assert!(ref_grant.metadata.uid.is_some());
+        assert!(!ref_grant.spec.from.is_empty());
+        assert_eq!(ref_grant.spec.from[0].group, "gateway.networking.k8s.io");
+        assert_eq!(ref_grant.spec.from[0].kind, "HTTPRoute");
+        assert_eq!(ref_grant.spec.from[0].namespace, "default");
+        assert!(!ref_grant.spec.to.is_empty());
+        assert_eq!(ref_grant.spec.to[0].group, "");
+        assert_eq!(ref_grant.spec.to[0].kind, "Service");
+        assert_eq!(
+            ref_grant.spec.to[0].name,
+            Some("backend-service".to_string())
+        );
 
         Ok(())
     }
@@ -189,6 +351,36 @@ mod tests {
 
         Api::all(client.clone())
             .create(&PostParams::default(), &gw_crd)
+            .await?;
+
+        let mut http_route_crd = crate::apis::standard::httproutes::HTTPRoute::crd();
+        http_route_crd.metadata.annotations = Some(std::collections::BTreeMap::from([(
+            "api-approved.kubernetes.io".to_string(),
+            "https://github.com/kubernetes/enhancements/pull/1111".to_string(),
+        )]));
+
+        Api::all(client.clone())
+            .create(&PostParams::default(), &http_route_crd)
+            .await?;
+
+        let mut grpc_route_crd = crate::apis::standard::grpcroutes::GRPCRoute::crd();
+        grpc_route_crd.metadata.annotations = Some(std::collections::BTreeMap::from([(
+            "api-approved.kubernetes.io".to_string(),
+            "https://github.com/kubernetes/enhancements/pull/1111".to_string(),
+        )]));
+
+        Api::all(client.clone())
+            .create(&PostParams::default(), &grpc_route_crd)
+            .await?;
+
+        let mut ref_grant_crd = crate::apis::standard::referencegrants::ReferenceGrant::crd();
+        ref_grant_crd.metadata.annotations = Some(std::collections::BTreeMap::from([(
+            "api-approved.kubernetes.io".to_string(),
+            "https://github.com/kubernetes/enhancements/pull/1111".to_string(),
+        )]));
+
+        Api::all(client.clone())
+            .create(&PostParams::default(), &ref_grant_crd)
             .await?;
 
         Ok(())
