@@ -3,7 +3,7 @@ GRPCFilterType
 GatewayAddress
 GatewayInfrastructureParametersReference
 Kind
-ParentReferenceerence
+ParentReference
 FilterExtensionReference
 HTTPHeader
 RequestMirrorReference
