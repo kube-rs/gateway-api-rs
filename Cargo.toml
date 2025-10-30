@@ -6,7 +6,7 @@ resolver = "2"
 authors = ["Shane Utt <shaneutt@linux.com>"]
 edition = "2024"
 license = "MIT"
-version = "0.16.0"
+version = "0.18.0"
 
 [workspace.dependencies]
 anyhow = "1.0.100"
