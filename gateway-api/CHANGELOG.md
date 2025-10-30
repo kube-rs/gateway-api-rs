@@ -4,16 +4,7 @@
 
 Supports: Gateway API `v1.4.0`
 
-### Changes
-
-* Updated to [kube](https://github.com/kube-rs/kube) `v2.0.1`
-* Updated to Gateway API `v1.4.0`
-
-## 0.17.0
-
-Supports: Gateway API `v1.2.1`
-
->[!IMPORTANT] 
+>[!IMPORTANT]
 Breaking change
 
 ### Breaking Changes
@@ -22,10 +13,30 @@ Breaking change
 
 ### Changes
 
-* Updated to Gateway API `v1.2.1`
+* Updated to [kube](https://github.com/kube-rs/kube) `v2.0.1`
+* Updated to Gateway API `v1.4.0`
+
+## 0.19.0
+
+Supports: Gateway API `v1.4.0`
+
+### Changes
+
+* Updated to Gateway API `v1.4.0`
+* Adds support for `BackendTLSPolicy`
+
+## 0.18.0
+
+Supports: Gateway API `v1.2.1`
+
+### Changes
+
+* Updated to [kube](https://github.com/kube-rs/kube) `v2.0.1`
 
 ## 0.16.0
 
-### Changed
+Supports: Gateway API `v1.2.1`
+
+### Changes
 
 Initial release. All types are generated with Kopium.
