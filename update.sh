@@ -162,7 +162,7 @@ cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standa
 ENUMS=(
     GRPCFilterType=RequestHeaderModifier
     RequestOperationType=ReplaceFullPath
-    HTTPFilterType=RequestHeaderModifier    
+    HTTPFilterType=RequestHeaderModifier
 )
 
 ENUMS_WITH_DEFAULTS=$(printf ",%s" "${ENUMS[@]}")
