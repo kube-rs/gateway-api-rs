@@ -100,9 +100,11 @@ done
 
 # Experimental API enums that need a Default trait impl along with their respective default variant.
 ENUMS=(
+    HTTPRouteRulesFiltersExternalAuthProtocol=Http
     HTTPRouteRulesFiltersRequestRedirectPathType=ReplaceFullPath
     HTTPRouteRulesFiltersUrlRewritePathType=ReplaceFullPath
     HTTPRouteRulesFiltersType=RequestHeaderModifier
+    HTTPRouteRulesBackendRefsFiltersExternalAuthProtocol=Http
     HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType=ReplaceFullPath
     HTTPRouteRulesBackendRefsFiltersUrlRewritePathType=ReplaceFullPath
     HTTPRouteRulesBackendRefsFiltersType=RequestHeaderModifier
