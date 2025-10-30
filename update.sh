@@ -2,7 +2,8 @@
 
 # ------------------------------------------------------------------------------
 # This script will automatically generate API updates for new Gateway API
-# releases. Update the $VERSION to the new release version before executing.
+# releases. Update the $GATEWAY_API_VERSION to the new release version before
+# executing.
 #
 # This script requires kopium, which can be installed with:
 #
@@ -13,7 +14,8 @@
 
 set -eou pipefail
 
-VERSION="v1.4.0"
+GATEWAY_API_VERSION="v1.4.0"
+echo "Using Gateway API version ${GATEWAY_API_VERSION}"
 
 STANDARD_APIS=(
     gatewayclasses
@@ -53,7 +55,7 @@ echo "// WARNING! generated file do not edit" > $APIS_DIR/standard/mod.rs
 for API in "${STANDARD_APIS[@]}"
 do
     echo "generating standard api ${API}"
-    curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${VERSION}/config/crd/standard/gateway.networking.k8s.io_${API}.yaml" | kopium --schema=derived --derive=JsonSchema --derive=Default --derive=PartialEq --docs -f - > $APIS_DIR/standard/${API}.rs
+    curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${GATEWAY_API_VERSION}/config/crd/standard/gateway.networking.k8s.io_${API}.yaml" | kopium --schema=derived --derive=JsonSchema --derive=Default --derive=PartialEq --docs -f - > $APIS_DIR/standard/${API}.rs
     sed -i 's/pub use kube::CustomResource;/pub use kube_derive::CustomResource;/g' $APIS_DIR/standard/${API}.rs
     echo "pub mod ${API};" >> $APIS_DIR/standard/mod.rs
 done
@@ -99,7 +101,7 @@ echo "// WARNING! generated file do not edit" > $APIS_DIR/experimental/mod.rs
 for API in "${EXPERIMENTAL_APIS[@]}"
 do
     echo "generating experimental api $API"
-    curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${VERSION}/config/crd/experimental/gateway.networking.k8s.io_${API}.yaml" | kopium --schema=derived --derive=JsonSchema --derive=Default --derive=PartialEq --docs -f - > $APIS_DIR/experimental/${API}.rs
+    curl -sSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${GATEWAY_API_VERSION}/config/crd/experimental/gateway.networking.k8s.io_${API}.yaml" | kopium --schema=derived --derive=JsonSchema --derive=Default --derive=PartialEq --docs -f - > $APIS_DIR/experimental/${API}.rs
     sed -i 's/pub use kube::CustomResource;/pub use kube_derive::CustomResource;/g' $APIS_DIR/experimental/${API}.rs
     echo "pub mod ${API};" >> $APIS_DIR/experimental/mod.rs
 done
