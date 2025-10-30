@@ -33,7 +33,9 @@ mod tests {
             ListenerConditionType,
         },
         apis::standard::gatewayclasses::{GatewayClass, GatewayClassSpec},
-        apis::standard::gateways::{Gateway, GatewaySpec, GatewayStatus, GatewayStatusAddresses, GatewayStatusListeners},
+        apis::standard::gateways::{
+            Gateway, GatewaySpec, GatewayStatus, GatewayStatusAddresses, GatewayStatusListeners,
+        },
     };
 
     // -------------------------------------------------------------------------
