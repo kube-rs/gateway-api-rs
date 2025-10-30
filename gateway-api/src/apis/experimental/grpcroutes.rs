@@ -427,7 +427,7 @@ pub struct GrpcRouteRulesBackendRefsFilters {
         skip_serializing_if = "Option::is_none",
         rename = "requestMirror"
     )]
-    pub request_mirror: Option<GrpcRouteRulesBackendRefsFiltersRequestMirror>,
+    pub request_mirror: Option<RequestMirror>,
     /// ResponseHeaderModifier defines a schema for a filter that modifies response
     /// headers.
     ///
@@ -464,58 +464,6 @@ pub struct GrpcRouteRulesBackendRefsFilters {
     /// that filter MUST receive a HTTP error response.
     #[serde(rename = "type")]
     pub r#type: GRPCFilterType,
-}
-/// RequestMirror defines a schema for a filter that mirrors requests.
-/// Requests are sent to the specified destination, but responses from
-/// that destination are ignored.
-///
-/// This filter can be used multiple times within the same rule. Note that
-/// not all implementations will be able to support mirroring to multiple
-/// backends.
-///
-/// Support: Extended
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GrpcRouteRulesBackendRefsFiltersRequestMirror {
-    /// BackendRef references a resource where mirrored requests are sent.
-    ///
-    /// Mirrored requests must be sent only to a single destination endpoint
-    /// within this BackendRef, irrespective of how many endpoints are present
-    /// within this BackendRef.
-    ///
-    /// If the referent cannot be found, this BackendRef is invalid and must be
-    /// dropped from the Gateway. The controller must ensure the "ResolvedRefs"
-    /// condition on the Route status is set to `status: False` and not configure
-    /// this backend in the underlying implementation.
-    ///
-    /// If there is a cross-namespace reference to an *existing* object
-    /// that is not allowed by a ReferenceGrant, the controller must ensure the
-    /// "ResolvedRefs"  condition on the Route is set to `status: False`,
-    /// with the "RefNotPermitted" reason and not configure this backend in the
-    /// underlying implementation.
-    ///
-    /// In either error case, the Message of the `ResolvedRefs` Condition
-    /// should be used to provide more detail about the problem.
-    ///
-    /// Support: Extended for Kubernetes Service
-    ///
-    /// Support: Implementation-specific for any other resource
-    #[serde(rename = "backendRef")]
-    pub backend_ref: HttpRouteRulesBackendRefsFiltersExternalAuthBackendRef,
-    /// Fraction represents the fraction of requests that should be
-    /// mirrored to BackendRef.
-    ///
-    /// Only one of Fraction or Percent may be specified. If neither field
-    /// is specified, 100% of requests will be mirrored.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub fraction: Option<RequestMirrorFraction>,
-    /// Percent represents the percentage of requests that should be
-    /// mirrored to BackendRef. Its minimum value is 0 (indicating 0% of
-    /// requests) and its maximum value is 100 (indicating 100% of requests).
-    ///
-    /// Only one of Fraction or Percent may be specified. If neither field
-    /// is specified, 100% of requests will be mirrored.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub percent: Option<i32>,
 }
 /// GRPCRouteFilter defines processing steps that must be completed during the
 /// request or response lifecycle. GRPCRouteFilters are meant as an extension
@@ -563,7 +511,7 @@ pub struct GrpcRouteRulesFilters {
         skip_serializing_if = "Option::is_none",
         rename = "requestMirror"
     )]
-    pub request_mirror: Option<GrpcRouteRulesFiltersRequestMirror>,
+    pub request_mirror: Option<RequestMirror>,
     /// ResponseHeaderModifier defines a schema for a filter that modifies response
     /// headers.
     ///
@@ -600,58 +548,6 @@ pub struct GrpcRouteRulesFilters {
     /// that filter MUST receive a HTTP error response.
     #[serde(rename = "type")]
     pub r#type: GRPCFilterType,
-}
-/// RequestMirror defines a schema for a filter that mirrors requests.
-/// Requests are sent to the specified destination, but responses from
-/// that destination are ignored.
-///
-/// This filter can be used multiple times within the same rule. Note that
-/// not all implementations will be able to support mirroring to multiple
-/// backends.
-///
-/// Support: Extended
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GrpcRouteRulesFiltersRequestMirror {
-    /// BackendRef references a resource where mirrored requests are sent.
-    ///
-    /// Mirrored requests must be sent only to a single destination endpoint
-    /// within this BackendRef, irrespective of how many endpoints are present
-    /// within this BackendRef.
-    ///
-    /// If the referent cannot be found, this BackendRef is invalid and must be
-    /// dropped from the Gateway. The controller must ensure the "ResolvedRefs"
-    /// condition on the Route status is set to `status: False` and not configure
-    /// this backend in the underlying implementation.
-    ///
-    /// If there is a cross-namespace reference to an *existing* object
-    /// that is not allowed by a ReferenceGrant, the controller must ensure the
-    /// "ResolvedRefs"  condition on the Route is set to `status: False`,
-    /// with the "RefNotPermitted" reason and not configure this backend in the
-    /// underlying implementation.
-    ///
-    /// In either error case, the Message of the `ResolvedRefs` Condition
-    /// should be used to provide more detail about the problem.
-    ///
-    /// Support: Extended for Kubernetes Service
-    ///
-    /// Support: Implementation-specific for any other resource
-    #[serde(rename = "backendRef")]
-    pub backend_ref: HttpRouteRulesBackendRefsFiltersExternalAuthBackendRef,
-    /// Fraction represents the fraction of requests that should be
-    /// mirrored to BackendRef.
-    ///
-    /// Only one of Fraction or Percent may be specified. If neither field
-    /// is specified, 100% of requests will be mirrored.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub fraction: Option<RequestMirrorFraction>,
-    /// Percent represents the percentage of requests that should be
-    /// mirrored to BackendRef. Its minimum value is 0 (indicating 0% of
-    /// requests) and its maximum value is 100 (indicating 100% of requests).
-    ///
-    /// Only one of Fraction or Percent may be specified. If neither field
-    /// is specified, 100% of requests will be mirrored.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub percent: Option<i32>,
 }
 /// GRPCRouteMatch defines the predicate used to match requests to a given
 /// action. Multiple match types are ANDed together, i.e. the match will

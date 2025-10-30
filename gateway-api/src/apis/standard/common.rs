@@ -51,6 +51,18 @@ pub enum RequestRedirectScheme {
     Https,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct BackendObjectReference {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub namespace: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub port: Option<i32>,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GatewayInfrastructureParametersReference {
     pub group: String,
     pub kind: String,
@@ -60,12 +72,6 @@ pub struct GatewayInfrastructureParametersReference {
 pub struct HTTPHeader {
     pub name: String,
     pub value: String,
-}
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesBackendRefsFiltersRequestMirrorFraction {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub denominator: Option<i32>,
-    pub numerator: i32,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct Kind {
@@ -92,16 +98,10 @@ pub struct ParentReference {
     pub section_name: Option<String>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct RequestMirrorReference {
+pub struct RequestMirrorFraction {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub group: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub kind: Option<String>,
-    pub name: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub namespace: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub port: Option<i32>,
+    pub denominator: Option<i32>,
+    pub numerator: i32,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HeaderMatch {
@@ -128,6 +128,15 @@ pub struct ParentRouteStatus {
     pub parent_ref: ParentReference,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct RequestMirror {
+    #[serde(rename = "backendRef")]
+    pub backend_ref: BackendObjectReference,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fraction: Option<RequestMirrorFraction>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub percent: Option<i32>,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct RequestRedirectPath {
     #[serde(
         default,
@@ -143,6 +152,35 @@ pub struct RequestRedirectPath {
     pub replace_prefix_match: Option<String>,
     #[serde(rename = "type")]
     pub r#type: RequestOperationType,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GrpcRouteFilter {
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "extensionRef"
+    )]
+    pub extension_ref: Option<GatewayInfrastructureParametersReference>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "requestHeaderModifier"
+    )]
+    pub request_header_modifier: Option<HeaderModifier>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "requestMirror"
+    )]
+    pub request_mirror: Option<RequestMirror>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "responseHeaderModifier"
+    )]
+    pub response_header_modifier: Option<HeaderModifier>,
+    #[serde(rename = "type")]
+    pub r#type: GRPCFilterType,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct RequestRedirect {

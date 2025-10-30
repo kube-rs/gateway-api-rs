@@ -81,6 +81,18 @@ pub enum SessionPersistenceType {
     Header,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct BackendObjectReference {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub namespace: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub port: Option<i32>,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct BackendReference {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,
@@ -121,18 +133,6 @@ pub struct GatewayInfrastructureParametersReference {
 pub struct HTTPHeader {
     pub name: String,
     pub value: String,
-}
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteRulesBackendRefsFiltersExternalAuthBackendRef {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub group: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub kind: Option<String>,
-    pub name: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub namespace: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub port: Option<i32>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HttpRouteRulesBackendRefsFiltersExternalAuthForwardBody {
@@ -233,6 +233,15 @@ pub struct ParentRouteStatus {
     pub controller_name: String,
     #[serde(rename = "parentRef")]
     pub parent_ref: ParentReference,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct RequestMirror {
+    #[serde(rename = "backendRef")]
+    pub backend_ref: BackendObjectReference,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fraction: Option<RequestMirrorFraction>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub percent: Option<i32>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct RequestRedirectPath {
