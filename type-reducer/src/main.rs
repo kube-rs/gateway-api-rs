@@ -266,11 +266,11 @@ fn create_visitors<'a>(
 ) -> Result<Vec<(StructEnumVisitor<'a, 'a>, syn::File)>, Box<dyn std::error::Error + Send + Sync>> {
     let mut visitors = vec![];
 
-    for dir_entry in fs::read_dir(apis_dir)? {
-        let Ok(dir_entry) = dir_entry else {
-            continue;
-        };
+    // sort for deterministic processing
+    let mut entries: Vec<_> = fs::read_dir(apis_dir)?.filter_map(|e| e.ok()).collect();
+    entries.sort_by_key(|e| e.path());
 
+    for dir_entry in entries {
         if let Ok(name) = dir_entry.file_name().into_string() {
             if name.ends_with(".rs") && name != "mod.rs" {
                 info!("Adding file {:?}", dir_entry.path());

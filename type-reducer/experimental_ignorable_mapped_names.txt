@@ -1,2 +1,4 @@
 TcpRouteSpec->RouteSpec
 UdpRouteSpec->RouteSpec
+GrpcRouteRulesFilters->GrpcRouteFilter
+GrpcRouteRulesBackendRefsFilters->GrpcRouteFilter
