@@ -15,7 +15,7 @@ use self::prelude::*;
 #[derive(CustomResource, Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 #[kube(
     group = "gateway.networking.k8s.io",
-    version = "v1alpha2",
+    version = "v1alpha3",
     kind = "TLSRoute",
     plural = "tlsroutes"
 )]
@@ -24,11 +24,11 @@ use self::prelude::*;
 #[kube(derive = "Default")]
 #[kube(derive = "PartialEq")]
 pub struct TLSRouteSpec {
-    /// Hostnames defines a set of SNI names that should match against the
+    /// Hostnames defines a set of SNI hostnames that should match against the
     /// SNI attribute of TLS ClientHello message in TLS handshake. This matches
     /// the RFC 1123 definition of a hostname with 2 notable exceptions:
     ///
-    /// 1. IPs are not allowed in SNI names per RFC 6066.
+    /// 1. IPs are not allowed in SNI hostnames per RFC 6066.
     /// 2. A hostname may be prefixed with a wildcard label (`*.`). The wildcard
     ///    label must appear by itself as the first label.
     ///
@@ -37,13 +37,13 @@ pub struct TLSRouteSpec {
     /// attached to the Listener. For example:
     ///
     /// * A Listener with `test.example.com` as the hostname matches TLSRoutes
-    ///   that have either not specified any hostnames, or have specified at
-    ///   least one of `test.example.com` or `*.example.com`.
+    ///   that have specified at least one of `test.example.com` or
+    ///   `*.example.com`.
     /// * A Listener with `*.example.com` as the hostname matches TLSRoutes
-    ///   that have either not specified any hostnames or have specified at least
-    ///   one hostname that matches the Listener hostname. For example,
-    ///   `test.example.com` and `*.example.com` would both match. On the other
-    ///   hand, `example.com` and `test.example.net` would not match.
+    ///   that have specified at least one hostname that matches the Listener
+    ///   hostname. For example, `test.example.com` and `*.example.com` would both
+    ///   match. On the other hand, `example.com` and `test.example.net` would not
+    ///   match.
     ///
     /// If both the Listener and TLSRoute have specified hostnames, any
     /// TLSRoute hostnames that do not match the Listener hostname MUST be
@@ -57,8 +57,7 @@ pub struct TLSRouteSpec {
     /// `False` in the corresponding RouteParentStatus.
     ///
     /// Support: Core
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub hostnames: Option<Vec<String>>,
+    pub hostnames: Vec<String>,
     /// ParentRefs references the resources (usually Gateways) that a Route wants
     /// to be attached to. Note that the referenced parent resource needs to
     /// allow this for the attachment to be complete. For Gateways, that means
@@ -120,22 +119,32 @@ pub struct TLSRouteSpec {
     /// connections originating from the same namespace as the Route, for which
     /// the intended destination of the connections are a Service targeted as a
     /// ParentRef of the Route.
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         rename = "parentRefs"
     )]
     pub parent_refs: Option<Vec<TLSRouteParentRefs>>,
-    /// Rules are a list of TLS matchers and actions.
-    ///
-    ///
+    /// Rules are a list of actions.
     pub rules: Vec<TLSRouteRules>,
+    /// UseDefaultGateways indicates the default Gateway scope to use for this
+    /// Route. If unset (the default) or set to None, the Route will not be
+    /// attached to any default Gateway; if set, it will be attached to any
+    /// default Gateway supporting the named scope, subject to the usual rules
+    /// about which Routes a Gateway is allowed to claim.
+    ///
+    /// Think carefully before using this functionality! The set of default
+    /// Gateways supporting the requested scope can change over time without
+    /// any notice to the Route author, and in many situations it will not be
+    /// appropriate to request a default Gateway for a given Route -- for
+    /// example, a Route with specific security requirements should almost
+    /// certainly not use a default Gateway.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "useDefaultGateways"
+    )]
+    pub use_default_gateways: Option<TLSRouteUseDefaultGateways>,
 }
 
 /// ParentReference identifies an API object (usually a Gateway) that can be considered
@@ -266,7 +275,7 @@ pub struct TLSRouteParentRefs {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct TLSRouteRules {
     /// BackendRefs defines the backend(s) where matching requests should be
-    /// sent. If unspecified or invalid (refers to a non-existent resource or
+    /// sent. If unspecified or invalid (refers to a nonexistent resource or
     /// a Service with no endpoints), the rule performs no forwarding; if no
     /// filters are specified that would result in a response being sent, the
     /// underlying implementation must actively reject request attempts to this
@@ -282,12 +291,8 @@ pub struct TLSRouteRules {
     /// Support: Implementation-specific for any other resource
     ///
     /// Support for weight: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "backendRefs"
-    )]
-    pub backend_refs: Option<Vec<TLSRouteRulesBackendRefs>>,
+    #[serde(rename = "backendRefs")]
+    pub backend_refs: Vec<TLSRouteRulesBackendRefs>,
     /// Name is the name of the route rule. This name MUST be unique within a Route if it is set.
     ///
     /// Support: Extended
@@ -303,7 +308,6 @@ pub struct TLSRouteRules {
 /// namespace's owner to accept the reference. See the ReferenceGrant
 /// documentation for details.
 ///
-/// <gateway:experimental:description>
 ///
 /// When the BackendRef points to a Kubernetes Service, implementations SHOULD
 /// honor the appProtocol field if it is set for the target Service Port.
@@ -319,7 +323,6 @@ pub struct TLSRouteRules {
 /// protocol then the backend is considered invalid. Implementations MUST set the
 /// "ResolvedRefs" condition to "False" with the "UnsupportedProtocol" reason.
 ///
-/// </gateway:experimental:description>
 ///
 /// Note that when the BackendTLSPolicy object is enabled by the implementation,
 /// there are some extra rules about validity to consider here. See the fields
@@ -383,6 +386,13 @@ pub struct TLSRouteRulesBackendRefs {
     pub weight: Option<i32>,
 }
 
+/// Spec defines the desired state of TLSRoute.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
+pub enum TLSRouteUseDefaultGateways {
+    All,
+    None,
+}
+
 /// Status defines the current state of TLSRoute.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct TLSRouteStatus {
@@ -423,11 +433,10 @@ pub struct TLSRouteStatusParents {
     /// There are a number of cases where the "Accepted" condition may not be set
     /// due to lack of controller visibility, that includes when:
     ///
-    /// * The Route refers to a non-existent parent.
+    /// * The Route refers to a nonexistent parent.
     /// * The Route is of a type that the controller does not support.
     /// * The Route is in a namespace the controller does not have access to.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub conditions: Option<Vec<Condition>>,
+    pub conditions: Vec<Condition>,
     /// ControllerName is a domain/path string that indicates the name of the
     /// controller that wrote this status. This corresponds with the
     /// controllerName field on GatewayClass.

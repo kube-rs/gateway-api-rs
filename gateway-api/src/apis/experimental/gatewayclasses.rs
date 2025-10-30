@@ -110,7 +110,6 @@ pub struct GatewayClassStatus {
     pub conditions: Option<Vec<Condition>>,
     /// SupportedFeatures is the set of features the GatewayClass support.
     /// It MUST be sorted in ascending alphabetical order by the Name key.
-    ///
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",

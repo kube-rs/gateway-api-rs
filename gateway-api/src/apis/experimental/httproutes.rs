@@ -140,12 +140,6 @@ pub struct HTTPRouteSpec {
     /// connections originating from the same namespace as the Route, for which
     /// the intended destination of the connections are a Service targeted as a
     /// ParentRef of the Route.
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -153,10 +147,26 @@ pub struct HTTPRouteSpec {
     )]
     pub parent_refs: Option<Vec<HTTPRouteParentRefs>>,
     /// Rules are a list of HTTP matchers, filters and actions.
-    ///
-    ///
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rules: Option<Vec<HTTPRouteRules>>,
+    /// UseDefaultGateways indicates the default Gateway scope to use for this
+    /// Route. If unset (the default) or set to None, the Route will not be
+    /// attached to any default Gateway; if set, it will be attached to any
+    /// default Gateway supporting the named scope, subject to the usual rules
+    /// about which Routes a Gateway is allowed to claim.
+    ///
+    /// Think carefully before using this functionality! The set of default
+    /// Gateways supporting the requested scope can change over time without
+    /// any notice to the Route author, and in many situations it will not be
+    /// appropriate to request a default Gateway for a given Route -- for
+    /// example, a Route with specific security requirements should almost
+    /// certainly not use a default Gateway.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "useDefaultGateways"
+    )]
+    pub use_default_gateways: Option<HTTPRouteUseDefaultGateways>,
 }
 
 /// ParentReference identifies an API object (usually a Gateway) that can be considered
@@ -336,7 +346,7 @@ pub struct HTTPRouteRules {
     /// they are specified.
     ///
     /// Implementations MAY choose to implement this ordering strictly, rejecting
-    /// any combination or order of filters that can not be supported. If implementations
+    /// any combination or order of filters that cannot be supported. If implementations
     /// choose a strict interpretation of filter ordering, they MUST clearly document
     /// that behavior.
     ///
@@ -358,7 +368,7 @@ pub struct HTTPRouteRules {
     ///
     /// All filters are expected to be compatible with each other except for the
     /// URLRewrite and RequestRedirect filters, which may not be combined. If an
-    /// implementation can not support other combinations of filters, they must clearly
+    /// implementation cannot support other combinations of filters, they must clearly
     /// document that limitation. In cases where incompatible or unsupported
     /// filters are specified and cause the `Accepted` condition to be set to status
     /// `False`, implementations may use the `IncompatibleFilters` reason to specify
@@ -428,22 +438,17 @@ pub struct HTTPRouteRules {
     /// Name is the name of the route rule. This name MUST be unique within a Route if it is set.
     ///
     /// Support: Extended
-    ///
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     /// Retry defines the configuration for when to retry an HTTP request.
     ///
     /// Support: Extended
-    ///
-    ///
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub retry: Option<HTTPRouteRulesRetry>,
     /// SessionPersistence defines and configures session persistence
     /// for the route rule.
     ///
     /// Support: Extended
-    ///
-    ///
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -464,7 +469,6 @@ pub struct HTTPRouteRules {
 /// namespace's owner to accept the reference. See the ReferenceGrant
 /// documentation for details.
 ///
-/// <gateway:experimental:description>
 ///
 /// When the BackendRef points to a Kubernetes Service, implementations SHOULD
 /// honor the appProtocol field if it is set for the target Service Port.
@@ -479,8 +483,6 @@ pub struct HTTPRouteRules {
 /// If a Route is not able to send traffic to the backend using the specified
 /// protocol then the backend is considered invalid. Implementations MUST set the
 /// "ResolvedRefs" condition to "False" with the "UnsupportedProtocol" reason.
-///
-/// </gateway:experimental:description>
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesBackendRefs {
     /// Filters defined at this level should be executed if and only if the
@@ -555,6 +557,12 @@ pub struct HTTPRouteRulesBackendRefs {
 /// guarantee/conformance is defined based on the type of the filter.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesBackendRefsFilters {
+    /// CORS defines a schema for a filter that responds to the
+    /// cross-origin request based on HTTP response header.
+    ///
+    /// Support: Extended
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cors: Option<HTTPRouteRulesBackendRefsFiltersCors>,
     /// ExtensionRef is an optional, implementation-specific extension to the
     /// "filter" behavior.  For example, resource "myroutefilter" in group
     /// "networking.example.net"). ExtensionRef MUST NOT be used for core and
@@ -569,6 +577,20 @@ pub struct HTTPRouteRulesBackendRefsFilters {
         rename = "extensionRef"
     )]
     pub extension_ref: Option<HTTPRouteRulesBackendRefsFiltersExtensionRef>,
+    /// ExternalAuth configures settings related to sending request details
+    /// to an external auth service. The external service MUST authenticate
+    /// the request, and MAY authorize the request as well.
+    ///
+    /// If there is any problem communicating with the external service,
+    /// this filter MUST fail closed.
+    ///
+    /// Support: Extended
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "externalAuth"
+    )]
+    pub external_auth: Option<HTTPRouteRulesBackendRefsFiltersExternalAuth>,
     /// RequestHeaderModifier defines a schema for a filter that modifies request
     /// headers.
     ///
@@ -588,8 +610,6 @@ pub struct HTTPRouteRulesBackendRefsFilters {
     /// backends.
     ///
     /// Support: Extended
-    ///
-    ///
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -661,6 +681,225 @@ pub struct HTTPRouteRulesBackendRefsFilters {
     pub url_rewrite: Option<HTTPRouteRulesBackendRefsFiltersUrlRewrite>,
 }
 
+/// CORS defines a schema for a filter that responds to the
+/// cross-origin request based on HTTP response header.
+///
+/// Support: Extended
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HTTPRouteRulesBackendRefsFiltersCors {
+    /// AllowCredentials indicates whether the actual cross-origin request allows
+    /// to include credentials.
+    ///
+    /// When set to true, the gateway will include the `Access-Control-Allow-Credentials`
+    /// response header with value true (case-sensitive).
+    ///
+    /// When set to false or omitted the gateway will omit the header
+    /// `Access-Control-Allow-Credentials` entirely (this is the standard CORS
+    /// behavior).
+    ///
+    /// Support: Extended
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "allowCredentials"
+    )]
+    pub allow_credentials: Option<bool>,
+    /// AllowHeaders indicates which HTTP request headers are supported for
+    /// accessing the requested resource.
+    ///
+    /// Header names are not case sensitive.
+    ///
+    /// Multiple header names in the value of the `Access-Control-Allow-Headers`
+    /// response header are separated by a comma (",").
+    ///
+    /// When the `AllowHeaders` field is configured with one or more headers, the
+    /// gateway must return the `Access-Control-Allow-Headers` response header
+    /// which value is present in the `AllowHeaders` field.
+    ///
+    /// If any header name in the `Access-Control-Request-Headers` request header
+    /// is not included in the list of header names specified by the response
+    /// header `Access-Control-Allow-Headers`, it will present an error on the
+    /// client side.
+    ///
+    /// If any header name in the `Access-Control-Allow-Headers` response header
+    /// does not recognize by the client, it will also occur an error on the
+    /// client side.
+    ///
+    /// A wildcard indicates that the requests with all HTTP headers are allowed.
+    /// The `Access-Control-Allow-Headers` response header can only use `*`
+    /// wildcard as value when the `AllowCredentials` field is false or omitted.
+    ///
+    /// When the `AllowCredentials` field is true and `AllowHeaders` field
+    /// specified with the `*` wildcard, the gateway must specify one or more
+    /// HTTP headers in the value of the `Access-Control-Allow-Headers` response
+    /// header. The value of the header `Access-Control-Allow-Headers` is same as
+    /// the `Access-Control-Request-Headers` header provided by the client. If
+    /// the header `Access-Control-Request-Headers` is not included in the
+    /// request, the gateway will omit the `Access-Control-Allow-Headers`
+    /// response header, instead of specifying the `*` wildcard. A Gateway
+    /// implementation may choose to add implementation-specific default headers.
+    ///
+    /// Support: Extended
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "allowHeaders"
+    )]
+    pub allow_headers: Option<Vec<String>>,
+    /// AllowMethods indicates which HTTP methods are supported for accessing the
+    /// requested resource.
+    ///
+    /// Valid values are any method defined by RFC9110, along with the special
+    /// value `*`, which represents all HTTP methods are allowed.
+    ///
+    /// Method names are case sensitive, so these values are also case-sensitive.
+    /// (See https://www.rfc-editor.org/rfc/rfc2616#section-5.1.1)
+    ///
+    /// Multiple method names in the value of the `Access-Control-Allow-Methods`
+    /// response header are separated by a comma (",").
+    ///
+    /// A CORS-safelisted method is a method that is `GET`, `HEAD`, or `POST`.
+    /// (See https://fetch.spec.whatwg.org/#cors-safelisted-method) The
+    /// CORS-safelisted methods are always allowed, regardless of whether they
+    /// are specified in the `AllowMethods` field.
+    ///
+    /// When the `AllowMethods` field is configured with one or more methods, the
+    /// gateway must return the `Access-Control-Allow-Methods` response header
+    /// which value is present in the `AllowMethods` field.
+    ///
+    /// If the HTTP method of the `Access-Control-Request-Method` request header
+    /// is not included in the list of methods specified by the response header
+    /// `Access-Control-Allow-Methods`, it will present an error on the client
+    /// side.
+    ///
+    /// The `Access-Control-Allow-Methods` response header can only use `*`
+    /// wildcard as value when the `AllowCredentials` field is false or omitted.
+    ///
+    /// When the `AllowCredentials` field is true and `AllowMethods` field
+    /// specified with the `*` wildcard, the gateway must specify one HTTP method
+    /// in the value of the Access-Control-Allow-Methods response header. The
+    /// value of the header `Access-Control-Allow-Methods` is same as the
+    /// `Access-Control-Request-Method` header provided by the client. If the
+    /// header `Access-Control-Request-Method` is not included in the request,
+    /// the gateway will omit the `Access-Control-Allow-Methods` response header,
+    /// instead of specifying the `*` wildcard. A Gateway implementation may
+    /// choose to add implementation-specific default methods.
+    ///
+    /// Support: Extended
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "allowMethods"
+    )]
+    pub allow_methods: Option<Vec<String>>,
+    /// AllowOrigins indicates whether the response can be shared with requested
+    /// resource from the given `Origin`.
+    ///
+    /// The `Origin` consists of a scheme and a host, with an optional port, and
+    /// takes the form `<scheme>://<host>(:<port>)`.
+    ///
+    /// Valid values for scheme are: `http` and `https`.
+    ///
+    /// Valid values for port are any integer between 1 and 65535 (the list of
+    /// available TCP/UDP ports). Note that, if not included, port `80` is
+    /// assumed for `http` scheme origins, and port `443` is assumed for `https`
+    /// origins. This may affect origin matching.
+    ///
+    /// The host part of the origin may contain the wildcard character `*`. These
+    /// wildcard characters behave as follows:
+    ///
+    /// * `*` is a greedy match to the _left_, including any number of
+    ///   DNS labels to the left of its position. This also means that
+    ///   `*` will include any number of period `.` characters to the
+    ///   left of its position.
+    /// * A wildcard by itself matches all hosts.
+    ///
+    /// An origin value that includes _only_ the `*` character indicates requests
+    /// from all `Origin`s are allowed.
+    ///
+    /// When the `AllowOrigins` field is configured with multiple origins, it
+    /// means the server supports clients from multiple origins. If the request
+    /// `Origin` matches the configured allowed origins, the gateway must return
+    /// the given `Origin` and sets value of the header
+    /// `Access-Control-Allow-Origin` same as the `Origin` header provided by the
+    /// client.
+    ///
+    /// The status code of a successful response to a "preflight" request is
+    /// always an OK status (i.e., 204 or 200).
+    ///
+    /// If the request `Origin` does not match the configured allowed origins,
+    /// the gateway returns 204/200 response but doesn't set the relevant
+    /// cross-origin response headers. Alternatively, the gateway responds with
+    /// 403 status to the "preflight" request is denied, coupled with omitting
+    /// the CORS headers. The cross-origin request fails on the client side.
+    /// Therefore, the client doesn't attempt the actual cross-origin request.
+    ///
+    /// The `Access-Control-Allow-Origin` response header can only use `*`
+    /// wildcard as value when the `AllowCredentials` field is false or omitted.
+    ///
+    /// When the `AllowCredentials` field is true and `AllowOrigins` field
+    /// specified with the `*` wildcard, the gateway must return a single origin
+    /// in the value of the `Access-Control-Allow-Origin` response header,
+    /// instead of specifying the `*` wildcard. The value of the header
+    /// `Access-Control-Allow-Origin` is same as the `Origin` header provided by
+    /// the client.
+    ///
+    /// Support: Extended
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "allowOrigins"
+    )]
+    pub allow_origins: Option<Vec<String>>,
+    /// ExposeHeaders indicates which HTTP response headers can be exposed
+    /// to client-side scripts in response to a cross-origin request.
+    ///
+    /// A CORS-safelisted response header is an HTTP header in a CORS response
+    /// that it is considered safe to expose to the client scripts.
+    /// The CORS-safelisted response headers include the following headers:
+    /// `Cache-Control`
+    /// `Content-Language`
+    /// `Content-Length`
+    /// `Content-Type`
+    /// `Expires`
+    /// `Last-Modified`
+    /// `Pragma`
+    /// (See https://fetch.spec.whatwg.org/#cors-safelisted-response-header-name)
+    /// The CORS-safelisted response headers are exposed to client by default.
+    ///
+    /// When an HTTP header name is specified using the `ExposeHeaders` field,
+    /// this additional header will be exposed as part of the response to the
+    /// client.
+    ///
+    /// Header names are not case sensitive.
+    ///
+    /// Multiple header names in the value of the `Access-Control-Expose-Headers`
+    /// response header are separated by a comma (",").
+    ///
+    /// A wildcard indicates that the responses with all HTTP headers are exposed
+    /// to clients. The `Access-Control-Expose-Headers` response header can only
+    /// use `*` wildcard as value when the `AllowCredentials` field is false or omitted.
+    ///
+    /// Support: Extended
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "exposeHeaders"
+    )]
+    pub expose_headers: Option<Vec<String>>,
+    /// MaxAge indicates the duration (in seconds) for the client to cache the
+    /// results of a "preflight" request.
+    ///
+    /// The information provided by the `Access-Control-Allow-Methods` and
+    /// `Access-Control-Allow-Headers` response headers can be cached by the
+    /// client until the time specified by `Access-Control-Max-Age` elapses.
+    ///
+    /// The default value of `Access-Control-Max-Age` response header is 5
+    /// (seconds).
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "maxAge")]
+    pub max_age: Option<i32>,
+}
+
 /// ExtensionRef is an optional, implementation-specific extension to the
 /// "filter" behavior.  For example, resource "myroutefilter" in group
 /// "networking.example.net"). ExtensionRef MUST NOT be used for core and
@@ -678,6 +917,258 @@ pub struct HTTPRouteRulesBackendRefsFiltersExtensionRef {
     pub kind: String,
     /// Name is the name of the referent.
     pub name: String,
+}
+
+/// ExternalAuth configures settings related to sending request details
+/// to an external auth service. The external service MUST authenticate
+/// the request, and MAY authorize the request as well.
+///
+/// If there is any problem communicating with the external service,
+/// this filter MUST fail closed.
+///
+/// Support: Extended
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HTTPRouteRulesBackendRefsFiltersExternalAuth {
+    /// BackendRef is a reference to a backend to send authorization
+    /// requests to.
+    ///
+    /// The backend must speak the selected protocol (GRPC or HTTP) on the
+    /// referenced port.
+    ///
+    /// If the backend service requires TLS, use BackendTLSPolicy to tell the
+    /// implementation to supply the TLS details to be used to connect to that
+    /// backend.
+    #[serde(rename = "backendRef")]
+    pub backend_ref: HTTPRouteRulesBackendRefsFiltersExternalAuthBackendRef,
+    /// ForwardBody controls if requests to the authorization server should include
+    /// the body of the client request; and if so, how big that body is allowed
+    /// to be.
+    ///
+    /// It is expected that implementations will buffer the request body up to
+    /// `forwardBody.maxSize` bytes. Bodies over that size must be rejected with a
+    /// 4xx series error (413 or 403 are common examples), and fail processing
+    /// of the filter.
+    ///
+    /// If unset, or `forwardBody.maxSize` is set to `0`, then the body will not
+    /// be forwarded.
+    ///
+    /// Feature Name: HTTPRouteExternalAuthForwardBody
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "forwardBody"
+    )]
+    pub forward_body: Option<HTTPRouteRulesBackendRefsFiltersExternalAuthForwardBody>,
+    /// GRPCAuthConfig contains configuration for communication with ext_authz
+    /// protocol-speaking backends.
+    ///
+    /// If unset, implementations must assume the default behavior for each
+    /// included field is intended.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grpc: Option<HTTPRouteRulesBackendRefsFiltersExternalAuthGrpc>,
+    /// HTTPAuthConfig contains configuration for communication with HTTP-speaking
+    /// backends.
+    ///
+    /// If unset, implementations must assume the default behavior for each
+    /// included field is intended.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub http: Option<HTTPRouteRulesBackendRefsFiltersExternalAuthHttp>,
+    /// ExternalAuthProtocol describes which protocol to use when communicating with an
+    /// ext_authz authorization server.
+    ///
+    /// When this is set to GRPC, each backend must use the Envoy ext_authz protocol
+    /// on the port specified in `backendRefs`. Requests and responses are defined
+    /// in the protobufs explained at:
+    /// https://www.envoyproxy.io/docs/envoy/latest/api-v3/service/auth/v3/external_auth.proto
+    ///
+    /// When this is set to HTTP, each backend must respond with a `200` status
+    /// code in on a successful authorization. Any other code is considered
+    /// an authorization failure.
+    ///
+    /// Feature Names:
+    /// GRPC Support - HTTPRouteExternalAuthGRPC
+    /// HTTP Support - HTTPRouteExternalAuthHTTP
+    pub protocol: HTTPRouteRulesBackendRefsFiltersExternalAuthProtocol,
+}
+
+/// BackendRef is a reference to a backend to send authorization
+/// requests to.
+///
+/// The backend must speak the selected protocol (GRPC or HTTP) on the
+/// referenced port.
+///
+/// If the backend service requires TLS, use BackendTLSPolicy to tell the
+/// implementation to supply the TLS details to be used to connect to that
+/// backend.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HTTPRouteRulesBackendRefsFiltersExternalAuthBackendRef {
+    /// Group is the group of the referent. For example, "gateway.networking.k8s.io".
+    /// When unspecified or empty string, core API group is inferred.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
+    /// Kind is the Kubernetes resource kind of the referent. For example
+    /// "Service".
+    ///
+    /// Defaults to "Service" when not specified.
+    ///
+    /// ExternalName services can refer to CNAME DNS records that may live
+    /// outside of the cluster and as such are difficult to reason about in
+    /// terms of conformance. They also may not be safe to forward to (see
+    /// CVE-2021-25740 for more information). Implementations SHOULD NOT
+    /// support ExternalName Services.
+    ///
+    /// Support: Core (Services with a type other than ExternalName)
+    ///
+    /// Support: Implementation-specific (Services with type ExternalName)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    /// Name is the name of the referent.
+    pub name: String,
+    /// Namespace is the namespace of the backend. When unspecified, the local
+    /// namespace is inferred.
+    ///
+    /// Note that when a namespace different than the local namespace is specified,
+    /// a ReferenceGrant object is required in the referent namespace to allow that
+    /// namespace's owner to accept the reference. See the ReferenceGrant
+    /// documentation for details.
+    ///
+    /// Support: Core
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub namespace: Option<String>,
+    /// Port specifies the destination port number to use for this resource.
+    /// Port is required when the referent is a Kubernetes Service. In this
+    /// case, the port number is the service port number, not the target port.
+    /// For other resources, destination port might be derived from the referent
+    /// resource or this field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub port: Option<i32>,
+}
+
+/// ForwardBody controls if requests to the authorization server should include
+/// the body of the client request; and if so, how big that body is allowed
+/// to be.
+///
+/// It is expected that implementations will buffer the request body up to
+/// `forwardBody.maxSize` bytes. Bodies over that size must be rejected with a
+/// 4xx series error (413 or 403 are common examples), and fail processing
+/// of the filter.
+///
+/// If unset, or `forwardBody.maxSize` is set to `0`, then the body will not
+/// be forwarded.
+///
+/// Feature Name: HTTPRouteExternalAuthForwardBody
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HTTPRouteRulesBackendRefsFiltersExternalAuthForwardBody {
+    /// MaxSize specifies how large in bytes the largest body that will be buffered
+    /// and sent to the authorization server. If the body size is larger than
+    /// `maxSize`, then the body sent to the authorization server must be
+    /// truncated to `maxSize` bytes.
+    ///
+    /// Experimental note: This behavior needs to be checked against
+    /// various dataplanes; it may need to be changed.
+    /// See https://github.com/kubernetes-sigs/gateway-api/pull/4001#discussion_r2291405746
+    /// for more.
+    ///
+    /// If 0, the body will not be sent to the authorization server.
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "maxSize")]
+    pub max_size: Option<i64>,
+}
+
+/// GRPCAuthConfig contains configuration for communication with ext_authz
+/// protocol-speaking backends.
+///
+/// If unset, implementations must assume the default behavior for each
+/// included field is intended.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HTTPRouteRulesBackendRefsFiltersExternalAuthGrpc {
+    /// AllowedRequestHeaders specifies what headers from the client request
+    /// will be sent to the authorization server.
+    ///
+    /// If this list is empty, then all headers must be sent.
+    ///
+    /// If the list has entries, only those entries must be sent.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "allowedHeaders"
+    )]
+    pub allowed_headers: Option<Vec<String>>,
+}
+
+/// HTTPAuthConfig contains configuration for communication with HTTP-speaking
+/// backends.
+///
+/// If unset, implementations must assume the default behavior for each
+/// included field is intended.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HTTPRouteRulesBackendRefsFiltersExternalAuthHttp {
+    /// AllowedRequestHeaders specifies what additional headers from the client request
+    /// will be sent to the authorization server.
+    ///
+    /// The following headers must always be sent to the authorization server,
+    /// regardless of this setting:
+    ///
+    /// * `Host`
+    /// * `Method`
+    /// * `Path`
+    /// * `Content-Length`
+    /// * `Authorization`
+    ///
+    /// If this list is empty, then only those headers must be sent.
+    ///
+    /// Note that `Content-Length` has a special behavior, in that the length
+    /// sent must be correct for the actual request to the external authorization
+    /// server - that is, it must reflect the actual number of bytes sent in the
+    /// body of the request to the authorization server.
+    ///
+    /// So if the `forwardBody` stanza is unset, or `forwardBody.maxSize` is set
+    /// to `0`, then `Content-Length` must be `0`. If `forwardBody.maxSize` is set
+    /// to anything other than `0`, then the `Content-Length` of the authorization
+    /// request must be set to the actual number of bytes forwarded.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "allowedHeaders"
+    )]
+    pub allowed_headers: Option<Vec<String>>,
+    /// AllowedResponseHeaders specifies what headers from the authorization response
+    /// will be copied into the request to the backend.
+    ///
+    /// If this list is empty, then all headers from the authorization server
+    /// except Authority or Host must be copied.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "allowedResponseHeaders"
+    )]
+    pub allowed_response_headers: Option<Vec<String>>,
+    /// Path sets the prefix that paths from the client request will have added
+    /// when forwarded to the authorization server.
+    ///
+    /// When empty or unspecified, no prefix is added.
+    ///
+    /// Valid values are the same as the "value" regex for path values in the `match`
+    /// stanza, and the validation regex will screen out invalid paths in the same way.
+    /// Even with the validation, implementations MUST sanitize this input before using it
+    /// directly.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+}
+
+/// ExternalAuth configures settings related to sending request details
+/// to an external auth service. The external service MUST authenticate
+/// the request, and MAY authorize the request as well.
+///
+/// If there is any problem communicating with the external service,
+/// this filter MUST fail closed.
+///
+/// Support: Extended
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
+pub enum HTTPRouteRulesBackendRefsFiltersExternalAuthProtocol {
+    #[serde(rename = "HTTP")]
+    Http,
+    #[serde(rename = "GRPC")]
+    Grpc,
 }
 
 /// RequestHeaderModifier defines a schema for a filter that modifies request
@@ -746,7 +1237,7 @@ pub struct HTTPRouteRulesBackendRefsFiltersRequestHeaderModifier {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesBackendRefsFiltersRequestHeaderModifierAdd {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -762,7 +1253,7 @@ pub struct HTTPRouteRulesBackendRefsFiltersRequestHeaderModifierAdd {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesBackendRefsFiltersRequestHeaderModifierSet {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -783,8 +1274,6 @@ pub struct HTTPRouteRulesBackendRefsFiltersRequestHeaderModifierSet {
 /// backends.
 ///
 /// Support: Extended
-///
-///
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesBackendRefsFiltersRequestMirror {
     /// BackendRef references a resource where mirrored requests are sent.
@@ -817,8 +1306,6 @@ pub struct HTTPRouteRulesBackendRefsFiltersRequestMirror {
     ///
     /// Only one of Fraction or Percent may be specified. If neither field
     /// is specified, 100% of requests will be mirrored.
-    ///
-    ///
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fraction: Option<HTTPRouteRulesBackendRefsFiltersRequestMirrorFraction>,
     /// Percent represents the percentage of requests that should be
@@ -827,8 +1314,6 @@ pub struct HTTPRouteRulesBackendRefsFiltersRequestMirror {
     ///
     /// Only one of Fraction or Percent may be specified. If neither field
     /// is specified, 100% of requests will be mirrored.
-    ///
-    ///
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub percent: Option<i32>,
 }
@@ -905,8 +1390,6 @@ pub struct HTTPRouteRulesBackendRefsFiltersRequestMirrorBackendRef {
 ///
 /// Only one of Fraction or Percent may be specified. If neither field
 /// is specified, 100% of requests will be mirrored.
-///
-///
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesBackendRefsFiltersRequestMirrorFraction {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1143,7 +1626,7 @@ pub struct HTTPRouteRulesBackendRefsFiltersResponseHeaderModifier {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesBackendRefsFiltersResponseHeaderModifierAdd {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -1159,7 +1642,7 @@ pub struct HTTPRouteRulesBackendRefsFiltersResponseHeaderModifierAdd {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesBackendRefsFiltersResponseHeaderModifierSet {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -1186,6 +1669,9 @@ pub enum HTTPRouteRulesBackendRefsFiltersType {
     #[serde(rename = "URLRewrite")]
     UrlRewrite,
     ExtensionRef,
+    #[serde(rename = "CORS")]
+    Cors,
+    ExternalAuth,
 }
 
 /// URLRewrite defines a schema for a filter that modifies a request during forwarding.
@@ -1271,6 +1757,12 @@ pub enum HTTPRouteRulesBackendRefsFiltersUrlRewritePathType {
 /// guarantee/conformance is defined based on the type of the filter.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesFilters {
+    /// CORS defines a schema for a filter that responds to the
+    /// cross-origin request based on HTTP response header.
+    ///
+    /// Support: Extended
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cors: Option<HTTPRouteRulesFiltersCors>,
     /// ExtensionRef is an optional, implementation-specific extension to the
     /// "filter" behavior.  For example, resource "myroutefilter" in group
     /// "networking.example.net"). ExtensionRef MUST NOT be used for core and
@@ -1285,6 +1777,20 @@ pub struct HTTPRouteRulesFilters {
         rename = "extensionRef"
     )]
     pub extension_ref: Option<HTTPRouteRulesFiltersExtensionRef>,
+    /// ExternalAuth configures settings related to sending request details
+    /// to an external auth service. The external service MUST authenticate
+    /// the request, and MAY authorize the request as well.
+    ///
+    /// If there is any problem communicating with the external service,
+    /// this filter MUST fail closed.
+    ///
+    /// Support: Extended
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "externalAuth"
+    )]
+    pub external_auth: Option<HTTPRouteRulesFiltersExternalAuth>,
     /// RequestHeaderModifier defines a schema for a filter that modifies request
     /// headers.
     ///
@@ -1304,8 +1810,6 @@ pub struct HTTPRouteRulesFilters {
     /// backends.
     ///
     /// Support: Extended
-    ///
-    ///
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -1377,6 +1881,225 @@ pub struct HTTPRouteRulesFilters {
     pub url_rewrite: Option<HTTPRouteRulesFiltersUrlRewrite>,
 }
 
+/// CORS defines a schema for a filter that responds to the
+/// cross-origin request based on HTTP response header.
+///
+/// Support: Extended
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HTTPRouteRulesFiltersCors {
+    /// AllowCredentials indicates whether the actual cross-origin request allows
+    /// to include credentials.
+    ///
+    /// When set to true, the gateway will include the `Access-Control-Allow-Credentials`
+    /// response header with value true (case-sensitive).
+    ///
+    /// When set to false or omitted the gateway will omit the header
+    /// `Access-Control-Allow-Credentials` entirely (this is the standard CORS
+    /// behavior).
+    ///
+    /// Support: Extended
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "allowCredentials"
+    )]
+    pub allow_credentials: Option<bool>,
+    /// AllowHeaders indicates which HTTP request headers are supported for
+    /// accessing the requested resource.
+    ///
+    /// Header names are not case sensitive.
+    ///
+    /// Multiple header names in the value of the `Access-Control-Allow-Headers`
+    /// response header are separated by a comma (",").
+    ///
+    /// When the `AllowHeaders` field is configured with one or more headers, the
+    /// gateway must return the `Access-Control-Allow-Headers` response header
+    /// which value is present in the `AllowHeaders` field.
+    ///
+    /// If any header name in the `Access-Control-Request-Headers` request header
+    /// is not included in the list of header names specified by the response
+    /// header `Access-Control-Allow-Headers`, it will present an error on the
+    /// client side.
+    ///
+    /// If any header name in the `Access-Control-Allow-Headers` response header
+    /// does not recognize by the client, it will also occur an error on the
+    /// client side.
+    ///
+    /// A wildcard indicates that the requests with all HTTP headers are allowed.
+    /// The `Access-Control-Allow-Headers` response header can only use `*`
+    /// wildcard as value when the `AllowCredentials` field is false or omitted.
+    ///
+    /// When the `AllowCredentials` field is true and `AllowHeaders` field
+    /// specified with the `*` wildcard, the gateway must specify one or more
+    /// HTTP headers in the value of the `Access-Control-Allow-Headers` response
+    /// header. The value of the header `Access-Control-Allow-Headers` is same as
+    /// the `Access-Control-Request-Headers` header provided by the client. If
+    /// the header `Access-Control-Request-Headers` is not included in the
+    /// request, the gateway will omit the `Access-Control-Allow-Headers`
+    /// response header, instead of specifying the `*` wildcard. A Gateway
+    /// implementation may choose to add implementation-specific default headers.
+    ///
+    /// Support: Extended
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "allowHeaders"
+    )]
+    pub allow_headers: Option<Vec<String>>,
+    /// AllowMethods indicates which HTTP methods are supported for accessing the
+    /// requested resource.
+    ///
+    /// Valid values are any method defined by RFC9110, along with the special
+    /// value `*`, which represents all HTTP methods are allowed.
+    ///
+    /// Method names are case sensitive, so these values are also case-sensitive.
+    /// (See https://www.rfc-editor.org/rfc/rfc2616#section-5.1.1)
+    ///
+    /// Multiple method names in the value of the `Access-Control-Allow-Methods`
+    /// response header are separated by a comma (",").
+    ///
+    /// A CORS-safelisted method is a method that is `GET`, `HEAD`, or `POST`.
+    /// (See https://fetch.spec.whatwg.org/#cors-safelisted-method) The
+    /// CORS-safelisted methods are always allowed, regardless of whether they
+    /// are specified in the `AllowMethods` field.
+    ///
+    /// When the `AllowMethods` field is configured with one or more methods, the
+    /// gateway must return the `Access-Control-Allow-Methods` response header
+    /// which value is present in the `AllowMethods` field.
+    ///
+    /// If the HTTP method of the `Access-Control-Request-Method` request header
+    /// is not included in the list of methods specified by the response header
+    /// `Access-Control-Allow-Methods`, it will present an error on the client
+    /// side.
+    ///
+    /// The `Access-Control-Allow-Methods` response header can only use `*`
+    /// wildcard as value when the `AllowCredentials` field is false or omitted.
+    ///
+    /// When the `AllowCredentials` field is true and `AllowMethods` field
+    /// specified with the `*` wildcard, the gateway must specify one HTTP method
+    /// in the value of the Access-Control-Allow-Methods response header. The
+    /// value of the header `Access-Control-Allow-Methods` is same as the
+    /// `Access-Control-Request-Method` header provided by the client. If the
+    /// header `Access-Control-Request-Method` is not included in the request,
+    /// the gateway will omit the `Access-Control-Allow-Methods` response header,
+    /// instead of specifying the `*` wildcard. A Gateway implementation may
+    /// choose to add implementation-specific default methods.
+    ///
+    /// Support: Extended
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "allowMethods"
+    )]
+    pub allow_methods: Option<Vec<String>>,
+    /// AllowOrigins indicates whether the response can be shared with requested
+    /// resource from the given `Origin`.
+    ///
+    /// The `Origin` consists of a scheme and a host, with an optional port, and
+    /// takes the form `<scheme>://<host>(:<port>)`.
+    ///
+    /// Valid values for scheme are: `http` and `https`.
+    ///
+    /// Valid values for port are any integer between 1 and 65535 (the list of
+    /// available TCP/UDP ports). Note that, if not included, port `80` is
+    /// assumed for `http` scheme origins, and port `443` is assumed for `https`
+    /// origins. This may affect origin matching.
+    ///
+    /// The host part of the origin may contain the wildcard character `*`. These
+    /// wildcard characters behave as follows:
+    ///
+    /// * `*` is a greedy match to the _left_, including any number of
+    ///   DNS labels to the left of its position. This also means that
+    ///   `*` will include any number of period `.` characters to the
+    ///   left of its position.
+    /// * A wildcard by itself matches all hosts.
+    ///
+    /// An origin value that includes _only_ the `*` character indicates requests
+    /// from all `Origin`s are allowed.
+    ///
+    /// When the `AllowOrigins` field is configured with multiple origins, it
+    /// means the server supports clients from multiple origins. If the request
+    /// `Origin` matches the configured allowed origins, the gateway must return
+    /// the given `Origin` and sets value of the header
+    /// `Access-Control-Allow-Origin` same as the `Origin` header provided by the
+    /// client.
+    ///
+    /// The status code of a successful response to a "preflight" request is
+    /// always an OK status (i.e., 204 or 200).
+    ///
+    /// If the request `Origin` does not match the configured allowed origins,
+    /// the gateway returns 204/200 response but doesn't set the relevant
+    /// cross-origin response headers. Alternatively, the gateway responds with
+    /// 403 status to the "preflight" request is denied, coupled with omitting
+    /// the CORS headers. The cross-origin request fails on the client side.
+    /// Therefore, the client doesn't attempt the actual cross-origin request.
+    ///
+    /// The `Access-Control-Allow-Origin` response header can only use `*`
+    /// wildcard as value when the `AllowCredentials` field is false or omitted.
+    ///
+    /// When the `AllowCredentials` field is true and `AllowOrigins` field
+    /// specified with the `*` wildcard, the gateway must return a single origin
+    /// in the value of the `Access-Control-Allow-Origin` response header,
+    /// instead of specifying the `*` wildcard. The value of the header
+    /// `Access-Control-Allow-Origin` is same as the `Origin` header provided by
+    /// the client.
+    ///
+    /// Support: Extended
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "allowOrigins"
+    )]
+    pub allow_origins: Option<Vec<String>>,
+    /// ExposeHeaders indicates which HTTP response headers can be exposed
+    /// to client-side scripts in response to a cross-origin request.
+    ///
+    /// A CORS-safelisted response header is an HTTP header in a CORS response
+    /// that it is considered safe to expose to the client scripts.
+    /// The CORS-safelisted response headers include the following headers:
+    /// `Cache-Control`
+    /// `Content-Language`
+    /// `Content-Length`
+    /// `Content-Type`
+    /// `Expires`
+    /// `Last-Modified`
+    /// `Pragma`
+    /// (See https://fetch.spec.whatwg.org/#cors-safelisted-response-header-name)
+    /// The CORS-safelisted response headers are exposed to client by default.
+    ///
+    /// When an HTTP header name is specified using the `ExposeHeaders` field,
+    /// this additional header will be exposed as part of the response to the
+    /// client.
+    ///
+    /// Header names are not case sensitive.
+    ///
+    /// Multiple header names in the value of the `Access-Control-Expose-Headers`
+    /// response header are separated by a comma (",").
+    ///
+    /// A wildcard indicates that the responses with all HTTP headers are exposed
+    /// to clients. The `Access-Control-Expose-Headers` response header can only
+    /// use `*` wildcard as value when the `AllowCredentials` field is false or omitted.
+    ///
+    /// Support: Extended
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "exposeHeaders"
+    )]
+    pub expose_headers: Option<Vec<String>>,
+    /// MaxAge indicates the duration (in seconds) for the client to cache the
+    /// results of a "preflight" request.
+    ///
+    /// The information provided by the `Access-Control-Allow-Methods` and
+    /// `Access-Control-Allow-Headers` response headers can be cached by the
+    /// client until the time specified by `Access-Control-Max-Age` elapses.
+    ///
+    /// The default value of `Access-Control-Max-Age` response header is 5
+    /// (seconds).
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "maxAge")]
+    pub max_age: Option<i32>,
+}
+
 /// ExtensionRef is an optional, implementation-specific extension to the
 /// "filter" behavior.  For example, resource "myroutefilter" in group
 /// "networking.example.net"). ExtensionRef MUST NOT be used for core and
@@ -1394,6 +2117,258 @@ pub struct HTTPRouteRulesFiltersExtensionRef {
     pub kind: String,
     /// Name is the name of the referent.
     pub name: String,
+}
+
+/// ExternalAuth configures settings related to sending request details
+/// to an external auth service. The external service MUST authenticate
+/// the request, and MAY authorize the request as well.
+///
+/// If there is any problem communicating with the external service,
+/// this filter MUST fail closed.
+///
+/// Support: Extended
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HTTPRouteRulesFiltersExternalAuth {
+    /// BackendRef is a reference to a backend to send authorization
+    /// requests to.
+    ///
+    /// The backend must speak the selected protocol (GRPC or HTTP) on the
+    /// referenced port.
+    ///
+    /// If the backend service requires TLS, use BackendTLSPolicy to tell the
+    /// implementation to supply the TLS details to be used to connect to that
+    /// backend.
+    #[serde(rename = "backendRef")]
+    pub backend_ref: HTTPRouteRulesFiltersExternalAuthBackendRef,
+    /// ForwardBody controls if requests to the authorization server should include
+    /// the body of the client request; and if so, how big that body is allowed
+    /// to be.
+    ///
+    /// It is expected that implementations will buffer the request body up to
+    /// `forwardBody.maxSize` bytes. Bodies over that size must be rejected with a
+    /// 4xx series error (413 or 403 are common examples), and fail processing
+    /// of the filter.
+    ///
+    /// If unset, or `forwardBody.maxSize` is set to `0`, then the body will not
+    /// be forwarded.
+    ///
+    /// Feature Name: HTTPRouteExternalAuthForwardBody
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "forwardBody"
+    )]
+    pub forward_body: Option<HTTPRouteRulesFiltersExternalAuthForwardBody>,
+    /// GRPCAuthConfig contains configuration for communication with ext_authz
+    /// protocol-speaking backends.
+    ///
+    /// If unset, implementations must assume the default behavior for each
+    /// included field is intended.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grpc: Option<HTTPRouteRulesFiltersExternalAuthGrpc>,
+    /// HTTPAuthConfig contains configuration for communication with HTTP-speaking
+    /// backends.
+    ///
+    /// If unset, implementations must assume the default behavior for each
+    /// included field is intended.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub http: Option<HTTPRouteRulesFiltersExternalAuthHttp>,
+    /// ExternalAuthProtocol describes which protocol to use when communicating with an
+    /// ext_authz authorization server.
+    ///
+    /// When this is set to GRPC, each backend must use the Envoy ext_authz protocol
+    /// on the port specified in `backendRefs`. Requests and responses are defined
+    /// in the protobufs explained at:
+    /// https://www.envoyproxy.io/docs/envoy/latest/api-v3/service/auth/v3/external_auth.proto
+    ///
+    /// When this is set to HTTP, each backend must respond with a `200` status
+    /// code in on a successful authorization. Any other code is considered
+    /// an authorization failure.
+    ///
+    /// Feature Names:
+    /// GRPC Support - HTTPRouteExternalAuthGRPC
+    /// HTTP Support - HTTPRouteExternalAuthHTTP
+    pub protocol: HTTPRouteRulesFiltersExternalAuthProtocol,
+}
+
+/// BackendRef is a reference to a backend to send authorization
+/// requests to.
+///
+/// The backend must speak the selected protocol (GRPC or HTTP) on the
+/// referenced port.
+///
+/// If the backend service requires TLS, use BackendTLSPolicy to tell the
+/// implementation to supply the TLS details to be used to connect to that
+/// backend.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HTTPRouteRulesFiltersExternalAuthBackendRef {
+    /// Group is the group of the referent. For example, "gateway.networking.k8s.io".
+    /// When unspecified or empty string, core API group is inferred.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
+    /// Kind is the Kubernetes resource kind of the referent. For example
+    /// "Service".
+    ///
+    /// Defaults to "Service" when not specified.
+    ///
+    /// ExternalName services can refer to CNAME DNS records that may live
+    /// outside of the cluster and as such are difficult to reason about in
+    /// terms of conformance. They also may not be safe to forward to (see
+    /// CVE-2021-25740 for more information). Implementations SHOULD NOT
+    /// support ExternalName Services.
+    ///
+    /// Support: Core (Services with a type other than ExternalName)
+    ///
+    /// Support: Implementation-specific (Services with type ExternalName)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    /// Name is the name of the referent.
+    pub name: String,
+    /// Namespace is the namespace of the backend. When unspecified, the local
+    /// namespace is inferred.
+    ///
+    /// Note that when a namespace different than the local namespace is specified,
+    /// a ReferenceGrant object is required in the referent namespace to allow that
+    /// namespace's owner to accept the reference. See the ReferenceGrant
+    /// documentation for details.
+    ///
+    /// Support: Core
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub namespace: Option<String>,
+    /// Port specifies the destination port number to use for this resource.
+    /// Port is required when the referent is a Kubernetes Service. In this
+    /// case, the port number is the service port number, not the target port.
+    /// For other resources, destination port might be derived from the referent
+    /// resource or this field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub port: Option<i32>,
+}
+
+/// ForwardBody controls if requests to the authorization server should include
+/// the body of the client request; and if so, how big that body is allowed
+/// to be.
+///
+/// It is expected that implementations will buffer the request body up to
+/// `forwardBody.maxSize` bytes. Bodies over that size must be rejected with a
+/// 4xx series error (413 or 403 are common examples), and fail processing
+/// of the filter.
+///
+/// If unset, or `forwardBody.maxSize` is set to `0`, then the body will not
+/// be forwarded.
+///
+/// Feature Name: HTTPRouteExternalAuthForwardBody
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HTTPRouteRulesFiltersExternalAuthForwardBody {
+    /// MaxSize specifies how large in bytes the largest body that will be buffered
+    /// and sent to the authorization server. If the body size is larger than
+    /// `maxSize`, then the body sent to the authorization server must be
+    /// truncated to `maxSize` bytes.
+    ///
+    /// Experimental note: This behavior needs to be checked against
+    /// various dataplanes; it may need to be changed.
+    /// See https://github.com/kubernetes-sigs/gateway-api/pull/4001#discussion_r2291405746
+    /// for more.
+    ///
+    /// If 0, the body will not be sent to the authorization server.
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "maxSize")]
+    pub max_size: Option<i64>,
+}
+
+/// GRPCAuthConfig contains configuration for communication with ext_authz
+/// protocol-speaking backends.
+///
+/// If unset, implementations must assume the default behavior for each
+/// included field is intended.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HTTPRouteRulesFiltersExternalAuthGrpc {
+    /// AllowedRequestHeaders specifies what headers from the client request
+    /// will be sent to the authorization server.
+    ///
+    /// If this list is empty, then all headers must be sent.
+    ///
+    /// If the list has entries, only those entries must be sent.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "allowedHeaders"
+    )]
+    pub allowed_headers: Option<Vec<String>>,
+}
+
+/// HTTPAuthConfig contains configuration for communication with HTTP-speaking
+/// backends.
+///
+/// If unset, implementations must assume the default behavior for each
+/// included field is intended.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HTTPRouteRulesFiltersExternalAuthHttp {
+    /// AllowedRequestHeaders specifies what additional headers from the client request
+    /// will be sent to the authorization server.
+    ///
+    /// The following headers must always be sent to the authorization server,
+    /// regardless of this setting:
+    ///
+    /// * `Host`
+    /// * `Method`
+    /// * `Path`
+    /// * `Content-Length`
+    /// * `Authorization`
+    ///
+    /// If this list is empty, then only those headers must be sent.
+    ///
+    /// Note that `Content-Length` has a special behavior, in that the length
+    /// sent must be correct for the actual request to the external authorization
+    /// server - that is, it must reflect the actual number of bytes sent in the
+    /// body of the request to the authorization server.
+    ///
+    /// So if the `forwardBody` stanza is unset, or `forwardBody.maxSize` is set
+    /// to `0`, then `Content-Length` must be `0`. If `forwardBody.maxSize` is set
+    /// to anything other than `0`, then the `Content-Length` of the authorization
+    /// request must be set to the actual number of bytes forwarded.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "allowedHeaders"
+    )]
+    pub allowed_headers: Option<Vec<String>>,
+    /// AllowedResponseHeaders specifies what headers from the authorization response
+    /// will be copied into the request to the backend.
+    ///
+    /// If this list is empty, then all headers from the authorization server
+    /// except Authority or Host must be copied.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "allowedResponseHeaders"
+    )]
+    pub allowed_response_headers: Option<Vec<String>>,
+    /// Path sets the prefix that paths from the client request will have added
+    /// when forwarded to the authorization server.
+    ///
+    /// When empty or unspecified, no prefix is added.
+    ///
+    /// Valid values are the same as the "value" regex for path values in the `match`
+    /// stanza, and the validation regex will screen out invalid paths in the same way.
+    /// Even with the validation, implementations MUST sanitize this input before using it
+    /// directly.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+}
+
+/// ExternalAuth configures settings related to sending request details
+/// to an external auth service. The external service MUST authenticate
+/// the request, and MAY authorize the request as well.
+///
+/// If there is any problem communicating with the external service,
+/// this filter MUST fail closed.
+///
+/// Support: Extended
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
+pub enum HTTPRouteRulesFiltersExternalAuthProtocol {
+    #[serde(rename = "HTTP")]
+    Http,
+    #[serde(rename = "GRPC")]
+    Grpc,
 }
 
 /// RequestHeaderModifier defines a schema for a filter that modifies request
@@ -1462,7 +2437,7 @@ pub struct HTTPRouteRulesFiltersRequestHeaderModifier {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesFiltersRequestHeaderModifierAdd {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -1478,7 +2453,7 @@ pub struct HTTPRouteRulesFiltersRequestHeaderModifierAdd {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesFiltersRequestHeaderModifierSet {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -1499,8 +2474,6 @@ pub struct HTTPRouteRulesFiltersRequestHeaderModifierSet {
 /// backends.
 ///
 /// Support: Extended
-///
-///
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesFiltersRequestMirror {
     /// BackendRef references a resource where mirrored requests are sent.
@@ -1533,8 +2506,6 @@ pub struct HTTPRouteRulesFiltersRequestMirror {
     ///
     /// Only one of Fraction or Percent may be specified. If neither field
     /// is specified, 100% of requests will be mirrored.
-    ///
-    ///
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fraction: Option<HTTPRouteRulesFiltersRequestMirrorFraction>,
     /// Percent represents the percentage of requests that should be
@@ -1543,8 +2514,6 @@ pub struct HTTPRouteRulesFiltersRequestMirror {
     ///
     /// Only one of Fraction or Percent may be specified. If neither field
     /// is specified, 100% of requests will be mirrored.
-    ///
-    ///
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub percent: Option<i32>,
 }
@@ -1621,8 +2590,6 @@ pub struct HTTPRouteRulesFiltersRequestMirrorBackendRef {
 ///
 /// Only one of Fraction or Percent may be specified. If neither field
 /// is specified, 100% of requests will be mirrored.
-///
-///
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesFiltersRequestMirrorFraction {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1859,7 +2826,7 @@ pub struct HTTPRouteRulesFiltersResponseHeaderModifier {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesFiltersResponseHeaderModifierAdd {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -1875,7 +2842,7 @@ pub struct HTTPRouteRulesFiltersResponseHeaderModifierAdd {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesFiltersResponseHeaderModifierSet {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -1902,6 +2869,9 @@ pub enum HTTPRouteRulesFiltersType {
     #[serde(rename = "URLRewrite")]
     UrlRewrite,
     ExtensionRef,
+    #[serde(rename = "CORS")]
+    Cors,
+    ExternalAuth,
 }
 
 /// URLRewrite defines a schema for a filter that modifies a request during forwarding.
@@ -2032,7 +3002,7 @@ pub struct HTTPRouteRulesMatches {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesMatchesHeaders {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, only the first
     /// entry with an equivalent name MUST be considered for a match. Subsequent
@@ -2183,11 +3153,9 @@ pub enum HTTPRouteRulesMatchesQueryParamsType {
 /// Retry defines the configuration for when to retry an HTTP request.
 ///
 /// Support: Extended
-///
-///
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesRetry {
-    /// Attempts specifies the maxmimum number of times an individual request
+    /// Attempts specifies the maximum number of times an individual request
     /// from the gateway to a backend should be retried.
     ///
     /// If the maximum number of retries has been attempted without a successful
@@ -2249,8 +3217,6 @@ pub struct HTTPRouteRulesRetry {
 /// for the route rule.
 ///
 /// Support: Extended
-///
-///
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesSessionPersistence {
     /// AbsoluteTimeout defines the absolute timeout of the persistent
@@ -2328,6 +3294,8 @@ pub struct HTTPRouteRulesSessionPersistenceCookieConfig {
     /// absolute lifetime of the cookie tracked by the gateway and
     /// is optional.
     ///
+    /// Defaults to "Session".
+    ///
     /// Support: Core for "Session" type
     ///
     /// Support: Extended for "Permanent" type
@@ -2353,8 +3321,6 @@ pub enum HTTPRouteRulesSessionPersistenceCookieConfigLifetimeType {
 /// for the route rule.
 ///
 /// Support: Extended
-///
-///
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
 pub enum HTTPRouteRulesSessionPersistenceType {
     Cookie,
@@ -2417,6 +3383,13 @@ pub struct HTTPRouteRulesTimeouts {
     pub request: Option<String>,
 }
 
+/// Spec defines the desired state of HTTPRoute.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
+pub enum HTTPRouteUseDefaultGateways {
+    All,
+    None,
+}
+
 /// Status defines the current state of HTTPRoute.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteStatus {
@@ -2457,11 +3430,10 @@ pub struct HTTPRouteStatusParents {
     /// There are a number of cases where the "Accepted" condition may not be set
     /// due to lack of controller visibility, that includes when:
     ///
-    /// * The Route refers to a non-existent parent.
+    /// * The Route refers to a nonexistent parent.
     /// * The Route is of a type that the controller does not support.
     /// * The Route is in a namespace the controller does not have access to.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub conditions: Option<Vec<Condition>>,
+    pub conditions: Vec<Condition>,
     /// ControllerName is a domain/path string that indicates the name of the
     /// controller that wrote this status. This corresponds with the
     /// controllerName field on GatewayClass.

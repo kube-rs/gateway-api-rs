@@ -137,12 +137,6 @@ pub struct GRPCRouteSpec {
     /// connections originating from the same namespace as the Route, for which
     /// the intended destination of the connections are a Service targeted as a
     /// ParentRef of the Route.
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -150,10 +144,26 @@ pub struct GRPCRouteSpec {
     )]
     pub parent_refs: Option<Vec<GRPCRouteParentRefs>>,
     /// Rules are a list of GRPC matchers, filters and actions.
-    ///
-    ///
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rules: Option<Vec<GRPCRouteRules>>,
+    /// UseDefaultGateways indicates the default Gateway scope to use for this
+    /// Route. If unset (the default) or set to None, the Route will not be
+    /// attached to any default Gateway; if set, it will be attached to any
+    /// default Gateway supporting the named scope, subject to the usual rules
+    /// about which Routes a Gateway is allowed to claim.
+    ///
+    /// Think carefully before using this functionality! The set of default
+    /// Gateways supporting the requested scope can change over time without
+    /// any notice to the Route author, and in many situations it will not be
+    /// appropriate to request a default Gateway for a given Route -- for
+    /// example, a Route with specific security requirements should almost
+    /// certainly not use a default Gateway.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "useDefaultGateways"
+    )]
+    pub use_default_gateways: Option<GRPCRouteUseDefaultGateways>,
 }
 
 /// ParentReference identifies an API object (usually a Gateway) that can be considered
@@ -336,7 +346,7 @@ pub struct GRPCRouteRules {
     /// Specifying the same filter multiple times is not supported unless explicitly
     /// indicated in the filter.
     ///
-    /// If an implementation can not support a combination of filters, it must clearly
+    /// If an implementation cannot support a combination of filters, it must clearly
     /// document that limitation. In cases where incompatible or unsupported
     /// filters are specified and cause the `Accepted` condition to be set to status
     /// `False`, implementations may use the `IncompatibleFilters` reason to specify
@@ -399,15 +409,12 @@ pub struct GRPCRouteRules {
     /// Name is the name of the route rule. This name MUST be unique within a Route if it is set.
     ///
     /// Support: Extended
-    ///
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     /// SessionPersistence defines and configures session persistence
     /// for the route rule.
     ///
     /// Support: Extended
-    ///
-    ///
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -423,7 +430,6 @@ pub struct GRPCRouteRules {
 /// namespace's owner to accept the reference. See the ReferenceGrant
 /// documentation for details.
 ///
-/// <gateway:experimental:description>
 ///
 /// When the BackendRef points to a Kubernetes Service, implementations SHOULD
 /// honor the appProtocol field if it is set for the target Service Port.
@@ -438,8 +444,6 @@ pub struct GRPCRouteRules {
 /// If a Route is not able to send traffic to the backend using the specified
 /// protocol then the backend is considered invalid. Implementations MUST set the
 /// "ResolvedRefs" condition to "False" with the "UnsupportedProtocol" reason.
-///
-/// </gateway:experimental:description>
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GRPCRouteRulesBackendRefs {
     /// Filters defined at this level MUST be executed if and only if the
@@ -547,8 +551,6 @@ pub struct GRPCRouteRulesBackendRefsFilters {
     /// backends.
     ///
     /// Support: Extended
-    ///
-    ///
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -589,8 +591,6 @@ pub struct GRPCRouteRulesBackendRefsFilters {
     /// If a reference to a custom filter type cannot be resolved, the filter
     /// MUST NOT be skipped. Instead, requests that would have been processed by
     /// that filter MUST receive a HTTP error response.
-    ///
-    ///
     #[serde(rename = "type")]
     pub r#type: GRPCRouteRulesBackendRefsFiltersType,
 }
@@ -680,7 +680,7 @@ pub struct GRPCRouteRulesBackendRefsFiltersRequestHeaderModifier {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -696,7 +696,7 @@ pub struct GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierAdd {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierSet {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -717,8 +717,6 @@ pub struct GRPCRouteRulesBackendRefsFiltersRequestHeaderModifierSet {
 /// backends.
 ///
 /// Support: Extended
-///
-///
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GRPCRouteRulesBackendRefsFiltersRequestMirror {
     /// BackendRef references a resource where mirrored requests are sent.
@@ -751,8 +749,6 @@ pub struct GRPCRouteRulesBackendRefsFiltersRequestMirror {
     ///
     /// Only one of Fraction or Percent may be specified. If neither field
     /// is specified, 100% of requests will be mirrored.
-    ///
-    ///
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fraction: Option<GRPCRouteRulesBackendRefsFiltersRequestMirrorFraction>,
     /// Percent represents the percentage of requests that should be
@@ -761,8 +757,6 @@ pub struct GRPCRouteRulesBackendRefsFiltersRequestMirror {
     ///
     /// Only one of Fraction or Percent may be specified. If neither field
     /// is specified, 100% of requests will be mirrored.
-    ///
-    ///
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub percent: Option<i32>,
 }
@@ -839,8 +833,6 @@ pub struct GRPCRouteRulesBackendRefsFiltersRequestMirrorBackendRef {
 ///
 /// Only one of Fraction or Percent may be specified. If neither field
 /// is specified, 100% of requests will be mirrored.
-///
-///
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GRPCRouteRulesBackendRefsFiltersRequestMirrorFraction {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -914,7 +906,7 @@ pub struct GRPCRouteRulesBackendRefsFiltersResponseHeaderModifier {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GRPCRouteRulesBackendRefsFiltersResponseHeaderModifierAdd {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -930,7 +922,7 @@ pub struct GRPCRouteRulesBackendRefsFiltersResponseHeaderModifierAdd {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GRPCRouteRulesBackendRefsFiltersResponseHeaderModifierSet {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -997,8 +989,6 @@ pub struct GRPCRouteRulesFilters {
     /// backends.
     ///
     /// Support: Extended
-    ///
-    ///
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -1039,8 +1029,6 @@ pub struct GRPCRouteRulesFilters {
     /// If a reference to a custom filter type cannot be resolved, the filter
     /// MUST NOT be skipped. Instead, requests that would have been processed by
     /// that filter MUST receive a HTTP error response.
-    ///
-    ///
     #[serde(rename = "type")]
     pub r#type: GRPCRouteRulesFiltersType,
 }
@@ -1130,7 +1118,7 @@ pub struct GRPCRouteRulesFiltersRequestHeaderModifier {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GRPCRouteRulesFiltersRequestHeaderModifierAdd {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -1146,7 +1134,7 @@ pub struct GRPCRouteRulesFiltersRequestHeaderModifierAdd {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GRPCRouteRulesFiltersRequestHeaderModifierSet {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -1167,8 +1155,6 @@ pub struct GRPCRouteRulesFiltersRequestHeaderModifierSet {
 /// backends.
 ///
 /// Support: Extended
-///
-///
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GRPCRouteRulesFiltersRequestMirror {
     /// BackendRef references a resource where mirrored requests are sent.
@@ -1201,8 +1187,6 @@ pub struct GRPCRouteRulesFiltersRequestMirror {
     ///
     /// Only one of Fraction or Percent may be specified. If neither field
     /// is specified, 100% of requests will be mirrored.
-    ///
-    ///
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fraction: Option<GRPCRouteRulesFiltersRequestMirrorFraction>,
     /// Percent represents the percentage of requests that should be
@@ -1211,8 +1195,6 @@ pub struct GRPCRouteRulesFiltersRequestMirror {
     ///
     /// Only one of Fraction or Percent may be specified. If neither field
     /// is specified, 100% of requests will be mirrored.
-    ///
-    ///
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub percent: Option<i32>,
 }
@@ -1289,8 +1271,6 @@ pub struct GRPCRouteRulesFiltersRequestMirrorBackendRef {
 ///
 /// Only one of Fraction or Percent may be specified. If neither field
 /// is specified, 100% of requests will be mirrored.
-///
-///
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GRPCRouteRulesFiltersRequestMirrorFraction {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1364,7 +1344,7 @@ pub struct GRPCRouteRulesFiltersResponseHeaderModifier {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GRPCRouteRulesFiltersResponseHeaderModifierAdd {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -1380,7 +1360,7 @@ pub struct GRPCRouteRulesFiltersResponseHeaderModifierAdd {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GRPCRouteRulesFiltersResponseHeaderModifierSet {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -1501,8 +1481,6 @@ pub enum GRPCRouteRulesMatchesMethodType {
 /// for the route rule.
 ///
 /// Support: Extended
-///
-///
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GRPCRouteRulesSessionPersistence {
     /// AbsoluteTimeout defines the absolute timeout of the persistent
@@ -1580,6 +1558,8 @@ pub struct GRPCRouteRulesSessionPersistenceCookieConfig {
     /// absolute lifetime of the cookie tracked by the gateway and
     /// is optional.
     ///
+    /// Defaults to "Session".
+    ///
     /// Support: Core for "Session" type
     ///
     /// Support: Extended for "Permanent" type
@@ -1605,12 +1585,17 @@ pub enum GRPCRouteRulesSessionPersistenceCookieConfigLifetimeType {
 /// for the route rule.
 ///
 /// Support: Extended
-///
-///
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
 pub enum GRPCRouteRulesSessionPersistenceType {
     Cookie,
     Header,
+}
+
+/// Spec defines the desired state of GRPCRoute.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
+pub enum GRPCRouteUseDefaultGateways {
+    All,
+    None,
 }
 
 /// Status defines the current state of GRPCRoute.
@@ -1653,11 +1638,10 @@ pub struct GRPCRouteStatusParents {
     /// There are a number of cases where the "Accepted" condition may not be set
     /// due to lack of controller visibility, that includes when:
     ///
-    /// * The Route refers to a non-existent parent.
+    /// * The Route refers to a nonexistent parent.
     /// * The Route is of a type that the controller does not support.
     /// * The Route is in a namespace the controller does not have access to.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub conditions: Option<Vec<Condition>>,
+    pub conditions: Vec<Condition>,
     /// ControllerName is a domain/path string that indicates the name of the
     /// controller that wrote this status. This corresponds with the
     /// controllerName field on GatewayClass.

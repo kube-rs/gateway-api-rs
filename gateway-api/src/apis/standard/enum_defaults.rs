@@ -9,6 +9,14 @@ use super::httproutes::{
 
 use super::grpcroutes::{GRPCRouteRulesBackendRefsFiltersType, GRPCRouteRulesFiltersType};
 
+use super::backendtlspolicies::BackendTLSPolicyValidationSubjectAltNamesType;
+
+impl Default for BackendTLSPolicyValidationSubjectAltNamesType {
+    fn default() -> Self {
+        BackendTLSPolicyValidationSubjectAltNamesType::Hostname
+    }
+}
+
 impl Default for GRPCRouteRulesBackendRefsFiltersType {
     fn default() -> Self {
         GRPCRouteRulesBackendRefsFiltersType::RequestHeaderModifier

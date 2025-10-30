@@ -1,8 +1,9 @@
 // WARNING: generated file - manual changes will be overriden
 
 use super::httproutes::{
+    HTTPRouteRulesBackendRefsFiltersExternalAuthProtocol,
     HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType, HTTPRouteRulesBackendRefsFiltersType,
-    HTTPRouteRulesBackendRefsFiltersUrlRewritePathType,
+    HTTPRouteRulesBackendRefsFiltersUrlRewritePathType, HTTPRouteRulesFiltersExternalAuthProtocol,
     HTTPRouteRulesFiltersRequestRedirectPathType, HTTPRouteRulesFiltersType,
     HTTPRouteRulesFiltersUrlRewritePathType,
 };
@@ -21,6 +22,12 @@ impl Default for GRPCRouteRulesFiltersType {
     }
 }
 
+impl Default for HTTPRouteRulesBackendRefsFiltersExternalAuthProtocol {
+    fn default() -> Self {
+        HTTPRouteRulesBackendRefsFiltersExternalAuthProtocol::Http
+    }
+}
+
 impl Default for HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType {
     fn default() -> Self {
         HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType::ReplaceFullPath
@@ -36,6 +43,12 @@ impl Default for HTTPRouteRulesBackendRefsFiltersType {
 impl Default for HTTPRouteRulesBackendRefsFiltersUrlRewritePathType {
     fn default() -> Self {
         HTTPRouteRulesBackendRefsFiltersUrlRewritePathType::ReplaceFullPath
+    }
+}
+
+impl Default for HTTPRouteRulesFiltersExternalAuthProtocol {
+    fn default() -> Self {
+        HTTPRouteRulesFiltersExternalAuthProtocol::Http
     }
 }
 

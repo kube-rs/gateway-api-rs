@@ -85,12 +85,6 @@ pub struct TCPRouteSpec {
     /// connections originating from the same namespace as the Route, for which
     /// the intended destination of the connections are a Service targeted as a
     /// ParentRef of the Route.
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -98,9 +92,25 @@ pub struct TCPRouteSpec {
     )]
     pub parent_refs: Option<Vec<TCPRouteParentRefs>>,
     /// Rules are a list of TCP matchers and actions.
-    ///
-    ///
     pub rules: Vec<TCPRouteRules>,
+    /// UseDefaultGateways indicates the default Gateway scope to use for this
+    /// Route. If unset (the default) or set to None, the Route will not be
+    /// attached to any default Gateway; if set, it will be attached to any
+    /// default Gateway supporting the named scope, subject to the usual rules
+    /// about which Routes a Gateway is allowed to claim.
+    ///
+    /// Think carefully before using this functionality! The set of default
+    /// Gateways supporting the requested scope can change over time without
+    /// any notice to the Route author, and in many situations it will not be
+    /// appropriate to request a default Gateway for a given Route -- for
+    /// example, a Route with specific security requirements should almost
+    /// certainly not use a default Gateway.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "useDefaultGateways"
+    )]
+    pub use_default_gateways: Option<TCPRouteUseDefaultGateways>,
 }
 
 /// ParentReference identifies an API object (usually a Gateway) that can be considered
@@ -231,7 +241,7 @@ pub struct TCPRouteParentRefs {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct TCPRouteRules {
     /// BackendRefs defines the backend(s) where matching requests should be
-    /// sent. If unspecified or invalid (refers to a non-existent resource or a
+    /// sent. If unspecified or invalid (refers to a nonexistent resource or a
     /// Service with no endpoints), the underlying implementation MUST actively
     /// reject connection attempts to this backend. Connection rejections must
     /// respect weight; if an invalid backend is requested to have 80% of
@@ -244,12 +254,8 @@ pub struct TCPRouteRules {
     /// Support: Implementation-specific for any other resource
     ///
     /// Support for weight: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "backendRefs"
-    )]
-    pub backend_refs: Option<Vec<TCPRouteRulesBackendRefs>>,
+    #[serde(rename = "backendRefs")]
+    pub backend_refs: Vec<TCPRouteRulesBackendRefs>,
     /// Name is the name of the route rule. This name MUST be unique within a Route if it is set.
     ///
     /// Support: Extended
@@ -265,7 +271,6 @@ pub struct TCPRouteRules {
 /// namespace's owner to accept the reference. See the ReferenceGrant
 /// documentation for details.
 ///
-/// <gateway:experimental:description>
 ///
 /// When the BackendRef points to a Kubernetes Service, implementations SHOULD
 /// honor the appProtocol field if it is set for the target Service Port.
@@ -281,7 +286,6 @@ pub struct TCPRouteRules {
 /// protocol then the backend is considered invalid. Implementations MUST set the
 /// "ResolvedRefs" condition to "False" with the "UnsupportedProtocol" reason.
 ///
-/// </gateway:experimental:description>
 ///
 /// Note that when the BackendTLSPolicy object is enabled by the implementation,
 /// there are some extra rules about validity to consider here. See the fields
@@ -345,6 +349,13 @@ pub struct TCPRouteRulesBackendRefs {
     pub weight: Option<i32>,
 }
 
+/// Spec defines the desired state of TCPRoute.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
+pub enum TCPRouteUseDefaultGateways {
+    All,
+    None,
+}
+
 /// Status defines the current state of TCPRoute.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct TCPRouteStatus {
@@ -385,11 +396,10 @@ pub struct TCPRouteStatusParents {
     /// There are a number of cases where the "Accepted" condition may not be set
     /// due to lack of controller visibility, that includes when:
     ///
-    /// * The Route refers to a non-existent parent.
+    /// * The Route refers to a nonexistent parent.
     /// * The Route is of a type that the controller does not support.
     /// * The Route is in a namespace the controller does not have access to.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub conditions: Option<Vec<Condition>>,
+    pub conditions: Vec<Condition>,
     /// ControllerName is a domain/path string that indicates the name of the
     /// controller that wrote this status. This corresponds with the
     /// controllerName field on GatewayClass.

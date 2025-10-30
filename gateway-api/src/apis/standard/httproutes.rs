@@ -129,13 +129,6 @@ pub struct HTTPRouteSpec {
     /// allowed by something in the namespace they are referring to. For example,
     /// Gateway has the AllowedRoutes field, and ReferenceGrant provides a
     /// generic way to enable other kinds of cross-namespace reference.
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -143,8 +136,6 @@ pub struct HTTPRouteSpec {
     )]
     pub parent_refs: Option<Vec<HTTPRouteParentRefs>>,
     /// Rules are a list of HTTP matchers, filters and actions.
-    ///
-    ///
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rules: Option<Vec<HTTPRouteRules>>,
 }
@@ -194,8 +185,6 @@ pub struct HTTPRouteParentRefs {
     /// Gateway has the AllowedRoutes field, and ReferenceGrant provides a
     /// generic way to enable any other kind of cross-namespace reference.
     ///
-    ///
-    ///
     /// Support: Core
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub namespace: Option<String>,
@@ -209,8 +198,6 @@ pub struct HTTPRouteParentRefs {
     /// as opposed to a listener(s) whose port(s) may be changed. When both Port
     /// and SectionName are specified, the name and port of the selected listener
     /// must match both specified values.
-    ///
-    ///
     ///
     /// Implementations MAY choose to support other parent resources.
     /// Implementations supporting other types of parent resources MUST clearly
@@ -312,7 +299,7 @@ pub struct HTTPRouteRules {
     /// they are specified.
     ///
     /// Implementations MAY choose to implement this ordering strictly, rejecting
-    /// any combination or order of filters that can not be supported. If implementations
+    /// any combination or order of filters that cannot be supported. If implementations
     /// choose a strict interpretation of filter ordering, they MUST clearly document
     /// that behavior.
     ///
@@ -334,7 +321,7 @@ pub struct HTTPRouteRules {
     ///
     /// All filters are expected to be compatible with each other except for the
     /// URLRewrite and RequestRedirect filters, which may not be combined. If an
-    /// implementation can not support other combinations of filters, they must clearly
+    /// implementation cannot support other combinations of filters, they must clearly
     /// document that limitation. In cases where incompatible or unsupported
     /// filters are specified and cause the `Accepted` condition to be set to status
     /// `False`, implementations may use the `IncompatibleFilters` reason to specify
@@ -401,6 +388,11 @@ pub struct HTTPRouteRules {
     /// parent a request is coming from, a HTTP 404 status code MUST be returned.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub matches: Option<Vec<HTTPRouteRulesMatches>>,
+    /// Name is the name of the route rule. This name MUST be unique within a Route if it is set.
+    ///
+    /// Support: Extended
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     /// Timeouts defines the timeouts that can be configured for an HTTP request.
     ///
     /// Support: Extended
@@ -414,24 +406,6 @@ pub struct HTTPRouteRules {
 /// ReferenceGrant object is required in the referent namespace to allow that
 /// namespace's owner to accept the reference. See the ReferenceGrant
 /// documentation for details.
-///
-/// <gateway:experimental:description>
-///
-/// When the BackendRef points to a Kubernetes Service, implementations SHOULD
-/// honor the appProtocol field if it is set for the target Service Port.
-///
-/// Implementations supporting appProtocol SHOULD recognize the Kubernetes
-/// Standard Application Protocols defined in KEP-3726.
-///
-/// If a Service appProtocol isn't specified, an implementation MAY infer the
-/// backend protocol through its own means. Implementations MAY infer the
-/// protocol from the Route type referring to the backend Service.
-///
-/// If a Route is not able to send traffic to the backend using the specified
-/// protocol then the backend is considered invalid. Implementations MUST set the
-/// "ResolvedRefs" condition to "False" with the "UnsupportedProtocol" reason.
-///
-/// </gateway:experimental:description>
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesBackendRefs {
     /// Filters defined at this level should be executed if and only if the
@@ -539,8 +513,6 @@ pub struct HTTPRouteRulesBackendRefsFilters {
     /// backends.
     ///
     /// Support: Extended
-    ///
-    ///
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -697,7 +669,7 @@ pub struct HTTPRouteRulesBackendRefsFiltersRequestHeaderModifier {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesBackendRefsFiltersRequestHeaderModifierAdd {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -713,7 +685,7 @@ pub struct HTTPRouteRulesBackendRefsFiltersRequestHeaderModifierAdd {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesBackendRefsFiltersRequestHeaderModifierSet {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -734,8 +706,6 @@ pub struct HTTPRouteRulesBackendRefsFiltersRequestHeaderModifierSet {
 /// backends.
 ///
 /// Support: Extended
-///
-///
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesBackendRefsFiltersRequestMirror {
     /// BackendRef references a resource where mirrored requests are sent.
@@ -763,6 +733,21 @@ pub struct HTTPRouteRulesBackendRefsFiltersRequestMirror {
     /// Support: Implementation-specific for any other resource
     #[serde(rename = "backendRef")]
     pub backend_ref: HTTPRouteRulesBackendRefsFiltersRequestMirrorBackendRef,
+    /// Fraction represents the fraction of requests that should be
+    /// mirrored to BackendRef.
+    ///
+    /// Only one of Fraction or Percent may be specified. If neither field
+    /// is specified, 100% of requests will be mirrored.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fraction: Option<HTTPRouteRulesBackendRefsFiltersRequestMirrorFraction>,
+    /// Percent represents the percentage of requests that should be
+    /// mirrored to BackendRef. Its minimum value is 0 (indicating 0% of
+    /// requests) and its maximum value is 100 (indicating 100% of requests).
+    ///
+    /// Only one of Fraction or Percent may be specified. If neither field
+    /// is specified, 100% of requests will be mirrored.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub percent: Option<i32>,
 }
 
 /// BackendRef references a resource where mirrored requests are sent.
@@ -830,6 +815,18 @@ pub struct HTTPRouteRulesBackendRefsFiltersRequestMirrorBackendRef {
     /// resource or this field.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub port: Option<i32>,
+}
+
+/// Fraction represents the fraction of requests that should be
+/// mirrored to BackendRef.
+///
+/// Only one of Fraction or Percent may be specified. If neither field
+/// is specified, 100% of requests will be mirrored.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HTTPRouteRulesBackendRefsFiltersRequestMirrorFraction {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub denominator: Option<i32>,
+    pub numerator: i32,
 }
 
 /// RequestRedirect defines a schema for a filter that responds to the
@@ -1061,7 +1058,7 @@ pub struct HTTPRouteRulesBackendRefsFiltersResponseHeaderModifier {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesBackendRefsFiltersResponseHeaderModifierAdd {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -1077,7 +1074,7 @@ pub struct HTTPRouteRulesBackendRefsFiltersResponseHeaderModifierAdd {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesBackendRefsFiltersResponseHeaderModifierSet {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -1222,8 +1219,6 @@ pub struct HTTPRouteRulesFilters {
     /// backends.
     ///
     /// Support: Extended
-    ///
-    ///
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -1380,7 +1375,7 @@ pub struct HTTPRouteRulesFiltersRequestHeaderModifier {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesFiltersRequestHeaderModifierAdd {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -1396,7 +1391,7 @@ pub struct HTTPRouteRulesFiltersRequestHeaderModifierAdd {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesFiltersRequestHeaderModifierSet {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -1417,8 +1412,6 @@ pub struct HTTPRouteRulesFiltersRequestHeaderModifierSet {
 /// backends.
 ///
 /// Support: Extended
-///
-///
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesFiltersRequestMirror {
     /// BackendRef references a resource where mirrored requests are sent.
@@ -1446,6 +1439,21 @@ pub struct HTTPRouteRulesFiltersRequestMirror {
     /// Support: Implementation-specific for any other resource
     #[serde(rename = "backendRef")]
     pub backend_ref: HTTPRouteRulesFiltersRequestMirrorBackendRef,
+    /// Fraction represents the fraction of requests that should be
+    /// mirrored to BackendRef.
+    ///
+    /// Only one of Fraction or Percent may be specified. If neither field
+    /// is specified, 100% of requests will be mirrored.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fraction: Option<HTTPRouteRulesFiltersRequestMirrorFraction>,
+    /// Percent represents the percentage of requests that should be
+    /// mirrored to BackendRef. Its minimum value is 0 (indicating 0% of
+    /// requests) and its maximum value is 100 (indicating 100% of requests).
+    ///
+    /// Only one of Fraction or Percent may be specified. If neither field
+    /// is specified, 100% of requests will be mirrored.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub percent: Option<i32>,
 }
 
 /// BackendRef references a resource where mirrored requests are sent.
@@ -1513,6 +1521,18 @@ pub struct HTTPRouteRulesFiltersRequestMirrorBackendRef {
     /// resource or this field.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub port: Option<i32>,
+}
+
+/// Fraction represents the fraction of requests that should be
+/// mirrored to BackendRef.
+///
+/// Only one of Fraction or Percent may be specified. If neither field
+/// is specified, 100% of requests will be mirrored.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HTTPRouteRulesFiltersRequestMirrorFraction {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub denominator: Option<i32>,
+    pub numerator: i32,
 }
 
 /// RequestRedirect defines a schema for a filter that responds to the
@@ -1744,7 +1764,7 @@ pub struct HTTPRouteRulesFiltersResponseHeaderModifier {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesFiltersResponseHeaderModifierAdd {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -1760,7 +1780,7 @@ pub struct HTTPRouteRulesFiltersResponseHeaderModifierAdd {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesFiltersResponseHeaderModifierSet {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, the first entry with
     /// an equivalent name MUST be considered for a match. Subsequent entries
@@ -1917,7 +1937,7 @@ pub struct HTTPRouteRulesMatches {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPRouteRulesMatchesHeaders {
     /// Name is the name of the HTTP Header to be matched. Name matching MUST be
-    /// case insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
+    /// case-insensitive. (See https://tools.ietf.org/html/rfc7230#section-3.2).
     ///
     /// If multiple entries specify equivalent header names, only the first
     /// entry with an equivalent name MUST be considered for a match. Subsequent
@@ -2161,11 +2181,10 @@ pub struct HTTPRouteStatusParents {
     /// There are a number of cases where the "Accepted" condition may not be set
     /// due to lack of controller visibility, that includes when:
     ///
-    /// * The Route refers to a non-existent parent.
+    /// * The Route refers to a nonexistent parent.
     /// * The Route is of a type that the controller does not support.
     /// * The Route is in a namespace the controller does not have access to.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub conditions: Option<Vec<Condition>>,
+    pub conditions: Vec<Condition>,
     /// ControllerName is a domain/path string that indicates the name of the
     /// controller that wrote this status. This corresponds with the
     /// controllerName field on GatewayClass.
@@ -2222,8 +2241,6 @@ pub struct HTTPRouteStatusParentsParentRef {
     /// Gateway has the AllowedRoutes field, and ReferenceGrant provides a
     /// generic way to enable any other kind of cross-namespace reference.
     ///
-    ///
-    ///
     /// Support: Core
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub namespace: Option<String>,
@@ -2237,8 +2254,6 @@ pub struct HTTPRouteStatusParentsParentRef {
     /// as opposed to a listener(s) whose port(s) may be changed. When both Port
     /// and SectionName are specified, the name and port of the selected listener
     /// must match both specified values.
-    ///
-    ///
     ///
     /// Implementations MAY choose to support other parent resources.
     /// Implementations supporting other types of parent resources MUST clearly
