@@ -96,7 +96,7 @@ ENUMS=(
 ENUMS_WITH_DEFAULTS=$(printf ",%s" "${ENUMS[@]}")
 ENUMS_WITH_DEFAULTS=${ENUMS_WITH_DEFAULTS:1}
 
-# The task searches for $GATEWAY_API_ENUMS in the enviornment to get the enum names and their default variants.
+# The task searches for $GATEWAY_API_ENUMS in the environment to get the enum names and their default variants.
 GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults >> $APIS_DIR/standard/enum_defaults.rs
 echo "mod enum_defaults;" >> $APIS_DIR/standard/mod.rs
 
