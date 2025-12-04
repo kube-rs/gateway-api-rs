@@ -1,5 +1,5 @@
 [workspace]
-members = ["gateway-api", "gateway-api/examples", "xtask", "type-reducer"]
+members = ["gateway-api", "gateway-api/examples", "xtask", "type-reducer", "extensions/inference"]
 resolver = "2"
 
 [workspace.package]

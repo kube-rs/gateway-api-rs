@@ -31,17 +31,22 @@ so you can create a [Gateway API Implementation] in Rust. See the
 ## Development
 
 This project uses [Kopium] to automatically generate API bindings from upstream
-Gateway API. Make sure you install `kopium` locally in order to run the
-generator:
+Gateway API and Extensions. Make sure you install `kopium` locally in order to run the generator:
 
 ```console
 $ cargo install kopium --version 0.22.5
 ```
 
-After which you can run the `update.sh` script:
+After which you can run the generator scripts for gateway api or extensions placed under `scripts/generators` folder:
 
+### Gateway API Generator Script
 ```console
-$ ./update.sh
+$ ./scripts/generators/gateway.sh
+```
+
+### Gateway Inference Extension Generator Script
+```console
+$ ./scripts/generators/extensions/inference.sh
 ```
 
 Check for errors and/or a non-zero exit code, but upon success you should see

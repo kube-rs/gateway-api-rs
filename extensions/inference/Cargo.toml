@@ -1,0 +1,52 @@
+[package]
+name = "inference-extension-api"
+description = "Kubernetes Gateway API Inference Extension bindings in Rust"
+categories = ["api-bindings"]
+keywords = ["kubernetes", "inference-extension-api"]
+
+homepage = "https://docs.rs/crate/inference-extension-api/"
+readme = "../README.md"
+repository = "https://github.com/kube-rs/gateway-api-rs/extensions/inference"
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+delegate.workspace = true
+k8s-openapi = { workspace = true, features = ["schemars"] }
+kube = { workspace = true, default-features = false, features = [] }
+kube-core = { workspace = true, features = ["schema"] }
+kube-derive.workspace = true
+once_cell.workspace = true
+regex.workspace = true
+schemars.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+serde_yaml.workspace = true
+
+[dev-dependencies]
+k8s-openapi = { workspace = true, features = ["v1_32", "schemars"] }
+kube = { workspace = true, features = ["client", "rustls-tls", "ring"] }
+
+anyhow.workspace = true
+hyper-util.workspace = true
+tokio.workspace = true
+tower.workspace = true
+uuid.workspace = true
+
+[package.metadata.docs.rs]
+features = ["k8s-openapi/v1_32"]
+
+[features]
+default = ["standard", "experimental"]
+standard = []
+experimental = []
+
+
+[lints.clippy]
+derivable_impls = "allow"
+doc_lazy_continuation = "allow"
+tabs_in_doc_comments = "allow"
+empty_line_after_doc_comments = "allow"
