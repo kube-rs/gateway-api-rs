@@ -16,7 +16,7 @@ mod tests {
     use hyper_util::client::legacy::Client as HTTPClient;
     use hyper_util::rt::TokioExecutor;
     use k8s_openapi::apimachinery::pkg::apis::meta::v1::{Condition, Time};
-    use k8s_openapi::chrono::Utc;
+    use k8s_openapi::jiff::Timestamp;
     use kube::Client as KubeClient;
     use kube::api::{Patch, PatchParams, PostParams};
     use kube::config::{KubeConfigOptions, Kubeconfig};
@@ -147,7 +147,7 @@ mod tests {
                 attached_routes: 0,
                 supported_kinds: vec![],
                 conditions: vec![Condition {
-                    last_transition_time: Time(Utc::now()),
+                    last_transition_time: Time(Timestamp::now()),
                     message: "testing gateway".to_string(),
                     observed_generation: Some(1),
                     reason: ListenerConditionReason::Programmed.to_string(),
@@ -156,7 +156,7 @@ mod tests {
                 }],
             }]),
             conditions: Some(vec![Condition {
-                last_transition_time: Time(Utc::now()),
+                last_transition_time: Time(Timestamp::now()),
                 message: "testing gateway".to_string(),
                 observed_generation: Some(1),
                 reason: GatewayConditionReason::Programmed.to_string(),
@@ -218,7 +218,7 @@ mod tests {
                 },
                 controller_name: "example.com/gateway-controller".to_string(),
                 conditions: vec![Condition {
-                    last_transition_time: Time(Utc::now()),
+                    last_transition_time: Time(Timestamp::now()),
                     message: "testing http route".to_string(),
                     observed_generation: Some(1),
                     reason: RouteConditionReason::Accepted.to_string(),
@@ -279,7 +279,7 @@ mod tests {
                 },
                 controller_name: "example.com/gateway-controller".to_string(),
                 conditions: vec![Condition {
-                    last_transition_time: Time(Utc::now()),
+                    last_transition_time: Time(Timestamp::now()),
                     message: "testing grpc route".to_string(),
                     observed_generation: Some(1),
                     reason: RouteConditionReason::Accepted.to_string(),
