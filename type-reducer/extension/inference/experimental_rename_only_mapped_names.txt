@@ -1,0 +1,5 @@
+### Rename only
+InferencePoolStatusParent->InferencePoolParent
+InferencePoolStatusParentParentRef->ParentRef
+InferencePoolExtensionRef->ExtensionRef
+InferencePoolExtensionRefFailureMode->ExtensionFailureMode

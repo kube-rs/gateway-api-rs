@@ -12,7 +12,8 @@ build:
 
 .PHONY: generate
 generate:
-	./update.sh
+	./scripts/generators/gateway.sh
+	./scripts/generators/extensions/inference.sh
 
 .PHONY: test.all
 test.all: test.unit test.integration

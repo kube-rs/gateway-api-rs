@@ -44,5 +44,5 @@ On subsequent runs, the algorithm will use HTTPHeader as new name for all those 
 ### 3. Re-run the application to produce the code with desired types
 
 
-Steps 1 to 3 should be repeated until no similar types are detected. Check [update.sh](../update.sh) for more details on how to use it.
+Steps 1 to 3 should be repeated until no similar types are detected for Gateway API or extensions. Check [scripts/generators/](../scripts/generators/) directory for more details on how to use respective generator scripts.
 

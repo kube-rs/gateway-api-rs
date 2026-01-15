@@ -7,7 +7,10 @@ fn main() {
 
     match task.as_deref() {
         Some("gen_enum_defaults") => gen_enum_defaults().unwrap(),
-        Some("gen_condition_constants") => gen_condition_constants().unwrap(),
+        Some("gen_condition_constants") => {
+            let extension = env::args().nth(2);
+            gen_condition_constants(extension).unwrap()
+        }
         _ => print_help(),
     }
 }
@@ -24,25 +27,37 @@ gen_constants generates constants used for Conditions
 
 type DynError = Box<dyn std::error::Error>;
 
-fn gen_condition_constants() -> Result<(), DynError> {
-    let gateway_class_condition_types = env::var("GATEWAY_CLASS_CONDITION_CONSTANTS")?;
-    let gateway_class_reason_types = env::var("GATEWAY_CLASS_REASON_CONSTANTS")?;
-    let gateway_condition_types = env::var("GATEWAY_CONDITION_CONSTANTS")?;
-    let gateway_reason_types = env::var("GATEWAY_REASON_CONSTANTS")?;
-    let listener_condition_types = env::var("LISTENER_CONDITION_CONSTANTS")?;
-    let listener_reason_types = env::var("LISTENER_REASON_CONSTANTS")?;
-    let route_condition_types = env::var("ROUTE_CONDITION_CONSTANTS")?;
-    let route_reason_types = env::var("ROUTE_REASON_CONSTANTS")?;
-
+fn gen_condition_constants(extension: Option<String>) -> Result<(), DynError> {
     let mut scope = Scope::new();
-    gen_const_enums(&mut scope, gateway_class_condition_types);
-    gen_const_enums(&mut scope, gateway_class_reason_types);
-    gen_const_enums(&mut scope, gateway_condition_types);
-    gen_const_enums(&mut scope, gateway_reason_types);
-    gen_const_enums(&mut scope, listener_condition_types);
-    gen_const_enums(&mut scope, listener_reason_types);
-    gen_const_enums(&mut scope, route_condition_types);
-    gen_const_enums(&mut scope, route_reason_types);
+    match extension {
+        None => {
+            let gateway_class_condition_types = env::var("GATEWAY_CLASS_CONDITION_CONSTANTS")?;
+            let gateway_class_reason_types = env::var("GATEWAY_CLASS_REASON_CONSTANTS")?;
+            let gateway_condition_types = env::var("GATEWAY_CONDITION_CONSTANTS")?;
+            let gateway_reason_types = env::var("GATEWAY_REASON_CONSTANTS")?;
+            let listener_condition_types = env::var("LISTENER_CONDITION_CONSTANTS")?;
+            let listener_reason_types = env::var("LISTENER_REASON_CONSTANTS")?;
+            let route_condition_types = env::var("ROUTE_CONDITION_CONSTANTS")?;
+            let route_reason_types = env::var("ROUTE_REASON_CONSTANTS")?;
+
+            gen_const_enums(&mut scope, gateway_class_condition_types);
+            gen_const_enums(&mut scope, gateway_class_reason_types);
+            gen_const_enums(&mut scope, gateway_condition_types);
+            gen_const_enums(&mut scope, gateway_reason_types);
+            gen_const_enums(&mut scope, listener_condition_types);
+            gen_const_enums(&mut scope, listener_reason_types);
+            gen_const_enums(&mut scope, route_condition_types);
+            gen_const_enums(&mut scope, route_reason_types);
+        }
+        Some(extension) if extension == "inference" => {
+            let inference_extension_failure_types =
+                env::var("EXT_INFERENCE_FAILURE_MODE_CONSTANTS")?;
+
+            gen_const_enums(&mut scope, inference_extension_failure_types);
+        }
+        Some(extension) => println!("{} is not a supported extension", extension),
+    }
+
     println!("{}", gen_generated_file_warning());
     println!("{}", scope.to_string());
     Ok(())
