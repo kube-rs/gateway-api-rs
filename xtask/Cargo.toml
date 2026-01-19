@@ -8,4 +8,4 @@ license.workspace = true
 version.workspace = true
 
 [dependencies]
-codegen = "0.2.0"
+codegen = "0.3.0"
