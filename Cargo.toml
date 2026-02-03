@@ -11,7 +11,7 @@ version = "0.20.0"
 [workspace.dependencies]
 anyhow = "1.0.100"
 delegate = "0.13.5"
-hyper-util = "0.1.19"
+hyper-util = "0.1.20"
 kube = { version = "3.0.0", default-features = false }
 kube-core = { version = "3.0.0", default-features = false }
 kube-derive = { version = "3.0.0" }
