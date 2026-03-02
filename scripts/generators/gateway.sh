@@ -14,7 +14,7 @@
 
 set -eou pipefail
 
-GATEWAY_API_VERSION="v1.4.0"
+GATEWAY_API_VERSION="v1.5.0"
 REQUIRED_KOPIUM_VERSION="0.22.5"
 KOPIUM_VERSION=$(kopium --version 2>/dev/null | grep -oP 'kopium \K[0-9]+\.[0-9]+\.[0-9]+' || echo "")
 
@@ -43,6 +43,9 @@ STANDARD_APIS=(
     httproutes
     referencegrants
     grpcroutes
+    backendtlspolicies
+    listenersets
+    tlsroutes
 )
 
 EXPERIMENTAL_APIS=(
@@ -54,6 +57,8 @@ EXPERIMENTAL_APIS=(
     tcproutes
     tlsroutes
     udproutes
+    backendtlspolicies
+    listenersets
 )
 
 export APIS_DIR='gateway-api/src/apis'
@@ -90,6 +95,7 @@ ENUMS=(
     HttpRouteRulesBackendRefsFiltersType=RequestHeaderModifier
     GrpcRouteRulesFiltersType=RequestHeaderModifier
     GrpcRouteRulesBackendRefsFiltersType=RequestHeaderModifier
+    BackendTlsPolicyValidationSubjectAltNamesType=Hostname
 )
 
 # Create a comma separated string out of $ENUMS.
@@ -99,6 +105,7 @@ ENUMS_WITH_DEFAULTS=${ENUMS_WITH_DEFAULTS:1}
 # The task searches for $GATEWAY_API_ENUMS in the environment to get the enum names and their default variants.
 GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults >> $APIS_DIR/standard/enum_defaults.rs
 echo "mod enum_defaults;" >> $APIS_DIR/standard/mod.rs
+
 
 GATEWAY_CLASS_CONDITION_CONSTANTS="GatewayClassConditionType=Accepted"
 GATEWAY_CLASS_REASON_CONSTANTS="GatewayClassConditionReason=Accepted,InvalidParameters,Pending,Unsupported,Waiting"
@@ -137,6 +144,9 @@ ENUMS=(
     HttpRouteRulesBackendRefsFiltersExternalAuthProtocol=Http
     GrpcRouteRulesFiltersType=RequestHeaderModifier
     GrpcRouteRulesBackendRefsFiltersType=RequestHeaderModifier
+    BackendTlsPolicyValidationSubjectAltNamesType=Hostname
+    HttpRouteRulesFiltersExternalAuthProtocol=Http
+    
 )
 
 ENUMS_WITH_DEFAULTS=$(printf ",%s" "${ENUMS[@]}")
@@ -185,14 +195,18 @@ ENUMS=(
     GRPCFilterType=RequestHeaderModifier
     RequestOperationType=ReplaceFullPath
     HTTPFilterType=RequestHeaderModifier
+    BackendTlsPolicyValidationSubjectAltNamesType=Hostname
 )
 
 ENUMS_WITH_DEFAULTS=$(printf ",%s" "${ENUMS[@]}")
 ENUMS_WITH_DEFAULTS=${ENUMS_WITH_DEFAULTS:1}
 GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults > $APIS_DIR/standard/enum_defaults.rs
+echo "use crate::backendtlspolicies::BackendTlsPolicyValidationSubjectAltNamesType;" >> $APIS_DIR/standard/enum_defaults.rs
 
-sed -i '/#\[kube(status = "GrpcRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/grpcroutes.rs
-sed -i '/#\[kube(status = "HttpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/httproutes.rs
+# sed -i '/#\[kube(status = "GrpcRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/grpcroutes.rs
+# sed -i '/#\[kube(status = "HttpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/httproutes.rs
+# sed -i '/#\[kube(status = "TlsRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/tlsroutes.rs
+
 
 export RUST_LOG=info
 cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/experimental --out-dir $APIS_DIR/experimental reduce --previous-pass-derived-type-names ./type-reducer/experimental_reduced_types_pass_0.txt --current-pass-substitute-names ./type-reducer/experimental_customized_mapped_names.txt
@@ -219,17 +233,20 @@ ENUMS=(
     RequestOperationType=ReplaceFullPath
     HttpRouteRulesBackendRefsFiltersExternalAuthProtocol=Http
     HTTPFilterType=RequestHeaderModifier
+    BackendTlsPolicyValidationSubjectAltNamesType=Hostname
 )
 
 ENUMS_WITH_DEFAULTS=$(printf ",%s" "${ENUMS[@]}")
 ENUMS_WITH_DEFAULTS=${ENUMS_WITH_DEFAULTS:1}
 GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults > $APIS_DIR/experimental/enum_defaults.rs
 
-sed -i '/#\[kube(status = "GrpcRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/grpcroutes.rs
-sed -i '/#\[kube(status = "HttpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/httproutes.rs
-sed -i '/#\[kube(status = "TlsRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/tlsroutes.rs
-sed -i '/#\[kube(status = "UdpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/udproutes.rs
-sed -i '/#\[kube(status = "TcpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/tcproutes.rs
+echo "use crate::experimental::backendtlspolicies::BackendTlsPolicyValidationSubjectAltNamesType;" >> $APIS_DIR/experimental/enum_defaults.rs
+
+# sed -i '/#\[kube(status = "GrpcRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/grpcroutes.rs
+# sed -i '/#\[kube(status = "HttpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/httproutes.rs
+# sed -i '/#\[kube(status = "TlsRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/tlsroutes.rs
+# sed -i '/#\[kube(status = "UdpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/udproutes.rs
+# sed -i '/#\[kube(status = "TcpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/tcproutes.rs
 
 cargo fmt
 echo "Gateway API Generation complete"

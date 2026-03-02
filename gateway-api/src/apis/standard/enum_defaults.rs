@@ -1,6 +1,12 @@
 use super::common::*;
 // WARNING: generated file - manual changes will be overriden
 
+impl Default for BackendTlsPolicyValidationSubjectAltNamesType {
+    fn default() -> Self {
+        BackendTlsPolicyValidationSubjectAltNamesType::Hostname
+    }
+}
+
 impl Default for GRPCFilterType {
     fn default() -> Self {
         GRPCFilterType::RequestHeaderModifier
@@ -18,3 +24,4 @@ impl Default for RequestOperationType {
         RequestOperationType::ReplaceFullPath
     }
 }
+use crate::backendtlspolicies::BackendTlsPolicyValidationSubjectAltNamesType;

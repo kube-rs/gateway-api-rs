@@ -18,7 +18,7 @@ use self::prelude::*;
     plural = "grpcroutes"
 )]
 #[kube(namespaced)]
-#[kube(status = "RouteStatus")]
+#[kube(status = "GrpcRouteStatus")]
 #[kube(derive = "Default")]
 #[kube(derive = "PartialEq")]
 pub struct GrpcRouteSpec {
@@ -140,7 +140,7 @@ pub struct GrpcRouteSpec {
         skip_serializing_if = "Option::is_none",
         rename = "parentRefs"
     )]
-    pub parent_refs: Option<Vec<ParentReference>>,
+    pub parent_refs: Option<Vec<BackendTlsPolicyStatusAncestorsAncestorRef>>,
     /// Rules are a list of GRPC matchers, filters and actions.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rules: Option<Vec<GrpcRouteRule>>,
@@ -402,7 +402,7 @@ pub struct GrpcRouteRulesBackendRefsFilters {
         skip_serializing_if = "Option::is_none",
         rename = "extensionRef"
     )]
-    pub extension_ref: Option<GatewayInfrastructureParametersReference>,
+    pub extension_ref: Option<BackendTlsPolicyValidationCaCertificateRefs>,
     /// RequestHeaderModifier defines a schema for a filter that modifies request
     /// headers.
     ///
@@ -486,7 +486,7 @@ pub struct GrpcRouteRulesFilters {
         skip_serializing_if = "Option::is_none",
         rename = "extensionRef"
     )]
-    pub extension_ref: Option<GatewayInfrastructureParametersReference>,
+    pub extension_ref: Option<BackendTlsPolicyValidationCaCertificateRefs>,
     /// RequestHeaderModifier defines a schema for a filter that modifies request
     /// headers.
     ///
@@ -561,8 +561,8 @@ pub struct GrpcRouteRulesFilters {
 ///   - method:
 ///     type: Exact
 ///     service: "foo"
-///     headers:
-///   - name: "version"
+///   - headers:
+///     name: "version"
 ///     value "v1"
 ///
 /// ```
@@ -602,4 +602,67 @@ pub struct GRPCMethodMatch {
     /// Support: Implementation-specific (RegularExpression)
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
     pub r#type: Option<HeaderMatchType>,
+}
+/// Status defines the current state of GRPCRoute.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GrpcRouteStatus {
+    /// Parents is a list of parent resources (usually Gateways) that are
+    /// associated with the route, and the status of the route with respect to
+    /// each parent. When this route attaches to a parent, the controller that
+    /// manages the parent must add an entry to this list when the controller
+    /// first sees the route and should update the entry as appropriate when the
+    /// route or gateway is modified.
+    ///
+    /// Note that parent references that cannot be resolved by an implementation
+    /// of this API will not be added to this list. Implementations of this API
+    /// can only populate Route status for the Gateways/parent resources they are
+    /// responsible for.
+    ///
+    /// A maximum of 32 Gateways will be represented in this list. An empty list
+    /// means the route has not been attached to any Gateway.
+    pub parents: Vec<GrpcRouteStatusParents>,
+}
+/// RouteParentStatus describes the status of a route with respect to an
+/// associated Parent.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GrpcRouteStatusParents {
+    /// Conditions describes the status of the route with respect to the Gateway.
+    /// Note that the route's availability is also subject to the Gateway's own
+    /// status conditions and listener status.
+    ///
+    /// If the Route's ParentRef specifies an existing Gateway that supports
+    /// Routes of this kind AND that Gateway's controller has sufficient access,
+    /// then that Gateway's controller MUST set the "Accepted" condition on the
+    /// Route, to indicate whether the route has been accepted or rejected by the
+    /// Gateway, and why.
+    ///
+    /// A Route MUST be considered "Accepted" if at least one of the Route's
+    /// rules is implemented by the Gateway.
+    ///
+    /// There are a number of cases where the "Accepted" condition may not be set
+    /// due to lack of controller visibility, that includes when:
+    ///
+    /// * The Route refers to a nonexistent parent.
+    /// * The Route is of a type that the controller does not support.
+    /// * The Route is in a namespace to which the controller does not have access.
+    pub conditions: Vec<Condition>,
+    /// ControllerName is a domain/path string that indicates the name of the
+    /// controller that wrote this status. This corresponds with the
+    /// controllerName field on GatewayClass.
+    ///
+    /// Example: "example.net/gateway-controller".
+    ///
+    /// The format of this field is DOMAIN "/" PATH, where DOMAIN and PATH are
+    /// valid Kubernetes names
+    /// (<https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names).>
+    ///
+    /// Controllers MUST populate this field when writing status. Controllers should ensure that
+    /// entries to status populated with their ControllerName are cleaned up when they are no
+    /// longer necessary.
+    #[serde(rename = "controllerName")]
+    pub controller_name: String,
+    /// ParentRef corresponds with a ParentRef in the spec that this
+    /// RouteParentStatus struct describes the status of.
+    #[serde(rename = "parentRef")]
+    pub parent_ref: BackendTlsPolicyStatusAncestorsAncestorRef,
 }

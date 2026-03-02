@@ -9,19 +9,27 @@ mod prelude {
     pub use serde::{Deserialize, Serialize};
 }
 use self::prelude::*;
-/// Spec defines the desired state of TCPRoute.
+/// Spec defines the desired state of TLSRoute.
 #[derive(CustomResource, Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 #[kube(
     group = "gateway.networking.k8s.io",
-    version = "v1alpha2",
-    kind = "TCPRoute",
-    plural = "tcproutes"
+    version = "v1",
+    kind = "TLSRoute",
+    plural = "tlsroutes"
 )]
 #[kube(namespaced)]
-#[kube(status = "TcpRouteStatus")]
+#[kube(status = "TlsRouteStatus")]
 #[kube(derive = "Default")]
 #[kube(derive = "PartialEq")]
-pub struct TcpRouteSpec {
+pub struct TlsRouteSpec {
+    /// Hostnames defines a set of SNI hostnames that should match against the
+    /// SNI attribute of TLS ClientHello message in TLS handshake. This matches
+    /// the RFC 1123 definition of a hostname with 2 notable exceptions:
+    ///
+    /// 1. IPs are not allowed in SNI hostnames per RFC 6066.
+    /// 2. A hostname may be prefixed with a wildcard label (`*.`). The wildcard
+    ///    label must appear by itself as the first label.
+    pub hostnames: Vec<String>,
     /// ParentRefs references the resources (usually Gateways) that a Route wants
     /// to be attached to. Note that the referenced parent resource needs to
     /// allow this for the attachment to be complete. For Gateways, that means
@@ -72,47 +80,112 @@ pub struct TcpRouteSpec {
     /// allowed by something in the namespace they are referring to. For example,
     /// Gateway has the AllowedRoutes field, and ReferenceGrant provides a
     /// generic way to enable other kinds of cross-namespace reference.
-    ///
-    ///
-    /// ParentRefs from a Route to a Service in the same namespace are "producer"
-    /// routes, which apply default routing rules to inbound connections from
-    /// any namespace to the Service.
-    ///
-    /// ParentRefs from a Route to a Service in a different namespace are
-    /// "consumer" routes, and these routing rules are only applied to outbound
-    /// connections originating from the same namespace as the Route, for which
-    /// the intended destination of the connections are a Service targeted as a
-    /// ParentRef of the Route.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         rename = "parentRefs"
     )]
     pub parent_refs: Option<Vec<BackendTlsPolicyStatusAncestorsAncestorRef>>,
-    /// Rules are a list of TCP matchers and actions.
-    pub rules: Vec<CommonRouteRule>,
-    /// UseDefaultGateways indicates the default Gateway scope to use for this
-    /// Route. If unset (the default) or set to None, the Route will not be
-    /// attached to any default Gateway; if set, it will be attached to any
-    /// default Gateway supporting the named scope, subject to the usual rules
-    /// about which Routes a Gateway is allowed to claim.
-    ///
-    /// Think carefully before using this functionality! The set of default
-    /// Gateways supporting the requested scope can change over time without
-    /// any notice to the Route author, and in many situations it will not be
-    /// appropriate to request a default Gateway for a given Route -- for
-    /// example, a Route with specific security requirements should almost
-    /// certainly not use a default Gateway.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "useDefaultGateways"
-    )]
-    pub use_default_gateways: Option<GatewayDefaultScope>,
+    /// Rules are a list of actions.
+    pub rules: Vec<TlsRouteRules>,
 }
-/// Status defines the current state of TCPRoute.
+/// TLSRouteRule is the configuration for a given rule.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct TcpRouteStatus {
+pub struct TlsRouteRules {
+    /// BackendRefs defines the backend(s) where matching requests should be
+    /// sent. If unspecified or invalid (refers to a nonexistent resource or
+    /// a Service with no endpoints), the rule performs no forwarding; if no
+    /// filters are specified that would result in a response being sent, the
+    /// underlying implementation must actively reject request attempts to this
+    /// backend, by rejecting the connection. Request rejections must respect
+    /// weight; if an invalid backend is requested to have 80% of requests, then
+    /// 80% of requests must be rejected instead.
+    ///
+    /// Support: Core for Kubernetes Service
+    ///
+    /// Support: Extended for Kubernetes ServiceImport
+    ///
+    /// Support: Implementation-specific for any other resource
+    ///
+    /// Support for weight: Extended
+    #[serde(rename = "backendRefs")]
+    pub backend_refs: Vec<TlsRouteRulesBackendRefs>,
+    /// Name is the name of the route rule. This name MUST be unique within a Route if it is set.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+/// BackendRef defines how a Route should forward a request to a Kubernetes
+/// resource.
+///
+/// Note that when a namespace different than the local namespace is specified, a
+/// ReferenceGrant object is required in the referent namespace to allow that
+/// namespace's owner to accept the reference. See the ReferenceGrant
+/// documentation for details.
+///
+/// Note that when the BackendTLSPolicy object is enabled by the implementation,
+/// there are some extra rules about validity to consider here. See the fields
+/// where this struct is used for more information about the exact behavior.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct TlsRouteRulesBackendRefs {
+    /// Group is the group of the referent. For example, "gateway.networking.k8s.io".
+    /// When unspecified or empty string, core API group is inferred.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
+    /// Kind is the Kubernetes resource kind of the referent. For example
+    /// "Service".
+    ///
+    /// Defaults to "Service" when not specified.
+    ///
+    /// ExternalName services can refer to CNAME DNS records that may live
+    /// outside of the cluster and as such are difficult to reason about in
+    /// terms of conformance. They also may not be safe to forward to (see
+    /// CVE-2021-25740 for more information). Implementations SHOULD NOT
+    /// support ExternalName Services.
+    ///
+    /// Support: Core (Services with a type other than ExternalName)
+    ///
+    /// Support: Implementation-specific (Services with type ExternalName)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    /// Name is the name of the referent.
+    pub name: String,
+    /// Namespace is the namespace of the backend. When unspecified, the local
+    /// namespace is inferred.
+    ///
+    /// Note that when a namespace different than the local namespace is specified,
+    /// a ReferenceGrant object is required in the referent namespace to allow that
+    /// namespace's owner to accept the reference. See the ReferenceGrant
+    /// documentation for details.
+    ///
+    /// Support: Core
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub namespace: Option<String>,
+    /// Port specifies the destination port number to use for this resource.
+    /// Port is required when the referent is a Kubernetes Service. In this
+    /// case, the port number is the service port number, not the target port.
+    /// For other resources, destination port might be derived from the referent
+    /// resource or this field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub port: Option<i32>,
+    /// Weight specifies the proportion of requests forwarded to the referenced
+    /// backend. This is computed as weight/(sum of all weights in this
+    /// BackendRefs list). For non-zero values, there may be some epsilon from
+    /// the exact proportion defined here depending on the precision an
+    /// implementation supports. Weight is not a percentage and the sum of
+    /// weights does not need to equal 100.
+    ///
+    /// If only one backend is specified and it has a weight greater than 0, 100%
+    /// of the traffic is forwarded to that backend. If weight is set to 0, no
+    /// traffic should be forwarded for this entry. If unspecified, weight
+    /// defaults to 1.
+    ///
+    /// Support for this field varies based on the context where used.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub weight: Option<i32>,
+}
+/// Status defines the current state of TLSRoute.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct TlsRouteStatus {
     /// Parents is a list of parent resources (usually Gateways) that are
     /// associated with the route, and the status of the route with respect to
     /// each parent. When this route attaches to a parent, the controller that
@@ -127,12 +200,12 @@ pub struct TcpRouteStatus {
     ///
     /// A maximum of 32 Gateways will be represented in this list. An empty list
     /// means the route has not been attached to any Gateway.
-    pub parents: Vec<TcpRouteStatusParents>,
+    pub parents: Vec<TlsRouteStatusParents>,
 }
 /// RouteParentStatus describes the status of a route with respect to an
 /// associated Parent.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct TcpRouteStatusParents {
+pub struct TlsRouteStatusParents {
     /// Conditions describes the status of the route with respect to the Gateway.
     /// Note that the route's availability is also subject to the Gateway's own
     /// status conditions and listener status.

@@ -86,3 +86,5 @@ HttpRouteRulesBackendRefsFiltersUrlRewrite->HttpRouteUrlRewrite
 HttpRouteRulesFiltersUrlRewrite->HttpRouteUrlRewrite
 GrpcRouteStatus->RouteStatus
 HttpRouteStatus->RouteStatus
+TlsRouteStatus->RouteStatus
+
