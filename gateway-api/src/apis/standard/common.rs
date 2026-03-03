@@ -10,27 +10,17 @@ mod prelude {
 }
 use self::prelude::*;
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum GRPCFilterType {
-    ResponseHeaderModifier,
-    RequestHeaderModifier,
-    RequestMirror,
-    ExtensionRef,
-}
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum GatewayListenersAllowedRoutesNamespacesFrom {
+pub enum AllowedRoutesNamespaces {
     All,
     Selector,
     Same,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum GatewayListenersTlsMode {
-    Terminate,
-    Passthrough,
-}
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum GatewayTlsFrontendDefaultValidationMode {
-    AllowValidOnly,
-    AllowInsecureFallback,
+pub enum GRPCFilterType {
+    ResponseHeaderModifier,
+    RequestHeaderModifier,
+    RequestMirror,
+    ExtensionRef,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
 pub enum HTTPFilterType {
@@ -74,6 +64,16 @@ pub enum RequestRedirectScheme {
     #[serde(rename = "https")]
     Https,
 }
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
+pub enum TlsMode {
+    Terminate,
+    Passthrough,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
+pub enum TlsValidationMode {
+    AllowValidOnly,
+    AllowInsecureFallback,
+}
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct BackendObjectReference {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -87,7 +87,39 @@ pub struct BackendObjectReference {
     pub port: Option<i32>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct BackendTlsPolicyStatusAncestorsAncestorRef {
+pub struct ExtensionParametersReference {
+    pub group: String,
+    pub kind: String,
+    pub name: String,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayParametersRef {
+    pub group: String,
+    pub kind: String,
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub namespace: Option<String>,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HTTPHeader {
+    pub name: String,
+    pub value: String,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct Kind {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
+    pub kind: String,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct MatchExpressions {
+    pub key: String,
+    pub operator: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub values: Option<Vec<String>>,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct ParentReference {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -105,28 +137,7 @@ pub struct BackendTlsPolicyStatusAncestorsAncestorRef {
     pub section_name: Option<String>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct BackendTlsPolicyValidationCaCertificateRefs {
-    pub group: String,
-    pub kind: String,
-    pub name: String,
-}
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GatewayAllowedListenersNamespacesSelectorMatchExpressions {
-    pub key: String,
-    pub operator: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub values: Option<Vec<String>>,
-}
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GatewayClassParametersRef {
-    pub group: String,
-    pub kind: String,
-    pub name: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub namespace: Option<String>,
-}
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GatewayListenersTlsCertificateRefs {
+pub struct Reference {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -136,21 +147,38 @@ pub struct GatewayListenersTlsCertificateRefs {
     pub namespace: Option<String>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HTTPHeader {
-    pub name: String,
-    pub value: String,
-}
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct Kind {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub group: Option<String>,
-    pub kind: String,
-}
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct RequestMirrorFraction {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub denominator: Option<i32>,
     pub numerator: i32,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayAllowedListenersNamespacesSelector {
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "matchExpressions"
+    )]
+    pub match_expressions: Option<Vec<MatchExpressions>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "matchLabels"
+    )]
+    pub match_labels: Option<BTreeMap<String, String>>,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayListenersTls {
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "certificateRefs"
+    )]
+    pub certificate_refs: Option<Vec<Reference>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<TlsMode>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub options: Option<BTreeMap<String, String>>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GatewayStatusListeners {
@@ -164,6 +192,13 @@ pub struct GatewayStatusListeners {
         rename = "supportedKinds"
     )]
     pub supported_kinds: Option<Vec<Kind>>,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayTlsFrontendDefaultValidation {
+    #[serde(rename = "caCertificateRefs")]
+    pub ca_certificate_refs: Vec<GatewayParametersRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<TlsValidationMode>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HeaderMatch {
@@ -180,6 +215,14 @@ pub struct HeaderModifier {
     pub remove: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub set: Option<Vec<HTTPHeader>>,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct ParentRouteStatus {
+    pub conditions: Vec<Condition>,
+    #[serde(rename = "controllerName")]
+    pub controller_name: String,
+    #[serde(rename = "parentRef")]
+    pub parent_ref: ParentReference,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct RequestMirror {
@@ -208,6 +251,35 @@ pub struct RequestRedirectPath {
     pub r#type: RequestOperationType,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GrpcRouteFilter {
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "extensionRef"
+    )]
+    pub extension_ref: Option<ExtensionParametersReference>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "requestHeaderModifier"
+    )]
+    pub request_header_modifier: Option<HeaderModifier>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "requestMirror"
+    )]
+    pub request_mirror: Option<RequestMirror>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "responseHeaderModifier"
+    )]
+    pub response_header_modifier: Option<HeaderModifier>,
+    #[serde(rename = "type")]
+    pub r#type: GRPCFilterType,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct RequestRedirect {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hostname: Option<String>,
@@ -230,4 +302,8 @@ pub struct HttpRouteUrlRewrite {
     pub hostname: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub path: Option<RequestRedirectPath>,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct RouteStatus {
+    pub parents: Vec<ParentRouteStatus>,
 }

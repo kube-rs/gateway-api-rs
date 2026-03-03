@@ -186,6 +186,11 @@ echo " **** PHASE 3 ***** "
 cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/standard reduce --previous-pass-derived-type-names ./type-reducer/standard_reduced_types_pass_2.txt --current-pass-substitute-names ./type-reducer/standard_customized_mapped_names.txt
 mv mapped_names.txt standard_mapped_names_phase_3.txt
 mv mapped_types_to_names.txt standard_mapped_types_to_names_phase_3.txt
+echo " **** PHASE 4 ***** "
+cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/standard reduce --previous-pass-derived-type-names ./type-reducer/standard_reduced_types_pass_3.txt --current-pass-substitute-names ./type-reducer/standard_customized_mapped_names.txt 
+mv mapped_names.txt standard_mapped_names_phase_4.txt
+mv mapped_types_to_names.txt standard_mapped_types_to_names_phase_4.txt
+
 
 echo " **** RENAMING PHASE ***** "
 cargo run --manifest-path type-reducer/Cargo.toml -- --apis-dir $APIS_DIR/standard --out-dir $APIS_DIR/standard rename --rename-only-substitute-names ./type-reducer/standard_rename_only_mapped_names.txt
@@ -203,9 +208,9 @@ ENUMS_WITH_DEFAULTS=${ENUMS_WITH_DEFAULTS:1}
 GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults > $APIS_DIR/standard/enum_defaults.rs
 echo "use crate::backendtlspolicies::BackendTlsPolicyValidationSubjectAltNamesType;" >> $APIS_DIR/standard/enum_defaults.rs
 
-# sed -i '/#\[kube(status = "GrpcRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/grpcroutes.rs
-# sed -i '/#\[kube(status = "HttpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/httproutes.rs
-# sed -i '/#\[kube(status = "TlsRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/tlsroutes.rs
+sed -i '/#\[kube(status = "GrpcRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/grpcroutes.rs
+sed -i '/#\[kube(status = "HttpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/httproutes.rs
+sed -i '/#\[kube(status = "TlsRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/standard/tlsroutes.rs
 
 
 export RUST_LOG=info
@@ -242,11 +247,11 @@ GATEWAY_API_ENUMS=${ENUMS_WITH_DEFAULTS} cargo xtask gen_enum_defaults > $APIS_D
 
 echo "use crate::experimental::backendtlspolicies::BackendTlsPolicyValidationSubjectAltNamesType;" >> $APIS_DIR/experimental/enum_defaults.rs
 
-# sed -i '/#\[kube(status = "GrpcRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/grpcroutes.rs
-# sed -i '/#\[kube(status = "HttpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/httproutes.rs
-# sed -i '/#\[kube(status = "TlsRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/tlsroutes.rs
-# sed -i '/#\[kube(status = "UdpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/udproutes.rs
-# sed -i '/#\[kube(status = "TcpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/tcproutes.rs
+sed -i '/#\[kube(status = "GrpcRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/grpcroutes.rs
+sed -i '/#\[kube(status = "HttpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/httproutes.rs
+sed -i '/#\[kube(status = "TlsRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/tlsroutes.rs
+sed -i '/#\[kube(status = "UdpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/udproutes.rs
+sed -i '/#\[kube(status = "TcpRouteStatus")\]/c\#\[kube(status = "RouteStatus")\]' $APIS_DIR/experimental/tcproutes.rs
 
 cargo fmt
 echo "Gateway API Generation complete"

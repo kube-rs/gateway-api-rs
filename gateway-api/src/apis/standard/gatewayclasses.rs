@@ -57,7 +57,7 @@ pub struct GatewayClassSpec {
         skip_serializing_if = "Option::is_none",
         rename = "parametersRef"
     )]
-    pub parameters_ref: Option<GatewayClassParametersRef>,
+    pub parameters_ref: Option<GatewayParametersRef>,
 }
 /// Status defines the current state of GatewayClass.
 ///

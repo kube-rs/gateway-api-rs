@@ -18,7 +18,7 @@ use self::prelude::*;
     plural = "httproutes"
 )]
 #[kube(namespaced)]
-#[kube(status = "HttpRouteStatus")]
+#[kube(status = "RouteStatus")]
 #[kube(derive = "Default")]
 #[kube(derive = "PartialEq")]
 pub struct HttpRouteSpec {
@@ -143,7 +143,7 @@ pub struct HttpRouteSpec {
         skip_serializing_if = "Option::is_none",
         rename = "parentRefs"
     )]
-    pub parent_refs: Option<Vec<BackendTlsPolicyStatusAncestorsAncestorRef>>,
+    pub parent_refs: Option<Vec<ParentReference>>,
     /// Rules are a list of HTTP matchers, filters and actions.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rules: Option<Vec<HttpRouteRule>>,
@@ -327,7 +327,7 @@ pub struct HttpRouteRule {
         skip_serializing_if = "Option::is_none",
         rename = "sessionPersistence"
     )]
-    pub session_persistence: Option<SessionPersistence>,
+    pub session_persistence: Option<HttpRouteRulesSessionPersistence>,
     /// Timeouts defines the timeouts that can be configured for an HTTP request.
     ///
     /// Support: Extended
@@ -447,7 +447,7 @@ pub struct HttpRouteBackendFilter {
         skip_serializing_if = "Option::is_none",
         rename = "extensionRef"
     )]
-    pub extension_ref: Option<BackendTlsPolicyValidationCaCertificateRefs>,
+    pub extension_ref: Option<ExtensionParametersReference>,
     /// ExternalAuth configures settings related to sending request details
     /// to an external auth service. The external service MUST authenticate
     /// the request, and MAY authorize the request as well.
@@ -889,7 +889,7 @@ pub struct HttpRouteFilter {
         skip_serializing_if = "Option::is_none",
         rename = "extensionRef"
     )]
-    pub extension_ref: Option<BackendTlsPolicyValidationCaCertificateRefs>,
+    pub extension_ref: Option<ExtensionParametersReference>,
     /// ExternalAuth configures settings related to sending request details
     /// to an external auth service. The external service MUST authenticate
     /// the request, and MAY authorize the request as well.
@@ -1474,6 +1474,98 @@ pub struct HttpRouteRulesRetry {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub codes: Option<Vec<i64>>,
 }
+/// SessionPersistence defines and configures session persistence
+/// for the route rule.
+///
+/// Support: Extended
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HttpRouteRulesSessionPersistence {
+    /// AbsoluteTimeout defines the absolute timeout of the persistent
+    /// session. Once the AbsoluteTimeout duration has elapsed, the
+    /// session becomes invalid.
+    ///
+    /// Support: Extended
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "absoluteTimeout"
+    )]
+    pub absolute_timeout: Option<String>,
+    /// CookieConfig provides configuration settings that are specific
+    /// to cookie-based session persistence.
+    ///
+    /// Support: Core
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "cookieConfig"
+    )]
+    pub cookie_config: Option<HttpRouteRulesSessionPersistenceCookieConfig>,
+    /// IdleTimeout defines the idle timeout of the persistent session.
+    /// Once the session has been idle for more than the specified
+    /// IdleTimeout duration, the session becomes invalid.
+    ///
+    /// Support: Extended
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "idleTimeout"
+    )]
+    pub idle_timeout: Option<String>,
+    /// SessionName defines the name of the persistent session token
+    /// which may be reflected in the cookie or the header. Users
+    /// should avoid reusing session names to prevent unintended
+    /// consequences, such as rejection or unpredictable behavior.
+    ///
+    /// Support: Implementation-specific
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "sessionName"
+    )]
+    pub session_name: Option<String>,
+    /// Type defines the type of session persistence such as through
+    /// the use of a header or cookie. Defaults to cookie based session
+    /// persistence.
+    ///
+    /// Support: Core for "Cookie" type
+    ///
+    /// Support: Extended for "Header" type
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
+    pub r#type: Option<GrpcRouteRulesSessionPersistenceType>,
+}
+/// CookieConfig provides configuration settings that are specific
+/// to cookie-based session persistence.
+///
+/// Support: Core
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HttpRouteRulesSessionPersistenceCookieConfig {
+    /// LifetimeType specifies whether the cookie has a permanent or
+    /// session-based lifetime. A permanent cookie persists until its
+    /// specified expiry time, defined by the Expires or Max-Age cookie
+    /// attributes, while a session cookie is deleted when the current
+    /// session ends.
+    ///
+    /// When set to "Permanent", AbsoluteTimeout indicates the
+    /// cookie's lifetime via the Expires or Max-Age cookie attributes
+    /// and is required.
+    ///
+    /// When set to "Session", AbsoluteTimeout indicates the
+    /// absolute lifetime of the cookie tracked by the gateway and
+    /// is optional.
+    ///
+    /// Defaults to "Session".
+    ///
+    /// Support: Core for "Session" type
+    ///
+    /// Support: Extended for "Permanent" type
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "lifetimeType"
+    )]
+    pub lifetime_type: Option<GrpcRouteRulesSessionPersistenceCookieConfigLifetimeType>,
+}
 /// Timeouts defines the timeouts that can be configured for an HTTP request.
 ///
 /// Support: Extended
@@ -1528,67 +1620,4 @@ pub struct HttpRouteTimeout {
     /// Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub request: Option<String>,
-}
-/// Status defines the current state of HTTPRoute.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteStatus {
-    /// Parents is a list of parent resources (usually Gateways) that are
-    /// associated with the route, and the status of the route with respect to
-    /// each parent. When this route attaches to a parent, the controller that
-    /// manages the parent must add an entry to this list when the controller
-    /// first sees the route and should update the entry as appropriate when the
-    /// route or gateway is modified.
-    ///
-    /// Note that parent references that cannot be resolved by an implementation
-    /// of this API will not be added to this list. Implementations of this API
-    /// can only populate Route status for the Gateways/parent resources they are
-    /// responsible for.
-    ///
-    /// A maximum of 32 Gateways will be represented in this list. An empty list
-    /// means the route has not been attached to any Gateway.
-    pub parents: Vec<HttpRouteStatusParents>,
-}
-/// RouteParentStatus describes the status of a route with respect to an
-/// associated Parent.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct HttpRouteStatusParents {
-    /// Conditions describes the status of the route with respect to the Gateway.
-    /// Note that the route's availability is also subject to the Gateway's own
-    /// status conditions and listener status.
-    ///
-    /// If the Route's ParentRef specifies an existing Gateway that supports
-    /// Routes of this kind AND that Gateway's controller has sufficient access,
-    /// then that Gateway's controller MUST set the "Accepted" condition on the
-    /// Route, to indicate whether the route has been accepted or rejected by the
-    /// Gateway, and why.
-    ///
-    /// A Route MUST be considered "Accepted" if at least one of the Route's
-    /// rules is implemented by the Gateway.
-    ///
-    /// There are a number of cases where the "Accepted" condition may not be set
-    /// due to lack of controller visibility, that includes when:
-    ///
-    /// * The Route refers to a nonexistent parent.
-    /// * The Route is of a type that the controller does not support.
-    /// * The Route is in a namespace to which the controller does not have access.
-    pub conditions: Vec<Condition>,
-    /// ControllerName is a domain/path string that indicates the name of the
-    /// controller that wrote this status. This corresponds with the
-    /// controllerName field on GatewayClass.
-    ///
-    /// Example: "example.net/gateway-controller".
-    ///
-    /// The format of this field is DOMAIN "/" PATH, where DOMAIN and PATH are
-    /// valid Kubernetes names
-    /// (<https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names).>
-    ///
-    /// Controllers MUST populate this field when writing status. Controllers should ensure that
-    /// entries to status populated with their ControllerName are cleaned up when they are no
-    /// longer necessary.
-    #[serde(rename = "controllerName")]
-    pub controller_name: String,
-    /// ParentRef corresponds with a ParentRef in the spec that this
-    /// RouteParentStatus struct describes the status of.
-    #[serde(rename = "parentRef")]
-    pub parent_ref: BackendTlsPolicyStatusAncestorsAncestorRef,
 }

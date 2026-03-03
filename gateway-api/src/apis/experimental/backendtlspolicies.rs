@@ -184,7 +184,7 @@ pub struct BackendTlsPolicyValidation {
         skip_serializing_if = "Option::is_none",
         rename = "caCertificateRefs"
     )]
-    pub ca_certificate_refs: Option<Vec<BackendTlsPolicyValidationCaCertificateRefs>>,
+    pub ca_certificate_refs: Option<Vec<ExtensionParametersReference>>,
     /// Hostname is used for two purposes in the connection between Gateways and
     /// backends:
     ///
@@ -333,7 +333,7 @@ pub struct BackendTlsPolicyStatusAncestors {
     /// AncestorRef corresponds with a ParentRef in the spec that this
     /// PolicyAncestorStatus struct describes the status of.
     #[serde(rename = "ancestorRef")]
-    pub ancestor_ref: BackendTlsPolicyStatusAncestorsAncestorRef,
+    pub ancestor_ref: ParentReference,
     /// Conditions describes the status of the Policy with respect to the given Ancestor.
     pub conditions: Vec<Condition>,
     /// ControllerName is a domain/path string that indicates the name of the
