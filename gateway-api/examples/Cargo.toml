@@ -24,7 +24,7 @@ tracing-subscriber.workspace = true
 uuid.workspace = true
 
 [features]
-default = [ "k8s-openapi/v1_32" ]
+default = [ "k8s-openapi/v1_33" ]
 
 [[bin]]
 name = "gep2257"

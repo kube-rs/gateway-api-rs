@@ -27,7 +27,7 @@ serde.workspace = true
 serde_yaml.workspace = true
 
 [dev-dependencies]
-k8s-openapi = { workspace = true, features = ["v1_32", "schemars"] }
+k8s-openapi = { workspace = true, features = ["v1_33", "schemars"] }
 kube = { workspace = true, features = ["client", "rustls-tls", "ring"] }
 
 anyhow.workspace = true
@@ -37,7 +37,7 @@ tower.workspace = true
 uuid.workspace = true
 
 [package.metadata.docs.rs]
-features = ["k8s-openapi/v1_32"]
+features = ["k8s-openapi/v1_33"]
 
 [features]
 default = ["standard", "experimental"]
