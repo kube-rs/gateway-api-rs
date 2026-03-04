@@ -13,7 +13,7 @@
 
 set -eou pipefail
 
-VERSION="v1.4.0"
+VERSION="v1.4.1"
 
 STANDARD_APIS=(
     backendtlspolicies
