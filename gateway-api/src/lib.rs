@@ -45,7 +45,7 @@ mod tests {
         },
     };
 
-    const DEFAULT_GATEWAY_API_VERSION: &str = "v1.4.0";
+    const DEFAULT_GATEWAY_API_VERSION: &str = "v1.4.1";
 
     // -------------------------------------------------------------------------
     // Tests

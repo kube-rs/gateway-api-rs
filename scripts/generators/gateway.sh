@@ -14,7 +14,7 @@
 
 set -eou pipefail
 
-GATEWAY_API_VERSION="v1.4.0"
+GATEWAY_API_VERSION="v1.4.1"
 REQUIRED_KOPIUM_VERSION="0.22.5"
 KOPIUM_VERSION=$(kopium --version 2>/dev/null | grep -oP 'kopium \K[0-9]+\.[0-9]+\.[0-9]+' || echo "")
 
