@@ -2,6 +2,8 @@
 [![crates.io](https://img.shields.io/crates/v/gateway-api.svg)](https://crates.io/crates/gateway-api)
 [![License](https://img.shields.io/badge/license-mit-blue.svg)](https://raw.githubusercontent.com/kube-rs/gateway-api-rs/main/LICENSE)
 
+> **Warning**: Deprecated. Planning for [archival](https://github.com/kube-rs/gateway-api-rs/discussions/216).
+
 > **Warning**: EXPERIMENTAL.
 
 # Gateway API (Rust)
