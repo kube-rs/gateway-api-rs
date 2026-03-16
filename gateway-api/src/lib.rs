@@ -28,7 +28,9 @@ mod tests {
     use uuid::Uuid;
 
     use crate::{
-        apis::standard::common::{ParentReference, ParentRouteStatus, RouteStatus},
+        apis::standard::common::{
+            GatewayStatusListeners, ParentReference, ParentRouteStatus, RouteStatus,
+        },
         apis::standard::constants::{
             GatewayConditionReason, GatewayConditionType, ListenerConditionReason,
             ListenerConditionType, RouteConditionReason, RouteConditionType,
@@ -36,7 +38,6 @@ mod tests {
         apis::standard::gatewayclasses::{GatewayClass, GatewayClassSpec},
         apis::standard::gateways::{
             Gateway, GatewayListeners, GatewaySpec, GatewayStatus, GatewayStatusAddresses,
-            GatewayStatusListeners,
         },
         apis::standard::grpcroutes::GrpcRouteSpec,
         apis::standard::httproutes::HttpRouteSpec,
@@ -45,7 +46,7 @@ mod tests {
         },
     };
 
-    const DEFAULT_GATEWAY_API_VERSION: &str = "v1.4.1";
+    const DEFAULT_GATEWAY_API_VERSION: &str = "v1.5.0";
 
     // -------------------------------------------------------------------------
     // Tests
@@ -126,6 +127,8 @@ mod tests {
                 }],
                 addresses: None,
                 infrastructure: None,
+                allowed_listeners: None,
+                tls: None,
             },
             status: None,
         };
@@ -145,7 +148,7 @@ mod tests {
             listeners: Some(vec![GatewayStatusListeners {
                 name: "http".into(),
                 attached_routes: 0,
-                supported_kinds: vec![],
+                supported_kinds: None,
                 conditions: vec![Condition {
                     last_transition_time: Time(Timestamp::now()),
                     message: "testing gateway".to_string(),
@@ -163,6 +166,7 @@ mod tests {
                 status: "True".to_string(),
                 type_: GatewayConditionType::Programmed.to_string(),
             }]),
+            attached_listener_sets: None,
         };
 
         gw = Api::default_namespaced(client.clone())

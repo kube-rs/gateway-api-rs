@@ -10,6 +10,12 @@ mod prelude {
 }
 use self::prelude::*;
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
+pub enum AllowedRoutesNamespaces {
+    All,
+    Selector,
+    Same,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
 pub enum GRPCFilterType {
     ResponseHeaderModifier,
     RequestHeaderModifier,
@@ -25,6 +31,8 @@ pub enum HTTPFilterType {
     #[serde(rename = "URLRewrite")]
     UrlRewrite,
     ExtensionRef,
+    #[serde(rename = "CORS")]
+    Cors,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
 pub enum HeaderMatchType {
@@ -37,6 +45,12 @@ pub enum RedirectStatusCode {
     r#_301,
     #[serde(rename = "302")]
     r#_302,
+    #[serde(rename = "303")]
+    r#_303,
+    #[serde(rename = "307")]
+    r#_307,
+    #[serde(rename = "308")]
+    r#_308,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
 pub enum RequestOperationType {
@@ -49,6 +63,16 @@ pub enum RequestRedirectScheme {
     Http,
     #[serde(rename = "https")]
     Https,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
+pub enum TlsMode {
+    Terminate,
+    Passthrough,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
+pub enum TlsValidationMode {
+    AllowValidOnly,
+    AllowInsecureFallback,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct BackendObjectReference {
@@ -63,10 +87,18 @@ pub struct BackendObjectReference {
     pub port: Option<i32>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GatewayInfrastructureParametersReference {
+pub struct ExtensionParametersReference {
     pub group: String,
     pub kind: String,
     pub name: String,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayParametersRef {
+    pub group: String,
+    pub kind: String,
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub namespace: Option<String>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HTTPHeader {
@@ -78,6 +110,13 @@ pub struct Kind {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,
     pub kind: String,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct MatchExpressions {
+    pub key: String,
+    pub operator: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub values: Option<Vec<String>>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct ParentReference {
@@ -98,10 +137,68 @@ pub struct ParentReference {
     pub section_name: Option<String>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct Reference {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub namespace: Option<String>,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct RequestMirrorFraction {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub denominator: Option<i32>,
     pub numerator: i32,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayAllowedListenersNamespacesSelector {
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "matchExpressions"
+    )]
+    pub match_expressions: Option<Vec<MatchExpressions>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "matchLabels"
+    )]
+    pub match_labels: Option<BTreeMap<String, String>>,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayListenersTls {
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "certificateRefs"
+    )]
+    pub certificate_refs: Option<Vec<Reference>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<TlsMode>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub options: Option<BTreeMap<String, String>>,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayStatusListeners {
+    #[serde(rename = "attachedRoutes")]
+    pub attached_routes: i32,
+    pub conditions: Vec<Condition>,
+    pub name: String,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "supportedKinds"
+    )]
+    pub supported_kinds: Option<Vec<Kind>>,
+}
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GatewayTlsFrontendDefaultValidation {
+    #[serde(rename = "caCertificateRefs")]
+    pub ca_certificate_refs: Vec<GatewayParametersRef>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<TlsValidationMode>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HeaderMatch {
@@ -160,7 +257,7 @@ pub struct GrpcRouteFilter {
         skip_serializing_if = "Option::is_none",
         rename = "extensionRef"
     )]
-    pub extension_ref: Option<GatewayInfrastructureParametersReference>,
+    pub extension_ref: Option<ExtensionParametersReference>,
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",

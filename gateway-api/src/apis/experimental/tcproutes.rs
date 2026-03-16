@@ -90,7 +90,7 @@ pub struct TcpRouteSpec {
     )]
     pub parent_refs: Option<Vec<ParentReference>>,
     /// Rules are a list of TCP matchers and actions.
-    pub rules: Vec<CommonRouteRule>,
+    pub rules: Vec<TcpRouteRules>,
     /// UseDefaultGateways indicates the default Gateway scope to use for this
     /// Route. If unset (the default) or set to None, the Route will not be
     /// attached to any default Gateway; if set, it will be attached to any
@@ -109,4 +109,29 @@ pub struct TcpRouteSpec {
         rename = "useDefaultGateways"
     )]
     pub use_default_gateways: Option<GatewayDefaultScope>,
+}
+/// TCPRouteRule is the configuration for a given rule.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct TcpRouteRules {
+    /// BackendRefs defines the backend(s) where matching requests should be
+    /// sent. If unspecified or invalid (refers to a nonexistent resource or a
+    /// Service with no endpoints), the underlying implementation MUST actively
+    /// reject connection attempts to this backend. Connection rejections must
+    /// respect weight; if an invalid backend is requested to have 80% of
+    /// connections, then 80% of connections must be rejected instead.
+    ///
+    /// Support: Core for Kubernetes Service
+    ///
+    /// Support: Extended for Kubernetes ServiceImport
+    ///
+    /// Support: Implementation-specific for any other resource
+    ///
+    /// Support for weight: Extended
+    #[serde(rename = "backendRefs")]
+    pub backend_refs: Vec<TcpRouteRulesBackendRefs>,
+    /// Name is the name of the route rule. This name MUST be unique within a Route if it is set.
+    ///
+    /// Support: Extended
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
 }

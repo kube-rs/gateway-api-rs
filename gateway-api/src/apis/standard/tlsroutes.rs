@@ -80,17 +80,6 @@ pub struct TlsRouteSpec {
     /// allowed by something in the namespace they are referring to. For example,
     /// Gateway has the AllowedRoutes field, and ReferenceGrant provides a
     /// generic way to enable other kinds of cross-namespace reference.
-    ///
-    ///
-    /// ParentRefs from a Route to a Service in the same namespace are "producer"
-    /// routes, which apply default routing rules to inbound connections from
-    /// any namespace to the Service.
-    ///
-    /// ParentRefs from a Route to a Service in a different namespace are
-    /// "consumer" routes, and these routing rules are only applied to outbound
-    /// connections originating from the same namespace as the Route, for which
-    /// the intended destination of the connections are a Service targeted as a
-    /// ParentRef of the Route.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -99,24 +88,6 @@ pub struct TlsRouteSpec {
     pub parent_refs: Option<Vec<ParentReference>>,
     /// Rules are a list of actions.
     pub rules: Vec<TlsRouteRules>,
-    /// UseDefaultGateways indicates the default Gateway scope to use for this
-    /// Route. If unset (the default) or set to None, the Route will not be
-    /// attached to any default Gateway; if set, it will be attached to any
-    /// default Gateway supporting the named scope, subject to the usual rules
-    /// about which Routes a Gateway is allowed to claim.
-    ///
-    /// Think carefully before using this functionality! The set of default
-    /// Gateways supporting the requested scope can change over time without
-    /// any notice to the Route author, and in many situations it will not be
-    /// appropriate to request a default Gateway for a given Route -- for
-    /// example, a Route with specific security requirements should almost
-    /// certainly not use a default Gateway.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "useDefaultGateways"
-    )]
-    pub use_default_gateways: Option<GatewayDefaultScope>,
 }
 /// TLSRouteRule is the configuration for a given rule.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
@@ -138,8 +109,77 @@ pub struct TlsRouteRules {
     ///
     /// Support for weight: Extended
     #[serde(rename = "backendRefs")]
-    pub backend_refs: Vec<TcpRouteRulesBackendRefs>,
+    pub backend_refs: Vec<TlsRouteRulesBackendRefs>,
     /// Name is the name of the route rule. This name MUST be unique within a Route if it is set.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+}
+/// BackendRef defines how a Route should forward a request to a Kubernetes
+/// resource.
+///
+/// Note that when a namespace different than the local namespace is specified, a
+/// ReferenceGrant object is required in the referent namespace to allow that
+/// namespace's owner to accept the reference. See the ReferenceGrant
+/// documentation for details.
+///
+/// Note that when the BackendTLSPolicy object is enabled by the implementation,
+/// there are some extra rules about validity to consider here. See the fields
+/// where this struct is used for more information about the exact behavior.
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct TlsRouteRulesBackendRefs {
+    /// Group is the group of the referent. For example, "gateway.networking.k8s.io".
+    /// When unspecified or empty string, core API group is inferred.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
+    /// Kind is the Kubernetes resource kind of the referent. For example
+    /// "Service".
+    ///
+    /// Defaults to "Service" when not specified.
+    ///
+    /// ExternalName services can refer to CNAME DNS records that may live
+    /// outside of the cluster and as such are difficult to reason about in
+    /// terms of conformance. They also may not be safe to forward to (see
+    /// CVE-2021-25740 for more information). Implementations SHOULD NOT
+    /// support ExternalName Services.
+    ///
+    /// Support: Core (Services with a type other than ExternalName)
+    ///
+    /// Support: Implementation-specific (Services with type ExternalName)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    /// Name is the name of the referent.
+    pub name: String,
+    /// Namespace is the namespace of the backend. When unspecified, the local
+    /// namespace is inferred.
+    ///
+    /// Note that when a namespace different than the local namespace is specified,
+    /// a ReferenceGrant object is required in the referent namespace to allow that
+    /// namespace's owner to accept the reference. See the ReferenceGrant
+    /// documentation for details.
+    ///
+    /// Support: Core
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub namespace: Option<String>,
+    /// Port specifies the destination port number to use for this resource.
+    /// Port is required when the referent is a Kubernetes Service. In this
+    /// case, the port number is the service port number, not the target port.
+    /// For other resources, destination port might be derived from the referent
+    /// resource or this field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub port: Option<i32>,
+    /// Weight specifies the proportion of requests forwarded to the referenced
+    /// backend. This is computed as weight/(sum of all weights in this
+    /// BackendRefs list). For non-zero values, there may be some epsilon from
+    /// the exact proportion defined here depending on the precision an
+    /// implementation supports. Weight is not a percentage and the sum of
+    /// weights does not need to equal 100.
+    ///
+    /// If only one backend is specified and it has a weight greater than 0, 100%
+    /// of the traffic is forwarded to that backend. If weight is set to 0, no
+    /// traffic should be forwarded for this entry. If unspecified, weight
+    /// defaults to 1.
+    ///
+    /// Support for this field varies based on the context where used.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub weight: Option<i32>,
 }

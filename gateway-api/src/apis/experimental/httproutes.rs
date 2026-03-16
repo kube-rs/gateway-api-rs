@@ -327,7 +327,7 @@ pub struct HttpRouteRule {
         skip_serializing_if = "Option::is_none",
         rename = "sessionPersistence"
     )]
-    pub session_persistence: Option<SessionPersistence>,
+    pub session_persistence: Option<HttpRouteRulesSessionPersistence>,
     /// Timeouts defines the timeouts that can be configured for an HTTP request.
     ///
     /// Support: Extended
@@ -447,7 +447,7 @@ pub struct HttpRouteBackendFilter {
         skip_serializing_if = "Option::is_none",
         rename = "extensionRef"
     )]
-    pub extension_ref: Option<GatewayInfrastructureParametersReference>,
+    pub extension_ref: Option<ExtensionParametersReference>,
     /// ExternalAuth configures settings related to sending request details
     /// to an external auth service. The external service MUST authenticate
     /// the request, and MAY authorize the request as well.
@@ -577,7 +577,7 @@ pub struct HttpRouteRulesBackendRefsFiltersCors {
     /// AllowHeaders indicates which HTTP request headers are supported for
     /// accessing the requested resource.
     ///
-    /// Header names are not case sensitive.
+    /// Header names are not case-sensitive.
     ///
     /// Multiple header names in the value of the `Access-Control-Allow-Headers`
     /// response header are separated by a comma (",").
@@ -596,18 +596,21 @@ pub struct HttpRouteRulesBackendRefsFiltersCors {
     /// client side.
     ///
     /// A wildcard indicates that the requests with all HTTP headers are allowed.
-    /// The `Access-Control-Allow-Headers` response header can only use `*`
-    /// wildcard as value when the `AllowCredentials` field is false or omitted.
+    /// If config contains the wildcard "*" in allowHeaders and the request is
+    /// not credentialed, the `Access-Control-Allow-Headers` response header
+    /// can either use the `*` wildcard or the value of
+    /// Access-Control-Request-Headers from the request.
     ///
-    /// When the `AllowCredentials` field is true and `AllowHeaders` field
-    /// specified with the `*` wildcard, the gateway must specify one or more
+    /// When the request is credentialed, the gateway must not specify the `*`
+    /// wildcard in the `Access-Control-Allow-Headers` response header. When
+    /// also the `AllowCredentials` field is true and `AllowHeaders` field
+    /// is specified with the `*` wildcard, the gateway must specify one or more
     /// HTTP headers in the value of the `Access-Control-Allow-Headers` response
     /// header. The value of the header `Access-Control-Allow-Headers` is same as
     /// the `Access-Control-Request-Headers` header provided by the client. If
     /// the header `Access-Control-Request-Headers` is not included in the
     /// request, the gateway will omit the `Access-Control-Allow-Headers`
-    /// response header, instead of specifying the `*` wildcard. A Gateway
-    /// implementation may choose to add implementation-specific default headers.
+    /// response header, instead of specifying the `*` wildcard.
     ///
     /// Support: Extended
     #[serde(
@@ -622,7 +625,7 @@ pub struct HttpRouteRulesBackendRefsFiltersCors {
     /// Valid values are any method defined by RFC9110, along with the special
     /// value `*`, which represents all HTTP methods are allowed.
     ///
-    /// Method names are case sensitive, so these values are also case-sensitive.
+    /// Method names are case-sensitive, so these values are also case-sensitive.
     /// (See <https://www.rfc-editor.org/rfc/rfc2616#section-5.1.1)>
     ///
     /// Multiple method names in the value of the `Access-Control-Allow-Methods`
@@ -642,18 +645,21 @@ pub struct HttpRouteRulesBackendRefsFiltersCors {
     /// `Access-Control-Allow-Methods`, it will present an error on the client
     /// side.
     ///
-    /// The `Access-Control-Allow-Methods` response header can only use `*`
-    /// wildcard as value when the `AllowCredentials` field is false or omitted.
+    /// If config contains the wildcard "*" in allowMethods and the request is
+    /// not credentialed, the `Access-Control-Allow-Methods` response header
+    /// can either use the `*` wildcard or the value of
+    /// Access-Control-Request-Method from the request.
     ///
-    /// When the `AllowCredentials` field is true and `AllowMethods` field
+    /// When the request is credentialed, the gateway must not specify the `*`
+    /// wildcard in the `Access-Control-Allow-Methods` response header. When
+    /// also the `AllowCredentials` field is true and `AllowMethods` field
     /// specified with the `*` wildcard, the gateway must specify one HTTP method
     /// in the value of the Access-Control-Allow-Methods response header. The
     /// value of the header `Access-Control-Allow-Methods` is same as the
     /// `Access-Control-Request-Method` header provided by the client. If the
     /// header `Access-Control-Request-Method` is not included in the request,
     /// the gateway will omit the `Access-Control-Allow-Methods` response header,
-    /// instead of specifying the `*` wildcard. A Gateway implementation may
-    /// choose to add implementation-specific default methods.
+    /// instead of specifying the `*` wildcard.
     ///
     /// Support: Extended
     #[serde(
@@ -704,10 +710,19 @@ pub struct HttpRouteRulesBackendRefsFiltersCors {
     /// the CORS headers. The cross-origin request fails on the client side.
     /// Therefore, the client doesn't attempt the actual cross-origin request.
     ///
-    /// The `Access-Control-Allow-Origin` response header can only use `*`
-    /// wildcard as value when the `AllowCredentials` field is false or omitted.
+    /// Conversely, if the request `Origin` matches one of the configured
+    /// allowed origins, the gateway sets the response header
+    /// `Access-Control-Allow-Origin` to the same value as the `Origin`
+    /// header provided by the client.
     ///
-    /// When the `AllowCredentials` field is true and `AllowOrigins` field
+    /// When config has the wildcard ("*") in allowOrigins, and the request
+    /// is not credentialed (e.g., it is a preflight request), the
+    /// `Access-Control-Allow-Origin` response header either contains the
+    /// wildcard as well or the Origin from the request.
+    ///
+    /// When the request is credentialed, the gateway must not specify the `*`
+    /// wildcard in the `Access-Control-Allow-Origin` response header. When
+    /// also the `AllowCredentials` field is true and `AllowOrigins` field
     /// specified with the `*` wildcard, the gateway must return a single origin
     /// in the value of the `Access-Control-Allow-Origin` response header,
     /// instead of specifying the `*` wildcard. The value of the header
@@ -741,14 +756,18 @@ pub struct HttpRouteRulesBackendRefsFiltersCors {
     /// this additional header will be exposed as part of the response to the
     /// client.
     ///
-    /// Header names are not case sensitive.
+    /// Header names are not case-sensitive.
     ///
     /// Multiple header names in the value of the `Access-Control-Expose-Headers`
     /// response header are separated by a comma (",").
     ///
     /// A wildcard indicates that the responses with all HTTP headers are exposed
     /// to clients. The `Access-Control-Expose-Headers` response header can only
-    /// use `*` wildcard as value when the `AllowCredentials` field is false or omitted.
+    /// use `*` wildcard as value when the request is not credentialed.
+    ///
+    /// When the `exposeHeaders` config field contains the "*" wildcard and
+    /// the request is credentialed, the gateway cannot use the `*` wildcard in
+    /// the `Access-Control-Expose-Headers` response header.
     ///
     /// Support: Extended
     #[serde(
@@ -766,6 +785,9 @@ pub struct HttpRouteRulesBackendRefsFiltersCors {
     ///
     /// The default value of `Access-Control-Max-Age` response header is 5
     /// (seconds).
+    ///
+    /// When the `MaxAge` field is unspecified, the gateway sets the response
+    /// header "Access-Control-Max-Age: 5" by default.
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "maxAge")]
     pub max_age: Option<i32>,
 }
@@ -867,7 +889,7 @@ pub struct HttpRouteFilter {
         skip_serializing_if = "Option::is_none",
         rename = "extensionRef"
     )]
-    pub extension_ref: Option<GatewayInfrastructureParametersReference>,
+    pub extension_ref: Option<ExtensionParametersReference>,
     /// ExternalAuth configures settings related to sending request details
     /// to an external auth service. The external service MUST authenticate
     /// the request, and MAY authorize the request as well.
@@ -997,7 +1019,7 @@ pub struct HttpRouteRulesFiltersCors {
     /// AllowHeaders indicates which HTTP request headers are supported for
     /// accessing the requested resource.
     ///
-    /// Header names are not case sensitive.
+    /// Header names are not case-sensitive.
     ///
     /// Multiple header names in the value of the `Access-Control-Allow-Headers`
     /// response header are separated by a comma (",").
@@ -1016,18 +1038,21 @@ pub struct HttpRouteRulesFiltersCors {
     /// client side.
     ///
     /// A wildcard indicates that the requests with all HTTP headers are allowed.
-    /// The `Access-Control-Allow-Headers` response header can only use `*`
-    /// wildcard as value when the `AllowCredentials` field is false or omitted.
+    /// If config contains the wildcard "*" in allowHeaders and the request is
+    /// not credentialed, the `Access-Control-Allow-Headers` response header
+    /// can either use the `*` wildcard or the value of
+    /// Access-Control-Request-Headers from the request.
     ///
-    /// When the `AllowCredentials` field is true and `AllowHeaders` field
-    /// specified with the `*` wildcard, the gateway must specify one or more
+    /// When the request is credentialed, the gateway must not specify the `*`
+    /// wildcard in the `Access-Control-Allow-Headers` response header. When
+    /// also the `AllowCredentials` field is true and `AllowHeaders` field
+    /// is specified with the `*` wildcard, the gateway must specify one or more
     /// HTTP headers in the value of the `Access-Control-Allow-Headers` response
     /// header. The value of the header `Access-Control-Allow-Headers` is same as
     /// the `Access-Control-Request-Headers` header provided by the client. If
     /// the header `Access-Control-Request-Headers` is not included in the
     /// request, the gateway will omit the `Access-Control-Allow-Headers`
-    /// response header, instead of specifying the `*` wildcard. A Gateway
-    /// implementation may choose to add implementation-specific default headers.
+    /// response header, instead of specifying the `*` wildcard.
     ///
     /// Support: Extended
     #[serde(
@@ -1042,7 +1067,7 @@ pub struct HttpRouteRulesFiltersCors {
     /// Valid values are any method defined by RFC9110, along with the special
     /// value `*`, which represents all HTTP methods are allowed.
     ///
-    /// Method names are case sensitive, so these values are also case-sensitive.
+    /// Method names are case-sensitive, so these values are also case-sensitive.
     /// (See <https://www.rfc-editor.org/rfc/rfc2616#section-5.1.1)>
     ///
     /// Multiple method names in the value of the `Access-Control-Allow-Methods`
@@ -1062,18 +1087,21 @@ pub struct HttpRouteRulesFiltersCors {
     /// `Access-Control-Allow-Methods`, it will present an error on the client
     /// side.
     ///
-    /// The `Access-Control-Allow-Methods` response header can only use `*`
-    /// wildcard as value when the `AllowCredentials` field is false or omitted.
+    /// If config contains the wildcard "*" in allowMethods and the request is
+    /// not credentialed, the `Access-Control-Allow-Methods` response header
+    /// can either use the `*` wildcard or the value of
+    /// Access-Control-Request-Method from the request.
     ///
-    /// When the `AllowCredentials` field is true and `AllowMethods` field
+    /// When the request is credentialed, the gateway must not specify the `*`
+    /// wildcard in the `Access-Control-Allow-Methods` response header. When
+    /// also the `AllowCredentials` field is true and `AllowMethods` field
     /// specified with the `*` wildcard, the gateway must specify one HTTP method
     /// in the value of the Access-Control-Allow-Methods response header. The
     /// value of the header `Access-Control-Allow-Methods` is same as the
     /// `Access-Control-Request-Method` header provided by the client. If the
     /// header `Access-Control-Request-Method` is not included in the request,
     /// the gateway will omit the `Access-Control-Allow-Methods` response header,
-    /// instead of specifying the `*` wildcard. A Gateway implementation may
-    /// choose to add implementation-specific default methods.
+    /// instead of specifying the `*` wildcard.
     ///
     /// Support: Extended
     #[serde(
@@ -1124,10 +1152,19 @@ pub struct HttpRouteRulesFiltersCors {
     /// the CORS headers. The cross-origin request fails on the client side.
     /// Therefore, the client doesn't attempt the actual cross-origin request.
     ///
-    /// The `Access-Control-Allow-Origin` response header can only use `*`
-    /// wildcard as value when the `AllowCredentials` field is false or omitted.
+    /// Conversely, if the request `Origin` matches one of the configured
+    /// allowed origins, the gateway sets the response header
+    /// `Access-Control-Allow-Origin` to the same value as the `Origin`
+    /// header provided by the client.
     ///
-    /// When the `AllowCredentials` field is true and `AllowOrigins` field
+    /// When config has the wildcard ("*") in allowOrigins, and the request
+    /// is not credentialed (e.g., it is a preflight request), the
+    /// `Access-Control-Allow-Origin` response header either contains the
+    /// wildcard as well or the Origin from the request.
+    ///
+    /// When the request is credentialed, the gateway must not specify the `*`
+    /// wildcard in the `Access-Control-Allow-Origin` response header. When
+    /// also the `AllowCredentials` field is true and `AllowOrigins` field
     /// specified with the `*` wildcard, the gateway must return a single origin
     /// in the value of the `Access-Control-Allow-Origin` response header,
     /// instead of specifying the `*` wildcard. The value of the header
@@ -1161,14 +1198,18 @@ pub struct HttpRouteRulesFiltersCors {
     /// this additional header will be exposed as part of the response to the
     /// client.
     ///
-    /// Header names are not case sensitive.
+    /// Header names are not case-sensitive.
     ///
     /// Multiple header names in the value of the `Access-Control-Expose-Headers`
     /// response header are separated by a comma (",").
     ///
     /// A wildcard indicates that the responses with all HTTP headers are exposed
     /// to clients. The `Access-Control-Expose-Headers` response header can only
-    /// use `*` wildcard as value when the `AllowCredentials` field is false or omitted.
+    /// use `*` wildcard as value when the request is not credentialed.
+    ///
+    /// When the `exposeHeaders` config field contains the "*" wildcard and
+    /// the request is credentialed, the gateway cannot use the `*` wildcard in
+    /// the `Access-Control-Expose-Headers` response header.
     ///
     /// Support: Extended
     #[serde(
@@ -1186,6 +1227,9 @@ pub struct HttpRouteRulesFiltersCors {
     ///
     /// The default value of `Access-Control-Max-Age` response header is 5
     /// (seconds).
+    ///
+    /// When the `MaxAge` field is unspecified, the gateway sets the response
+    /// header "Access-Control-Max-Age: 5" by default.
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "maxAge")]
     pub max_age: Option<i32>,
 }
@@ -1391,7 +1435,7 @@ pub struct HttpRouteRulesRetry {
     /// For example, setting the `rules[].retry.backoff` field to the value
     /// `100ms` will cause a backend request to first be retried approximately
     /// 100 milliseconds after timing out or receiving a response code configured
-    /// to be retryable.
+    /// to be retriable.
     ///
     /// An implementation MAY use an exponential or alternative backoff strategy
     /// for subsequent retry attempts, MAY cap the maximum backoff duration to
@@ -1429,6 +1473,98 @@ pub struct HttpRouteRulesRetry {
     /// Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub codes: Option<Vec<i64>>,
+}
+/// SessionPersistence defines and configures session persistence
+/// for the route rule.
+///
+/// Support: Extended
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HttpRouteRulesSessionPersistence {
+    /// AbsoluteTimeout defines the absolute timeout of the persistent
+    /// session. Once the AbsoluteTimeout duration has elapsed, the
+    /// session becomes invalid.
+    ///
+    /// Support: Extended
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "absoluteTimeout"
+    )]
+    pub absolute_timeout: Option<String>,
+    /// CookieConfig provides configuration settings that are specific
+    /// to cookie-based session persistence.
+    ///
+    /// Support: Core
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "cookieConfig"
+    )]
+    pub cookie_config: Option<HttpRouteRulesSessionPersistenceCookieConfig>,
+    /// IdleTimeout defines the idle timeout of the persistent session.
+    /// Once the session has been idle for more than the specified
+    /// IdleTimeout duration, the session becomes invalid.
+    ///
+    /// Support: Extended
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "idleTimeout"
+    )]
+    pub idle_timeout: Option<String>,
+    /// SessionName defines the name of the persistent session token
+    /// which may be reflected in the cookie or the header. Users
+    /// should avoid reusing session names to prevent unintended
+    /// consequences, such as rejection or unpredictable behavior.
+    ///
+    /// Support: Implementation-specific
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "sessionName"
+    )]
+    pub session_name: Option<String>,
+    /// Type defines the type of session persistence such as through
+    /// the use of a header or cookie. Defaults to cookie based session
+    /// persistence.
+    ///
+    /// Support: Core for "Cookie" type
+    ///
+    /// Support: Extended for "Header" type
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "type")]
+    pub r#type: Option<GrpcRouteRulesSessionPersistenceType>,
+}
+/// CookieConfig provides configuration settings that are specific
+/// to cookie-based session persistence.
+///
+/// Support: Core
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct HttpRouteRulesSessionPersistenceCookieConfig {
+    /// LifetimeType specifies whether the cookie has a permanent or
+    /// session-based lifetime. A permanent cookie persists until its
+    /// specified expiry time, defined by the Expires or Max-Age cookie
+    /// attributes, while a session cookie is deleted when the current
+    /// session ends.
+    ///
+    /// When set to "Permanent", AbsoluteTimeout indicates the
+    /// cookie's lifetime via the Expires or Max-Age cookie attributes
+    /// and is required.
+    ///
+    /// When set to "Session", AbsoluteTimeout indicates the
+    /// absolute lifetime of the cookie tracked by the gateway and
+    /// is optional.
+    ///
+    /// Defaults to "Session".
+    ///
+    /// Support: Core for "Session" type
+    ///
+    /// Support: Extended for "Permanent" type
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "lifetimeType"
+    )]
+    pub lifetime_type: Option<GrpcRouteRulesSessionPersistenceCookieConfigLifetimeType>,
 }
 /// Timeouts defines the timeouts that can be configured for an HTTP request.
 ///
