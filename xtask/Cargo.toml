@@ -1,6 +1,6 @@
 [package]
-name = "enum_default_generator"
-description = "Codegen tool to generate Default trait impls for Gateway API enums"
+name = "xtask"
+description = "Code generation for Gateway API Rust bindings"
 
 authors.workspace = true
 edition.workspace = true
@@ -8,4 +8,4 @@ license.workspace = true
 version.workspace = true
 
 [dependencies]
-codegen = "0.2.0"
+anyhow.workspace = true

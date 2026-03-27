@@ -1,3 +1,5 @@
+GATEWAY_API_VERSION ?= v1.4.1
+
 .PHONY: all
 all: build generate
 
@@ -9,10 +11,9 @@ clean:
 build:
 	cargo build
 
-
 .PHONY: generate
 generate:
-	./update.sh
+	cargo xtask generate $(GATEWAY_API_VERSION)
 
 .PHONY: test.all
 test.all: test.unit test.integration

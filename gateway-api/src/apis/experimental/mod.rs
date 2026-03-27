@@ -1,4 +1,4 @@
-// WARNING! generated file do not edit
+// WARNING: generated file — do not edit
 pub mod constants;
 mod enum_defaults;
 pub mod gatewayclasses;

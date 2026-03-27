@@ -1,71 +1,71 @@
-// WARNING: generated file - manual changes will be overriden
+// WARNING: generated file — do not edit
+
+use super::grpcroutes::{GrpcRouteRulesBackendRefsFiltersType, GrpcRouteRulesFiltersType};
 
 use super::httproutes::{
-    HTTPRouteRulesBackendRefsFiltersExternalAuthProtocol,
-    HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType, HTTPRouteRulesBackendRefsFiltersType,
-    HTTPRouteRulesBackendRefsFiltersUrlRewritePathType, HTTPRouteRulesFiltersExternalAuthProtocol,
-    HTTPRouteRulesFiltersRequestRedirectPathType, HTTPRouteRulesFiltersType,
-    HTTPRouteRulesFiltersUrlRewritePathType,
+    HttpRouteRulesBackendRefsFiltersExternalAuthProtocol,
+    HttpRouteRulesBackendRefsFiltersRequestRedirectPathType, HttpRouteRulesBackendRefsFiltersType,
+    HttpRouteRulesBackendRefsFiltersUrlRewritePathType, HttpRouteRulesFiltersExternalAuthProtocol,
+    HttpRouteRulesFiltersRequestRedirectPathType, HttpRouteRulesFiltersType,
+    HttpRouteRulesFiltersUrlRewritePathType,
 };
 
-use super::grpcroutes::{GRPCRouteRulesBackendRefsFiltersType, GRPCRouteRulesFiltersType};
-
-impl Default for GRPCRouteRulesBackendRefsFiltersType {
+impl Default for GrpcRouteRulesBackendRefsFiltersType {
     fn default() -> Self {
-        GRPCRouteRulesBackendRefsFiltersType::RequestHeaderModifier
+        GrpcRouteRulesBackendRefsFiltersType::RequestHeaderModifier
     }
 }
 
-impl Default for GRPCRouteRulesFiltersType {
+impl Default for GrpcRouteRulesFiltersType {
     fn default() -> Self {
-        GRPCRouteRulesFiltersType::RequestHeaderModifier
+        GrpcRouteRulesFiltersType::RequestHeaderModifier
     }
 }
 
-impl Default for HTTPRouteRulesBackendRefsFiltersExternalAuthProtocol {
+impl Default for HttpRouteRulesBackendRefsFiltersExternalAuthProtocol {
     fn default() -> Self {
-        HTTPRouteRulesBackendRefsFiltersExternalAuthProtocol::Http
+        HttpRouteRulesBackendRefsFiltersExternalAuthProtocol::Http
     }
 }
 
-impl Default for HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType {
+impl Default for HttpRouteRulesBackendRefsFiltersRequestRedirectPathType {
     fn default() -> Self {
-        HTTPRouteRulesBackendRefsFiltersRequestRedirectPathType::ReplaceFullPath
+        HttpRouteRulesBackendRefsFiltersRequestRedirectPathType::ReplaceFullPath
     }
 }
 
-impl Default for HTTPRouteRulesBackendRefsFiltersType {
+impl Default for HttpRouteRulesBackendRefsFiltersType {
     fn default() -> Self {
-        HTTPRouteRulesBackendRefsFiltersType::RequestHeaderModifier
+        HttpRouteRulesBackendRefsFiltersType::RequestHeaderModifier
     }
 }
 
-impl Default for HTTPRouteRulesBackendRefsFiltersUrlRewritePathType {
+impl Default for HttpRouteRulesBackendRefsFiltersUrlRewritePathType {
     fn default() -> Self {
-        HTTPRouteRulesBackendRefsFiltersUrlRewritePathType::ReplaceFullPath
+        HttpRouteRulesBackendRefsFiltersUrlRewritePathType::ReplaceFullPath
     }
 }
 
-impl Default for HTTPRouteRulesFiltersExternalAuthProtocol {
+impl Default for HttpRouteRulesFiltersExternalAuthProtocol {
     fn default() -> Self {
-        HTTPRouteRulesFiltersExternalAuthProtocol::Http
+        HttpRouteRulesFiltersExternalAuthProtocol::Http
     }
 }
 
-impl Default for HTTPRouteRulesFiltersRequestRedirectPathType {
+impl Default for HttpRouteRulesFiltersRequestRedirectPathType {
     fn default() -> Self {
-        HTTPRouteRulesFiltersRequestRedirectPathType::ReplaceFullPath
+        HttpRouteRulesFiltersRequestRedirectPathType::ReplaceFullPath
     }
 }
 
-impl Default for HTTPRouteRulesFiltersType {
+impl Default for HttpRouteRulesFiltersType {
     fn default() -> Self {
-        HTTPRouteRulesFiltersType::RequestHeaderModifier
+        HttpRouteRulesFiltersType::RequestHeaderModifier
     }
 }
 
-impl Default for HTTPRouteRulesFiltersUrlRewritePathType {
+impl Default for HttpRouteRulesFiltersUrlRewritePathType {
     fn default() -> Self {
-        HTTPRouteRulesFiltersUrlRewritePathType::ReplaceFullPath
+        HttpRouteRulesFiltersUrlRewritePathType::ReplaceFullPath
     }
 }

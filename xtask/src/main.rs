@@ -1,157 +1,502 @@
-use std::{collections::BTreeMap, env};
+use std::{
+    collections::BTreeMap,
+    env,
+    fmt::Write,
+    fs,
+    path::Path,
+    process::{self, Command, Stdio},
+};
 
-use codegen::{Enum, Function, Scope, Variant};
+use anyhow::{Context, Result, bail};
 
-fn main() {
-    let task = env::args().nth(1);
+// -----------------------------------------------------------------------------
+// Configuration
+// -----------------------------------------------------------------------------
 
-    match task.as_deref() {
-        Some("gen_enum_defaults") => gen_enum_defaults().unwrap(),
-        Some("gen_condition_constants") => gen_condition_constants().unwrap(),
-        _ => print_help(),
-    }
+const APIS_DIR: &str = "gateway-api/src/apis";
+
+const CRD_BASE_URL: &str = "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api";
+
+const CRD_PATH: &str = "config/crd";
+
+const CRD_PREFIX_STANDARD: &str = "gateway.networking.k8s.io_";
+const CRD_PREFIX_EXPERIMENTAL: &str = "gateway.networking.x-k8s.io_";
+
+const KOPIUM_ARGS: &[&str] = &[
+    "--schema=derived",
+    "--derive=JsonSchema",
+    "--derive=Default",
+    "--derive=PartialEq",
+    "--docs",
+    "-f",
+    "-",
+];
+
+const GENERATED_HEADER: &str = "// WARNING: generated file — do not edit\n";
+
+// -----------------------------------------------------------------------------
+// API channels
+// -----------------------------------------------------------------------------
+
+struct Api {
+    name: &'static str,
+    crd_prefix: &'static str,
 }
 
-fn print_help() {
-    eprintln!(
-        "Tasks:
-
-gen_enum_defaults generates Default trait impls for enums
-gen_constants generates constants used for Conditions
-"
-    )
-}
-
-type DynError = Box<dyn std::error::Error>;
-
-fn gen_condition_constants() -> Result<(), DynError> {
-    let gateway_class_condition_types = env::var("GATEWAY_CLASS_CONDITION_CONSTANTS")?;
-    let gateway_class_reason_types = env::var("GATEWAY_CLASS_REASON_CONSTANTS")?;
-    let gateway_condition_types = env::var("GATEWAY_CONDITION_CONSTANTS")?;
-    let gateway_reason_types = env::var("GATEWAY_REASON_CONSTANTS")?;
-    let listener_condition_types = env::var("LISTENER_CONDITION_CONSTANTS")?;
-    let listener_reason_types = env::var("LISTENER_REASON_CONSTANTS")?;
-
-    let mut scope = Scope::new();
-    gen_const_enums(&mut scope, gateway_class_condition_types);
-    gen_const_enums(&mut scope, gateway_class_reason_types);
-    gen_const_enums(&mut scope, gateway_condition_types);
-    gen_const_enums(&mut scope, gateway_reason_types);
-    gen_const_enums(&mut scope, listener_condition_types);
-    gen_const_enums(&mut scope, listener_reason_types);
-    println!("{}", gen_generated_file_warning());
-    println!("{}", scope.to_string());
-    Ok(())
-}
-
-fn gen_const_enums(scope: &mut Scope, constants: String) {
-    let enum_type_and_variants: Vec<&str> = constants.split('=').collect();
-    let enum_type = enum_type_and_variants[0];
-    let variants: Vec<&str> = enum_type_and_variants[1].split(',').collect();
-
-    let mut enumeration = Enum::new(enum_type);
-    enumeration.derive("Debug");
-    enumeration.derive("PartialEq");
-    enumeration.derive("Eq");
-    enumeration.vis("pub");
-
-    for variant in variants {
-        let var = Variant::new(variant);
-        enumeration.push_variant(var);
-    }
-    scope.push_enum(enumeration);
-
-    gen_display_impl(scope, enum_type);
-}
-
-fn gen_display_impl(scope: &mut Scope, ty: &str) {
-    let mut func = Function::new("fmt".to_string());
-    func.arg_ref_self();
-    func.arg("f", "&mut std::fmt::Formatter");
-    func.ret("std::fmt::Result");
-    func.line("write!(f, \"{:?}\", self)");
-    scope
-        .new_impl(ty)
-        .impl_trait("std::fmt::Display")
-        .push_fn(func);
-}
-
-fn gen_enum_defaults() -> Result<(), DynError> {
-    // GATEWAY_API_ENUMS provides the enum names along with their default variant to be used in the
-    // generated Default impl. For eg: GATEWAY_API_ENUMS=enum1=default1,enum2=default2.
-    let gw_api_enums = env::var("GATEWAY_API_ENUMS")?;
-    let enums_with_defaults = get_enums_with_defaults_map(gw_api_enums);
-
-    let mut scope = Scope::new();
-    let mut httproute_enums = vec![];
-    let mut grpcroute_enums = vec![];
-    let mut backendtlspolicy_enums = vec![];
-
-    for (e, d) in enums_with_defaults {
-        // The `fn default()` function.
-        let mut func = Function::new("default".to_string());
-        func.ret("Self").line(format!("{}::{}", e, d));
-
-        // The impl Default for <enum> implementation.
-        scope
-            .new_impl(e.as_str())
-            .impl_trait("Default")
-            .push_fn(func);
-
-        // Determine which enums belong to the httproute module and which belong to the
-        // grpcroute module.
-        if e.starts_with("HTTPRoute") {
-            httproute_enums.push(e);
-        } else if e.starts_with("GRPCRoute") {
-            grpcroute_enums.push(e);
-        } else if e.starts_with("BackendTLSPolicy") {
-            backendtlspolicy_enums.push(e);
+impl Api {
+    const fn standard(name: &'static str) -> Self {
+        Self {
+            name,
+            crd_prefix: CRD_PREFIX_STANDARD,
         }
     }
 
-    println!("{}", gen_generated_file_warning());
+    const fn experimental(name: &'static str) -> Self {
+        Self {
+            name,
+            crd_prefix: CRD_PREFIX_EXPERIMENTAL,
+        }
+    }
+}
 
-    // Generate use statements for the enums.
-    if !httproute_enums.is_empty() {
-        let use_http_stmt = gen_use_stmt(httproute_enums, "httproutes".to_string());
-        println!("{}\n", use_http_stmt);
-    }
-    if !grpcroute_enums.is_empty() {
-        let use_grpc_stmt = gen_use_stmt(grpcroute_enums, "grpcroutes".to_string());
-        println!("{}\n", use_grpc_stmt);
-    }
-    if !backendtlspolicy_enums.is_empty() {
-        let use_backendtlspolicy_stmt =
-            gen_use_stmt(backendtlspolicy_enums, "backendtlspolicies".to_string());
-        println!("{}\n", use_backendtlspolicy_stmt);
-    }
+struct Channel {
+    name: &'static str,
+    apis: &'static [Api],
+    enum_defaults: &'static [(&'static str, &'static str)],
+    conditions: &'static [(&'static str, &'static [&'static str])],
+}
 
-    println!("{}", scope.to_string());
+const STANDARD: Channel = Channel {
+    name: "standard",
+    apis: &[
+        Api::standard("backendtlspolicies"),
+        Api::standard("gatewayclasses"),
+        Api::standard("gateways"),
+        Api::standard("grpcroutes"),
+        Api::standard("httproutes"),
+        Api::standard("listenersets"),
+        Api::standard("referencegrants"),
+        Api::standard("tlsroutes"),
+    ],
+    enum_defaults: &[
+        ("BackendTlsPolicyValidationSubjectAltNamesType", "Hostname"),
+        (
+            "GrpcRouteRulesBackendRefsFiltersType",
+            "RequestHeaderModifier",
+        ),
+        ("GrpcRouteRulesFiltersType", "RequestHeaderModifier"),
+        (
+            "HttpRouteRulesBackendRefsFiltersRequestRedirectPathType",
+            "ReplaceFullPath",
+        ),
+        (
+            "HttpRouteRulesBackendRefsFiltersType",
+            "RequestHeaderModifier",
+        ),
+        (
+            "HttpRouteRulesBackendRefsFiltersUrlRewritePathType",
+            "ReplaceFullPath",
+        ),
+        (
+            "HttpRouteRulesFiltersRequestRedirectPathType",
+            "ReplaceFullPath",
+        ),
+        ("HttpRouteRulesFiltersType", "RequestHeaderModifier"),
+        ("HttpRouteRulesFiltersUrlRewritePathType", "ReplaceFullPath"),
+    ],
+    conditions: &[
+        ("GatewayClassConditionType", &["Accepted"]),
+        (
+            "GatewayClassConditionReason",
+            &[
+                "Accepted",
+                "InvalidParameters",
+                "Pending",
+                "Unsupported",
+                "Waiting",
+            ],
+        ),
+        ("GatewayConditionType", &["Programmed", "Accepted", "Ready"]),
+        (
+            "GatewayConditionReason",
+            &[
+                "Programmed",
+                "Invalid",
+                "NoResources",
+                "AddressNotAssigned",
+                "AddressNotUsable",
+                "Accepted",
+                "ListenersNotValid",
+                "Pending",
+                "UnsupportedAddress",
+                "InvalidParameters",
+                "Ready",
+                "ListenersNotReady",
+            ],
+        ),
+        (
+            "ListenerConditionType",
+            &[
+                "Conflicted",
+                "Accepted",
+                "ResolvedRefs",
+                "Programmed",
+                "Ready",
+            ],
+        ),
+        (
+            "ListenerConditionReason",
+            &[
+                "HostnameConflict",
+                "ProtocolConflict",
+                "NoConflicts",
+                "Accepted",
+                "PortUnavailable",
+                "UnsupportedProtocol",
+                "ResolvedRefs",
+                "InvalidCertificateRef",
+                "InvalidRouteKinds",
+                "RefNotPermitted",
+                "Programmed",
+                "Invalid",
+                "Pending",
+                "Ready",
+            ],
+        ),
+    ],
+};
+
+const EXPERIMENTAL: Channel = Channel {
+    name: "experimental",
+    apis: &[
+        Api::standard("gatewayclasses"),
+        Api::standard("gateways"),
+        Api::standard("grpcroutes"),
+        Api::standard("httproutes"),
+        Api::standard("listenersets"),
+        Api::standard("referencegrants"),
+        Api::standard("tcproutes"),
+        Api::standard("tlsroutes"),
+        Api::standard("udproutes"),
+        Api::experimental("xbackendtrafficpolicies"),
+        Api::experimental("xmeshes"),
+    ],
+    enum_defaults: &[
+        (
+            "GrpcRouteRulesBackendRefsFiltersType",
+            "RequestHeaderModifier",
+        ),
+        ("GrpcRouteRulesFiltersType", "RequestHeaderModifier"),
+        (
+            "HttpRouteRulesBackendRefsFiltersExternalAuthProtocol",
+            "Http",
+        ),
+        (
+            "HttpRouteRulesBackendRefsFiltersRequestRedirectPathType",
+            "ReplaceFullPath",
+        ),
+        (
+            "HttpRouteRulesBackendRefsFiltersType",
+            "RequestHeaderModifier",
+        ),
+        (
+            "HttpRouteRulesBackendRefsFiltersUrlRewritePathType",
+            "ReplaceFullPath",
+        ),
+        ("HttpRouteRulesFiltersExternalAuthProtocol", "Http"),
+        (
+            "HttpRouteRulesFiltersRequestRedirectPathType",
+            "ReplaceFullPath",
+        ),
+        ("HttpRouteRulesFiltersType", "RequestHeaderModifier"),
+        ("HttpRouteRulesFiltersUrlRewritePathType", "ReplaceFullPath"),
+    ],
+    conditions: &[
+        (
+            "GatewayClassConditionType",
+            &["Accepted", "SupportedVersion"],
+        ),
+        (
+            "GatewayClassConditionReason",
+            &[
+                "Accepted",
+                "InvalidParameters",
+                "Pending",
+                "Unsupported",
+                "Waiting",
+                "SupportedVersion",
+                "UnsupportedVersion",
+            ],
+        ),
+        ("GatewayConditionType", &["Programmed", "Accepted", "Ready"]),
+        (
+            "GatewayConditionReason",
+            &[
+                "Programmed",
+                "Invalid",
+                "NoResources",
+                "AddressNotAssigned",
+                "AddressNotUsable",
+                "Accepted",
+                "ListenersNotValid",
+                "Pending",
+                "UnsupportedAddress",
+                "InvalidParameters",
+                "Ready",
+                "ListenersNotReady",
+            ],
+        ),
+        (
+            "ListenerConditionType",
+            &[
+                "Conflicted",
+                "Accepted",
+                "ResolvedRefs",
+                "Programmed",
+                "Ready",
+            ],
+        ),
+        (
+            "ListenerConditionReason",
+            &[
+                "HostnameConflict",
+                "ProtocolConflict",
+                "NoConflicts",
+                "Accepted",
+                "PortUnavailable",
+                "UnsupportedProtocol",
+                "ResolvedRefs",
+                "InvalidCertificateRef",
+                "InvalidRouteKinds",
+                "RefNotPermitted",
+                "Programmed",
+                "Invalid",
+                "Pending",
+                "Ready",
+            ],
+        ),
+    ],
+};
+
+// -----------------------------------------------------------------------------
+// Entrypoint
+// -----------------------------------------------------------------------------
+
+fn main() -> Result<()> {
+    let args: Vec<String> = env::args().collect();
+
+    match args.get(1).map(String::as_str) {
+        Some("generate") => {
+            let version = args.get(2).context(
+                "usage: cargo xtask generate <version>\n  e.g. cargo xtask generate v1.4.1",
+            )?;
+            generate(version)
+        }
+        _ => {
+            eprintln!("usage: cargo xtask generate <version>");
+            process::exit(1);
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Generation orchestration
+// -----------------------------------------------------------------------------
+
+fn generate(version: &str) -> Result<()> {
+    for channel in [&STANDARD, &EXPERIMENTAL] {
+        generate_channel(version, channel)?;
+    }
+    write_apis_mod()?;
+    cargo_fmt()?;
     Ok(())
 }
 
-fn gen_generated_file_warning() -> String {
-    "// WARNING: generated file - manual changes will be overriden\n".into()
-}
+fn generate_channel(version: &str, channel: &Channel) -> Result<()> {
+    let dir = format!("{}/{}", APIS_DIR, channel.name);
 
-fn gen_use_stmt(items: Vec<String>, module: String) -> String {
-    let mut stmt = format!("use super::{}::{{", module);
-    for item in items {
-        stmt.push_str(format!("{}, ", item).as_str());
+    // Clean and recreate
+    let path = Path::new(&dir);
+    if path.exists() {
+        fs::remove_dir_all(path)?;
     }
-    stmt.push_str("};");
-    stmt
+    fs::create_dir_all(path)?;
+
+    // Fetch CRDs and run kopium
+    for api in channel.apis {
+        eprintln!("generating {} api {}", channel.name, api.name);
+        let rs = fetch_and_convert(version, channel.name, api)?;
+        fs::write(format!("{dir}/{}.rs", api.name), rs)?;
+    }
+
+    // Generate supporting files
+    let mod_rs = gen_mod_rs(channel);
+    let enum_defaults = gen_enum_defaults(channel.enum_defaults);
+    let constants = gen_constants(channel.conditions);
+
+    fs::write(format!("{dir}/mod.rs"), mod_rs)?;
+    fs::write(format!("{dir}/enum_defaults.rs"), enum_defaults)?;
+    fs::write(format!("{dir}/constants.rs"), constants)?;
+
+    Ok(())
 }
 
-fn get_enums_with_defaults_map(env_var_val: String) -> BTreeMap<String, String> {
-    let mut enums_with_defaults = BTreeMap::new();
-    env_var_val.split(',').for_each(|enum_with_default| {
-        let enum_and_default: Vec<&str> = enum_with_default.split('=').collect();
-        enums_with_defaults.insert(
-            enum_and_default[0].to_string(),
-            enum_and_default[1].to_string(),
-        );
-    });
+fn write_apis_mod() -> Result<()> {
+    fs::write(
+        format!("{APIS_DIR}/mod.rs"),
+        "pub mod experimental;\npub mod standard;\n",
+    )?;
+    Ok(())
+}
 
-    enums_with_defaults
+fn cargo_fmt() -> Result<()> {
+    let status = Command::new("cargo").arg("fmt").status()?;
+    if !status.success() {
+        bail!("cargo fmt failed");
+    }
+    Ok(())
+}
+
+// -----------------------------------------------------------------------------
+// CRD fetching and kopium conversion
+// -----------------------------------------------------------------------------
+
+fn fetch_and_convert(version: &str, channel: &str, api: &Api) -> Result<String> {
+    let url = format!(
+        "{CRD_BASE_URL}/{version}/{CRD_PATH}/{channel}/{}{}.yaml",
+        api.crd_prefix, api.name,
+    );
+
+    let curl = Command::new("curl")
+        .args(["-sSL", &url])
+        .stdout(Stdio::piped())
+        .spawn()
+        .context("failed to spawn curl — is it installed?")?;
+
+    let kopium = Command::new("kopium")
+        .args(KOPIUM_ARGS)
+        .stdin(curl.stdout.unwrap())
+        .output()
+        .context("failed to run kopium — is it installed?")?;
+
+    if !kopium.status.success() {
+        bail!(
+            "kopium failed for {channel}/{}: {}",
+            api.name,
+            String::from_utf8_lossy(&kopium.stderr)
+        );
+    }
+
+    Ok(String::from_utf8(kopium.stdout)?)
+}
+
+// -----------------------------------------------------------------------------
+// mod.rs generation
+// -----------------------------------------------------------------------------
+
+fn gen_mod_rs(channel: &Channel) -> String {
+    let mut out = String::from(GENERATED_HEADER);
+    for api in channel.apis {
+        writeln!(out, "pub mod {};", api.name).unwrap();
+    }
+    writeln!(out, "pub mod constants;").unwrap();
+    writeln!(out, "mod enum_defaults;").unwrap();
+    out
+}
+
+// -----------------------------------------------------------------------------
+// enum_defaults.rs generation
+// -----------------------------------------------------------------------------
+
+fn gen_enum_defaults(defaults: &[(&str, &str)]) -> String {
+    let mut out = String::from(GENERATED_HEADER);
+
+    // Group enums by source module for use statements
+    let by_module = group_enums_by_module(defaults.iter().map(|(name, _)| *name));
+    for (module, names) in &by_module {
+        write!(out, "\nuse super::{module}::{{").unwrap();
+        for (i, name) in names.iter().enumerate() {
+            if i > 0 {
+                out.push_str(", ");
+            }
+            out.push_str(name);
+        }
+        out.push_str("};\n");
+    }
+
+    // Default impls
+    for (name, default) in defaults {
+        write!(
+            out,
+            "\nimpl Default for {name} {{\n    \
+                 fn default() -> Self {{\n        \
+                     {name}::{default}\n    \
+                 }}\n\
+             }}\n"
+        )
+        .unwrap();
+    }
+
+    out
+}
+
+fn group_enums_by_module<'a>(
+    names: impl Iterator<Item = &'a str>,
+) -> BTreeMap<&'static str, Vec<&'a str>> {
+    let mut map: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
+    for name in names {
+        let module = enum_module(name);
+        map.entry(module).or_default().push(name);
+    }
+    map
+}
+
+fn enum_module(name: &str) -> &'static str {
+    if name.starts_with("HttpRoute") {
+        "httproutes"
+    } else if name.starts_with("GrpcRoute") {
+        "grpcroutes"
+    } else if name.starts_with("BackendTlsPolicy") {
+        "backendtlspolicies"
+    } else if name.starts_with("XBackendTrafficPolicy") {
+        "xbackendtrafficpolicies"
+    } else if name.starts_with("ListenerSet") {
+        "listenersets"
+    } else {
+        panic!("unknown enum prefix: {name}")
+    }
+}
+
+// -----------------------------------------------------------------------------
+// constants.rs generation
+// -----------------------------------------------------------------------------
+
+fn gen_constants(conditions: &[(&str, &[&str])]) -> String {
+    let mut out = String::from(GENERATED_HEADER);
+
+    for (name, variants) in conditions {
+        // Enum definition
+        write!(
+            out,
+            "\n#[derive(Debug, PartialEq, Eq)]\npub enum {name} {{\n"
+        )
+        .unwrap();
+        for v in *variants {
+            writeln!(out, "    {v},").unwrap();
+        }
+        out.push_str("}\n");
+
+        // Display impl
+        write!(
+            out,
+            "\nimpl std::fmt::Display for {name} {{\n    \
+                 fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {{\n        \
+                     write!(f, \"{{:?}}\", self)\n    \
+                 }}\n\
+             }}\n"
+        )
+        .unwrap();
+    }
+
+    out
 }

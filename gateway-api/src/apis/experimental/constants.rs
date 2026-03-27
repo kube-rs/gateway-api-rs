@@ -1,4 +1,4 @@
-// WARNING: generated file - manual changes will be overriden
+// WARNING: generated file — do not edit
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum GatewayClassConditionType {
