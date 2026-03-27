@@ -11,19 +11,27 @@ mod prelude {
 }
 use self::prelude::*;
 
-/// Spec defines the desired state of TCPRoute.
+/// Spec defines the desired state of TLSRoute.
 #[derive(CustomResource, Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 #[kube(
     group = "gateway.networking.k8s.io",
-    version = "v1alpha2",
-    kind = "TCPRoute",
-    plural = "tcproutes"
+    version = "v1",
+    kind = "TLSRoute",
+    plural = "tlsroutes"
 )]
 #[kube(namespaced)]
-#[kube(status = "TcpRouteStatus")]
+#[kube(status = "TlsRouteStatus")]
 #[kube(derive = "Default")]
 #[kube(derive = "PartialEq")]
-pub struct TcpRouteSpec {
+pub struct TlsRouteSpec {
+    /// Hostnames defines a set of SNI hostnames that should match against the
+    /// SNI attribute of TLS ClientHello message in TLS handshake. This matches
+    /// the RFC 1123 definition of a hostname with 2 notable exceptions:
+    ///
+    /// 1. IPs are not allowed in SNI hostnames per RFC 6066.
+    /// 2. A hostname may be prefixed with a wildcard label (`*.`). The wildcard
+    ///    label must appear by itself as the first label.
+    pub hostnames: Vec<String>,
     /// ParentRefs references the resources (usually Gateways) that a Route wants
     /// to be attached to. Note that the referenced parent resource needs to
     /// allow this for the attachment to be complete. For Gateways, that means
@@ -74,43 +82,14 @@ pub struct TcpRouteSpec {
     /// allowed by something in the namespace they are referring to. For example,
     /// Gateway has the AllowedRoutes field, and ReferenceGrant provides a
     /// generic way to enable other kinds of cross-namespace reference.
-    ///
-    ///
-    /// ParentRefs from a Route to a Service in the same namespace are "producer"
-    /// routes, which apply default routing rules to inbound connections from
-    /// any namespace to the Service.
-    ///
-    /// ParentRefs from a Route to a Service in a different namespace are
-    /// "consumer" routes, and these routing rules are only applied to outbound
-    /// connections originating from the same namespace as the Route, for which
-    /// the intended destination of the connections are a Service targeted as a
-    /// ParentRef of the Route.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         rename = "parentRefs"
     )]
-    pub parent_refs: Option<Vec<TcpRouteParentRefs>>,
-    /// Rules are a list of TCP matchers and actions.
-    pub rules: Vec<TcpRouteRules>,
-    /// UseDefaultGateways indicates the default Gateway scope to use for this
-    /// Route. If unset (the default) or set to None, the Route will not be
-    /// attached to any default Gateway; if set, it will be attached to any
-    /// default Gateway supporting the named scope, subject to the usual rules
-    /// about which Routes a Gateway is allowed to claim.
-    ///
-    /// Think carefully before using this functionality! The set of default
-    /// Gateways supporting the requested scope can change over time without
-    /// any notice to the Route author, and in many situations it will not be
-    /// appropriate to request a default Gateway for a given Route -- for
-    /// example, a Route with specific security requirements should almost
-    /// certainly not use a default Gateway.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "useDefaultGateways"
-    )]
-    pub use_default_gateways: Option<TcpRouteUseDefaultGateways>,
+    pub parent_refs: Option<Vec<TlsRouteParentRefs>>,
+    /// Rules are a list of actions.
+    pub rules: Vec<TlsRouteRules>,
 }
 
 /// ParentReference identifies an API object (usually a Gateway) that can be considered
@@ -126,7 +105,7 @@ pub struct TcpRouteSpec {
 /// The API object must be valid in the cluster; the Group and Kind must
 /// be registered in the cluster for this reference to be valid.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct TcpRouteParentRefs {
+pub struct TlsRouteParentRefs {
     /// Group is the group of the referent.
     /// When unspecified, "gateway.networking.k8s.io" is inferred.
     /// To set the core API group (such as for a "Service" kind referent),
@@ -158,18 +137,6 @@ pub struct TcpRouteParentRefs {
     /// Gateway has the AllowedRoutes field, and ReferenceGrant provides a
     /// generic way to enable any other kind of cross-namespace reference.
     ///
-    ///
-    /// ParentRefs from a Route to a Service in the same namespace are "producer"
-    /// routes, which apply default routing rules to inbound connections from
-    /// any namespace to the Service.
-    ///
-    /// ParentRefs from a Route to a Service in a different namespace are
-    /// "consumer" routes, and these routing rules are only applied to outbound
-    /// connections originating from the same namespace as the Route, for which
-    /// the intended destination of the connections are a Service targeted as a
-    /// ParentRef of the Route.
-    ///
-    ///
     /// Support: Core
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub namespace: Option<String>,
@@ -183,12 +150,6 @@ pub struct TcpRouteParentRefs {
     /// as opposed to a listener(s) whose port(s) may be changed. When both Port
     /// and SectionName are specified, the name and port of the selected listener
     /// must match both specified values.
-    ///
-    ///
-    /// When the parent resource is a Service, this targets a specific port in the
-    /// Service spec. When both Port (experimental) and SectionName are specified,
-    /// the name and port of the selected port must match both specified values.
-    ///
     ///
     /// Implementations MAY choose to support other parent resources.
     /// Implementations supporting other types of parent resources MUST clearly
@@ -237,15 +198,17 @@ pub struct TcpRouteParentRefs {
     pub section_name: Option<String>,
 }
 
-/// TCPRouteRule is the configuration for a given rule.
+/// TLSRouteRule is the configuration for a given rule.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct TcpRouteRules {
+pub struct TlsRouteRules {
     /// BackendRefs defines the backend(s) where matching requests should be
-    /// sent. If unspecified or invalid (refers to a nonexistent resource or a
-    /// Service with no endpoints), the underlying implementation MUST actively
-    /// reject connection attempts to this backend. Connection rejections must
-    /// respect weight; if an invalid backend is requested to have 80% of
-    /// connections, then 80% of connections must be rejected instead.
+    /// sent. If unspecified or invalid (refers to a nonexistent resource or
+    /// a Service with no endpoints), the rule performs no forwarding; if no
+    /// filters are specified that would result in a response being sent, the
+    /// underlying implementation must actively reject request attempts to this
+    /// backend, by rejecting the connection. Request rejections must respect
+    /// weight; if an invalid backend is requested to have 80% of requests, then
+    /// 80% of requests must be rejected instead.
     ///
     /// Support: Core for Kubernetes Service
     ///
@@ -255,10 +218,8 @@ pub struct TcpRouteRules {
     ///
     /// Support for weight: Extended
     #[serde(rename = "backendRefs")]
-    pub backend_refs: Vec<TcpRouteRulesBackendRefs>,
+    pub backend_refs: Vec<TlsRouteRulesBackendRefs>,
     /// Name is the name of the route rule. This name MUST be unique within a Route if it is set.
-    ///
-    /// Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
 }
@@ -271,27 +232,11 @@ pub struct TcpRouteRules {
 /// namespace's owner to accept the reference. See the ReferenceGrant
 /// documentation for details.
 ///
-///
-/// When the BackendRef points to a Kubernetes Service, implementations SHOULD
-/// honor the appProtocol field if it is set for the target Service Port.
-///
-/// Implementations supporting appProtocol SHOULD recognize the Kubernetes
-/// Standard Application Protocols defined in KEP-3726.
-///
-/// If a Service appProtocol isn't specified, an implementation MAY infer the
-/// backend protocol through its own means. Implementations MAY infer the
-/// protocol from the Route type referring to the backend Service.
-///
-/// If a Route is not able to send traffic to the backend using the specified
-/// protocol then the backend is considered invalid. Implementations MUST set the
-/// "ResolvedRefs" condition to "False" with the "UnsupportedProtocol" reason.
-///
-///
 /// Note that when the BackendTLSPolicy object is enabled by the implementation,
 /// there are some extra rules about validity to consider here. See the fields
 /// where this struct is used for more information about the exact behavior.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct TcpRouteRulesBackendRefs {
+pub struct TlsRouteRulesBackendRefs {
     /// Group is the group of the referent. For example, "gateway.networking.k8s.io".
     /// When unspecified or empty string, core API group is inferred.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -349,16 +294,9 @@ pub struct TcpRouteRulesBackendRefs {
     pub weight: Option<i32>,
 }
 
-/// Spec defines the desired state of TCPRoute.
-#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum TcpRouteUseDefaultGateways {
-    All,
-    None,
-}
-
-/// Status defines the current state of TCPRoute.
+/// Status defines the current state of TLSRoute.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct TcpRouteStatus {
+pub struct TlsRouteStatus {
     /// Parents is a list of parent resources (usually Gateways) that are
     /// associated with the route, and the status of the route with respect to
     /// each parent. When this route attaches to a parent, the controller that
@@ -373,13 +311,13 @@ pub struct TcpRouteStatus {
     ///
     /// A maximum of 32 Gateways will be represented in this list. An empty list
     /// means the route has not been attached to any Gateway.
-    pub parents: Vec<TcpRouteStatusParents>,
+    pub parents: Vec<TlsRouteStatusParents>,
 }
 
 /// RouteParentStatus describes the status of a route with respect to an
 /// associated Parent.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct TcpRouteStatusParents {
+pub struct TlsRouteStatusParents {
     /// Conditions describes the status of the route with respect to the Gateway.
     /// Note that the route's availability is also subject to the Gateway's own
     /// status conditions and listener status.
@@ -418,13 +356,13 @@ pub struct TcpRouteStatusParents {
     /// ParentRef corresponds with a ParentRef in the spec that this
     /// RouteParentStatus struct describes the status of.
     #[serde(rename = "parentRef")]
-    pub parent_ref: TcpRouteStatusParentsParentRef,
+    pub parent_ref: TlsRouteStatusParentsParentRef,
 }
 
 /// ParentRef corresponds with a ParentRef in the spec that this
 /// RouteParentStatus struct describes the status of.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct TcpRouteStatusParentsParentRef {
+pub struct TlsRouteStatusParentsParentRef {
     /// Group is the group of the referent.
     /// When unspecified, "gateway.networking.k8s.io" is inferred.
     /// To set the core API group (such as for a "Service" kind referent),
@@ -456,18 +394,6 @@ pub struct TcpRouteStatusParentsParentRef {
     /// Gateway has the AllowedRoutes field, and ReferenceGrant provides a
     /// generic way to enable any other kind of cross-namespace reference.
     ///
-    ///
-    /// ParentRefs from a Route to a Service in the same namespace are "producer"
-    /// routes, which apply default routing rules to inbound connections from
-    /// any namespace to the Service.
-    ///
-    /// ParentRefs from a Route to a Service in a different namespace are
-    /// "consumer" routes, and these routing rules are only applied to outbound
-    /// connections originating from the same namespace as the Route, for which
-    /// the intended destination of the connections are a Service targeted as a
-    /// ParentRef of the Route.
-    ///
-    ///
     /// Support: Core
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub namespace: Option<String>,
@@ -481,12 +407,6 @@ pub struct TcpRouteStatusParentsParentRef {
     /// as opposed to a listener(s) whose port(s) may be changed. When both Port
     /// and SectionName are specified, the name and port of the selected listener
     /// must match both specified values.
-    ///
-    ///
-    /// When the parent resource is a Service, this targets a specific port in the
-    /// Service spec. When both Port (experimental) and SectionName are specified,
-    /// the name and port of the selected port must match both specified values.
-    ///
     ///
     /// Implementations MAY choose to support other parent resources.
     /// Implementations supporting other types of parent resources MUST clearly

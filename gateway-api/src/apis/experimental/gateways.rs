@@ -48,7 +48,7 @@ pub struct GatewaySpec {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub addresses: Option<Vec<GatewayAddresses>>,
     /// AllowedListeners defines which ListenerSets can be attached to this Gateway.
-    /// While this feature is experimental, the default value is to allow no ListenerSets.
+    /// The default value is to allow no ListenerSets.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -274,17 +274,17 @@ pub struct GatewayAddresses {
 }
 
 /// AllowedListeners defines which ListenerSets can be attached to this Gateway.
-/// While this feature is experimental, the default value is to allow no ListenerSets.
+/// The default value is to allow no ListenerSets.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GatewayAllowedListeners {
     /// Namespaces defines which namespaces ListenerSets can be attached to this Gateway.
-    /// While this feature is experimental, the default value is to allow no ListenerSets.
+    /// The default value is to allow no ListenerSets.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub namespaces: Option<GatewayAllowedListenersNamespaces>,
 }
 
 /// Namespaces defines which namespaces ListenerSets can be attached to this Gateway.
-/// While this feature is experimental, the default value is to allow no ListenerSets.
+/// The default value is to allow no ListenerSets.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GatewayAllowedListenersNamespaces {
     /// From indicates where ListenerSets can attach to this Gateway. Possible
@@ -295,7 +295,7 @@ pub struct GatewayAllowedListenersNamespaces {
     /// * All: ListenerSets in all namespaces may be attached to this Gateway.
     /// * None: Only listeners defined in the Gateway's spec are allowed
     ///
-    /// While this feature is experimental, the default value None
+    /// The default value None
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub from: Option<GatewayAllowedListenersNamespacesFrom>,
     /// Selector must be specified when From is set to "Selector". In that case,
@@ -306,7 +306,7 @@ pub struct GatewayAllowedListenersNamespaces {
 }
 
 /// Namespaces defines which namespaces ListenerSets can be attached to this Gateway.
-/// While this feature is experimental, the default value is to allow no ListenerSets.
+/// The default value is to allow no ListenerSets.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
 pub enum GatewayAllowedListenersNamespacesFrom {
     All,
@@ -505,7 +505,7 @@ pub struct GatewayListeners {
     ///   the Gateway SHOULD return a 421.
     /// * If the current Listener (selected by SNI matching during ClientHello)
     ///   does not match the Host:
-    ///     * If another Listener does match the Host the Gateway SHOULD return a
+    ///     * If another Listener does match the Host, the Gateway SHOULD return a
     ///       421.
     ///     * If no other Listener matches the Host, the Gateway MUST return a
     ///       404.
@@ -842,19 +842,30 @@ pub struct GatewayTls {
 /// Support: Core
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GatewayTlsBackend {
-    /// ClientCertificateRef is a reference to an object that contains a Client
-    /// Certificate and the associated private key.
+    /// ClientCertificateRef references an object that contains a client certificate
+    /// and its associated private key. It can reference standard Kubernetes resources,
+    /// i.e., Secret, or implementation-specific custom resources.
     ///
-    /// References to a resource in different namespace are invalid UNLESS there
-    /// is a ReferenceGrant in the target namespace that allows the certificate
-    /// to be attached. If a ReferenceGrant does not allow this reference, the
-    /// "ResolvedRefs" condition MUST be set to False for this listener with the
-    /// "RefNotPermitted" reason.
+    /// A ClientCertificateRef is considered invalid if:
     ///
-    /// ClientCertificateRef can reference to standard Kubernetes resources, i.e.
-    /// Secret, or implementation-specific custom resources.
+    /// * It refers to a resource that cannot be resolved (e.g., the referenced resource
+    ///   does not exist) or is misconfigured (e.g., a Secret does not contain the keys
+    ///   named `tls.crt` and `tls.key`). In this case, the `ResolvedRefs` condition
+    ///   on the Gateway MUST be set to False with the Reason `InvalidClientCertificateRef`
+    ///   and the Message of the Condition MUST indicate why the reference is invalid.
     ///
-    /// Support: Core
+    /// * It refers to a resource in another namespace UNLESS there is a ReferenceGrant
+    ///   in the target namespace that allows the certificate to be attached.
+    ///   If a ReferenceGrant does not allow this reference, the `ResolvedRefs` condition
+    ///   on the Gateway MUST be set to False with the Reason `RefNotPermitted`.
+    ///
+    /// Implementations MAY choose to perform further validation of the certificate
+    /// content (e.g., checking expiry or enforcing specific formats). In such cases,
+    /// an implementation-specific Reason and Message MUST be set.
+    ///
+    /// Support: Core - Reference to a Kubernetes TLS Secret (with the type `kubernetes.io/tls`).
+    /// Support: Implementation-specific - Other resource kinds or Secrets with a
+    /// different type (e.g., `Opaque`).
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -863,19 +874,30 @@ pub struct GatewayTlsBackend {
     pub client_certificate_ref: Option<GatewayTlsBackendClientCertificateRef>,
 }
 
-/// ClientCertificateRef is a reference to an object that contains a Client
-/// Certificate and the associated private key.
+/// ClientCertificateRef references an object that contains a client certificate
+/// and its associated private key. It can reference standard Kubernetes resources,
+/// i.e., Secret, or implementation-specific custom resources.
 ///
-/// References to a resource in different namespace are invalid UNLESS there
-/// is a ReferenceGrant in the target namespace that allows the certificate
-/// to be attached. If a ReferenceGrant does not allow this reference, the
-/// "ResolvedRefs" condition MUST be set to False for this listener with the
-/// "RefNotPermitted" reason.
+/// A ClientCertificateRef is considered invalid if:
 ///
-/// ClientCertificateRef can reference to standard Kubernetes resources, i.e.
-/// Secret, or implementation-specific custom resources.
+/// * It refers to a resource that cannot be resolved (e.g., the referenced resource
+///   does not exist) or is misconfigured (e.g., a Secret does not contain the keys
+///   named `tls.crt` and `tls.key`). In this case, the `ResolvedRefs` condition
+///   on the Gateway MUST be set to False with the Reason `InvalidClientCertificateRef`
+///   and the Message of the Condition MUST indicate why the reference is invalid.
 ///
-/// Support: Core
+/// * It refers to a resource in another namespace UNLESS there is a ReferenceGrant
+///   in the target namespace that allows the certificate to be attached.
+///   If a ReferenceGrant does not allow this reference, the `ResolvedRefs` condition
+///   on the Gateway MUST be set to False with the Reason `RefNotPermitted`.
+///
+/// Implementations MAY choose to perform further validation of the certificate
+/// content (e.g., checking expiry or enforcing specific formats). In such cases,
+/// an implementation-specific Reason and Message MUST be set.
+///
+/// Support: Core - Reference to a Kubernetes TLS Secret (with the type `kubernetes.io/tls`).
+/// Support: Implementation-specific - Other resource kinds or Secrets with a
+/// different type (e.g., `Opaque`).
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GatewayTlsBackendClientCertificateRef {
     /// Group is the group of the referent. For example, "gateway.networking.k8s.io".
@@ -948,27 +970,49 @@ pub struct GatewayTlsFrontendDefault {
 /// Support: Core
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GatewayTlsFrontendDefaultValidation {
-    /// CACertificateRefs contains one or more references to
-    /// Kubernetes objects that contain TLS certificates of
-    /// the Certificate Authorities that can be used
-    /// as a trust anchor to validate the certificates presented by the client.
+    /// CACertificateRefs contains one or more references to Kubernetes
+    /// objects that contain a PEM-encoded TLS CA certificate bundle, which
+    /// is used as a trust anchor to validate the certificates presented by
+    /// the client.
     ///
-    /// A single CA certificate reference to a Kubernetes ConfigMap
-    /// has "Core" support.
-    /// Implementations MAY choose to support attaching multiple CA certificates to
-    /// a Listener, but this behavior is implementation-specific.
+    /// A CACertificateRef is invalid if:
     ///
-    /// Support: Core - A single reference to a Kubernetes ConfigMap
-    /// with the CA certificate in a key named `ca.crt`.
+    /// * It refers to a resource that cannot be resolved (e.g., the
+    ///   referenced resource does not exist) or is misconfigured (e.g., a
+    ///   ConfigMap does not contain a key named `ca.crt`). In this case, the
+    ///   Reason on all matching HTTPS listeners must be set to `InvalidCACertificateRef`
+    ///   and the Message of the Condition must indicate which reference is invalid and why.
     ///
-    /// Support: Implementation-specific (More than one certificate in a ConfigMap
-    /// with different keys or more than one reference, or other kinds of resources).
+    /// * It refers to an unknown or unsupported kind of resource. In this
+    ///   case, the Reason on all matching HTTPS listeners must be set to
+    ///   `InvalidCACertificateKind` and the Message of the Condition must explain
+    ///   which kind of resource is unknown or unsupported.
     ///
-    /// References to a resource in a different namespace are invalid UNLESS there
-    /// is a ReferenceGrant in the target namespace that allows the certificate
-    /// to be attached. If a ReferenceGrant does not allow this reference, the
-    /// "ResolvedRefs" condition MUST be set to False for this listener with the
-    /// "RefNotPermitted" reason.
+    /// * It refers to a resource in another namespace UNLESS there is a
+    ///   ReferenceGrant in the target namespace that allows the CA
+    ///   certificate to be attached. If a ReferenceGrant does not allow this
+    ///   reference, the `ResolvedRefs` on all matching HTTPS listeners condition
+    ///   MUST be set with the Reason `RefNotPermitted`.
+    ///
+    /// Implementations MAY choose to perform further validation of the
+    /// certificate content (e.g., checking expiry or enforcing specific formats).
+    /// In such cases, an implementation-specific Reason and Message MUST be set.
+    ///
+    /// In all cases, the implementation MUST ensure that the `ResolvedRefs`
+    /// condition is set to `status: False` on all targeted listeners (i.e.,
+    /// listeners serving HTTPS on a matching port). The condition MUST
+    /// include a Reason and Message that indicate the cause of the error. If
+    /// ALL CACertificateRefs are invalid, the implementation MUST also ensure
+    /// the `Accepted` condition on the listener is set to `status: False`, with
+    /// the Reason `NoValidCACertificate`.
+    /// Implementations MAY choose to support attaching multiple CA certificates
+    /// to a listener, but this behavior is implementation-specific.
+    ///
+    /// Support: Core - A single reference to a Kubernetes ConfigMap, with the
+    /// CA certificate in a key named `ca.crt`.
+    ///
+    /// Support: Implementation-specific - More than one reference, other kinds
+    /// of resources, or a single reference that includes multiple certificates.
     #[serde(rename = "caCertificateRefs")]
     pub ca_certificate_refs: Vec<GatewayTlsFrontendDefaultValidationCaCertificateRefs>,
     /// FrontendValidationMode defines the mode for validating the client certificate.
@@ -1075,27 +1119,49 @@ pub struct GatewayTlsFrontendPerPortTls {
 /// Support: Core
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GatewayTlsFrontendPerPortTlsValidation {
-    /// CACertificateRefs contains one or more references to
-    /// Kubernetes objects that contain TLS certificates of
-    /// the Certificate Authorities that can be used
-    /// as a trust anchor to validate the certificates presented by the client.
+    /// CACertificateRefs contains one or more references to Kubernetes
+    /// objects that contain a PEM-encoded TLS CA certificate bundle, which
+    /// is used as a trust anchor to validate the certificates presented by
+    /// the client.
     ///
-    /// A single CA certificate reference to a Kubernetes ConfigMap
-    /// has "Core" support.
-    /// Implementations MAY choose to support attaching multiple CA certificates to
-    /// a Listener, but this behavior is implementation-specific.
+    /// A CACertificateRef is invalid if:
     ///
-    /// Support: Core - A single reference to a Kubernetes ConfigMap
-    /// with the CA certificate in a key named `ca.crt`.
+    /// * It refers to a resource that cannot be resolved (e.g., the
+    ///   referenced resource does not exist) or is misconfigured (e.g., a
+    ///   ConfigMap does not contain a key named `ca.crt`). In this case, the
+    ///   Reason on all matching HTTPS listeners must be set to `InvalidCACertificateRef`
+    ///   and the Message of the Condition must indicate which reference is invalid and why.
     ///
-    /// Support: Implementation-specific (More than one certificate in a ConfigMap
-    /// with different keys or more than one reference, or other kinds of resources).
+    /// * It refers to an unknown or unsupported kind of resource. In this
+    ///   case, the Reason on all matching HTTPS listeners must be set to
+    ///   `InvalidCACertificateKind` and the Message of the Condition must explain
+    ///   which kind of resource is unknown or unsupported.
     ///
-    /// References to a resource in a different namespace are invalid UNLESS there
-    /// is a ReferenceGrant in the target namespace that allows the certificate
-    /// to be attached. If a ReferenceGrant does not allow this reference, the
-    /// "ResolvedRefs" condition MUST be set to False for this listener with the
-    /// "RefNotPermitted" reason.
+    /// * It refers to a resource in another namespace UNLESS there is a
+    ///   ReferenceGrant in the target namespace that allows the CA
+    ///   certificate to be attached. If a ReferenceGrant does not allow this
+    ///   reference, the `ResolvedRefs` on all matching HTTPS listeners condition
+    ///   MUST be set with the Reason `RefNotPermitted`.
+    ///
+    /// Implementations MAY choose to perform further validation of the
+    /// certificate content (e.g., checking expiry or enforcing specific formats).
+    /// In such cases, an implementation-specific Reason and Message MUST be set.
+    ///
+    /// In all cases, the implementation MUST ensure that the `ResolvedRefs`
+    /// condition is set to `status: False` on all targeted listeners (i.e.,
+    /// listeners serving HTTPS on a matching port). The condition MUST
+    /// include a Reason and Message that indicate the cause of the error. If
+    /// ALL CACertificateRefs are invalid, the implementation MUST also ensure
+    /// the `Accepted` condition on the listener is set to `status: False`, with
+    /// the Reason `NoValidCACertificate`.
+    /// Implementations MAY choose to support attaching multiple CA certificates
+    /// to a listener, but this behavior is implementation-specific.
+    ///
+    /// Support: Core - A single reference to a Kubernetes ConfigMap, with the
+    /// CA certificate in a key named `ca.crt`.
+    ///
+    /// Support: Implementation-specific - More than one reference, other kinds
+    /// of resources, or a single reference that includes multiple certificates.
     #[serde(rename = "caCertificateRefs")]
     pub ca_certificate_refs: Vec<GatewayTlsFrontendPerPortTlsValidationCaCertificateRefs>,
     /// FrontendValidationMode defines the mode for validating the client certificate.
@@ -1175,6 +1241,22 @@ pub struct GatewayStatus {
     ///   * a specified address was unusable (e.g. already in use)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub addresses: Option<Vec<GatewayStatusAddresses>>,
+    /// AttachedListenerSets represents the total number of ListenerSets that have been
+    /// successfully attached to this Gateway.
+    ///
+    /// A ListenerSet is successfully attached to a Gateway when all the following conditions are met:
+    /// - The ListenerSet is selected by the Gateway's AllowedListeners field
+    /// - The ListenerSet has a valid ParentRef selecting the Gateway
+    /// - The ListenerSet's status has the condition "Accepted: true"
+    ///
+    /// Uses for this field include troubleshooting AttachedListenerSets attachment and
+    /// measuring blast radius/impact of changes to a Gateway.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "attachedListenerSets"
+    )]
+    pub attached_listener_sets: Option<i32>,
     /// Conditions describe the current conditions of the Gateway.
     ///
     /// Implementations should prefer to express Gateway conditions
@@ -1222,8 +1304,11 @@ pub struct GatewayStatusListeners {
     /// attachment semantics can be found in the documentation on the various
     /// Route kinds ParentRefs fields). Listener or Route status does not impact
     /// successful attachment, i.e. the AttachedRoutes field count MUST be set
-    /// for Listeners with condition Accepted: false and MUST count successfully
-    /// attached Routes that may themselves have Accepted: false conditions.
+    /// for Listeners, even if the Accepted condition of an individual Listener is set
+    /// to "False". The AttachedRoutes number represents the number of Routes with
+    /// the Accepted condition set to "True" that have been attached to this Listener.
+    /// Routes with any other value for the Accepted condition MUST NOT be included
+    /// in this count.
     ///
     /// Uses for this field include troubleshooting Route attachment and
     /// measuring blast radius/impact of changes to a Listener.
@@ -1234,7 +1319,7 @@ pub struct GatewayStatusListeners {
     /// Name is the name of the Listener that this status corresponds to.
     pub name: String,
     /// SupportedKinds is the list indicating the Kinds supported by this
-    /// listener. This MUST represent the kinds an implementation supports for
+    /// listener. This MUST represent the kinds supported by an implementation for
     /// that Listener configuration.
     ///
     /// If kinds are specified in Spec that are not supported, they MUST NOT
@@ -1242,8 +1327,12 @@ pub struct GatewayStatusListeners {
     /// condition to "False" with the "InvalidRouteKinds" reason. If both valid
     /// and invalid Route kinds are specified, the implementation MUST
     /// reference the valid Route kinds that have been specified.
-    #[serde(rename = "supportedKinds")]
-    pub supported_kinds: Vec<GatewayStatusListenersSupportedKinds>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "supportedKinds"
+    )]
+    pub supported_kinds: Option<Vec<GatewayStatusListenersSupportedKinds>>,
 }
 
 /// RouteGroupKind indicates the group and kind of a Route resource.

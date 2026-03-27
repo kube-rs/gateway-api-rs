@@ -92,7 +92,7 @@ mod tests {
         gw_status.listeners = Some(vec![GatewayStatusListeners {
             name: "tcp".into(),
             attached_routes: 0,
-            supported_kinds: vec![],
+            supported_kinds: Some(vec![]),
             conditions: vec![Condition {
                 last_transition_time: Time(Utc::now()),
                 message: "testing gateway".to_string(),

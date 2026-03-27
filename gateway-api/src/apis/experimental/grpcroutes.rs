@@ -689,6 +689,9 @@ pub struct GrpcRouteRulesBackendRefsFiltersRequestHeaderModifierAdd {
     /// equivalent.
     pub name: String,
     /// Value is the value of HTTP Header to be matched.
+    ///
+    /// Must consist of printable US-ASCII characters, optionally separated
+    /// by single tabs or spaces. See: <https://tools.ietf.org/html/rfc7230#section-3.2>
     pub value: String,
 }
 
@@ -705,6 +708,9 @@ pub struct GrpcRouteRulesBackendRefsFiltersRequestHeaderModifierSet {
     /// equivalent.
     pub name: String,
     /// Value is the value of HTTP Header to be matched.
+    ///
+    /// Must consist of printable US-ASCII characters, optionally separated
+    /// by single tabs or spaces. See: <https://tools.ietf.org/html/rfc7230#section-3.2>
     pub value: String,
 }
 
@@ -915,6 +921,9 @@ pub struct GrpcRouteRulesBackendRefsFiltersResponseHeaderModifierAdd {
     /// equivalent.
     pub name: String,
     /// Value is the value of HTTP Header to be matched.
+    ///
+    /// Must consist of printable US-ASCII characters, optionally separated
+    /// by single tabs or spaces. See: <https://tools.ietf.org/html/rfc7230#section-3.2>
     pub value: String,
 }
 
@@ -931,6 +940,9 @@ pub struct GrpcRouteRulesBackendRefsFiltersResponseHeaderModifierSet {
     /// equivalent.
     pub name: String,
     /// Value is the value of HTTP Header to be matched.
+    ///
+    /// Must consist of printable US-ASCII characters, optionally separated
+    /// by single tabs or spaces. See: <https://tools.ietf.org/html/rfc7230#section-3.2>
     pub value: String,
 }
 
@@ -1127,6 +1139,9 @@ pub struct GrpcRouteRulesFiltersRequestHeaderModifierAdd {
     /// equivalent.
     pub name: String,
     /// Value is the value of HTTP Header to be matched.
+    ///
+    /// Must consist of printable US-ASCII characters, optionally separated
+    /// by single tabs or spaces. See: <https://tools.ietf.org/html/rfc7230#section-3.2>
     pub value: String,
 }
 
@@ -1143,6 +1158,9 @@ pub struct GrpcRouteRulesFiltersRequestHeaderModifierSet {
     /// equivalent.
     pub name: String,
     /// Value is the value of HTTP Header to be matched.
+    ///
+    /// Must consist of printable US-ASCII characters, optionally separated
+    /// by single tabs or spaces. See: <https://tools.ietf.org/html/rfc7230#section-3.2>
     pub value: String,
 }
 
@@ -1353,6 +1371,9 @@ pub struct GrpcRouteRulesFiltersResponseHeaderModifierAdd {
     /// equivalent.
     pub name: String,
     /// Value is the value of HTTP Header to be matched.
+    ///
+    /// Must consist of printable US-ASCII characters, optionally separated
+    /// by single tabs or spaces. See: <https://tools.ietf.org/html/rfc7230#section-3.2>
     pub value: String,
 }
 
@@ -1369,6 +1390,9 @@ pub struct GrpcRouteRulesFiltersResponseHeaderModifierSet {
     /// equivalent.
     pub name: String,
     /// Value is the value of HTTP Header to be matched.
+    ///
+    /// Must consist of printable US-ASCII characters, optionally separated
+    /// by single tabs or spaces. See: <https://tools.ietf.org/html/rfc7230#section-3.2>
     pub value: String,
 }
 
@@ -1398,8 +1422,8 @@ pub enum GrpcRouteRulesFiltersType {
 ///   - method:
 ///     type: Exact
 ///     service: "foo"
-///     headers:
-///   - name: "version"
+///   - headers:
+///     name: "version"
 ///     value "v1"
 ///
 /// ```
@@ -1528,7 +1552,7 @@ pub struct GrpcRouteRulesSessionPersistence {
     )]
     pub session_name: Option<String>,
     /// Type defines the type of session persistence such as through
-    /// the use a header or cookie. Defaults to cookie based session
+    /// the use of a header or cookie. Defaults to cookie based session
     /// persistence.
     ///
     /// Support: Core for "Cookie" type
@@ -1640,7 +1664,7 @@ pub struct GrpcRouteStatusParents {
     ///
     /// * The Route refers to a nonexistent parent.
     /// * The Route is of a type that the controller does not support.
-    /// * The Route is in a namespace the controller does not have access to.
+    /// * The Route is in a namespace to which the controller does not have access.
     pub conditions: Vec<Condition>,
     /// ControllerName is a domain/path string that indicates the name of the
     /// controller that wrote this status. This corresponds with the

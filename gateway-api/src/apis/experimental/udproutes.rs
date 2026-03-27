@@ -398,7 +398,7 @@ pub struct UdpRouteStatusParents {
     ///
     /// * The Route refers to a nonexistent parent.
     /// * The Route is of a type that the controller does not support.
-    /// * The Route is in a namespace the controller does not have access to.
+    /// * The Route is in a namespace to which the controller does not have access.
     pub conditions: Vec<Condition>,
     /// ControllerName is a domain/path string that indicates the name of the
     /// controller that wrote this status. This corresponds with the

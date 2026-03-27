@@ -14,7 +14,7 @@ use self::prelude::*;
 #[derive(CustomResource, Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 #[kube(
     group = "gateway.networking.k8s.io",
-    version = "v1beta1",
+    version = "v1",
     kind = "ReferenceGrant",
     plural = "referencegrants"
 )]
