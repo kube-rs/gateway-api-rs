@@ -1,4 +1,6 @@
 GATEWAY_API_VERSION ?= v1.5.1
+KIND_CLUSTER_NAME ?= gateway-api-test
+KIND_KUBECONFIG := /tmp/$(KIND_CLUSTER_NAME)-kubeconfig
 
 .PHONY: all
 all: build generate
@@ -23,5 +25,17 @@ test.unit:
 	cargo test -vv -- --nocapture
 
 .PHONY: test.integration
-test.integration:
-	cargo test -vv -- --nocapture --ignored
+test.integration: kind.start
+	@trap '$(MAKE) kind.stop' EXIT; \
+	KUBECONFIG=$(KIND_KUBECONFIG) cargo test -vv -- --nocapture --ignored
+
+.PHONY: kind.start
+kind.start:
+	@kind get clusters 2>/dev/null | grep -q '^$(KIND_CLUSTER_NAME)$$' || \
+		kind create cluster --name $(KIND_CLUSTER_NAME)
+	@kind get kubeconfig --name $(KIND_CLUSTER_NAME) > $(KIND_KUBECONFIG)
+
+.PHONY: kind.stop
+kind.stop:
+	@kind delete cluster --name $(KIND_CLUSTER_NAME) 2>/dev/null || true
+	@rm -f $(KIND_KUBECONFIG)

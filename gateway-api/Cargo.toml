@@ -32,7 +32,6 @@ anyhow.workspace = true
 hyper-util.workspace = true
 tokio.workspace = true
 tower.workspace = true
-uuid.workspace = true
 
 [package.metadata.docs.rs]
 features = ["k8s-openapi/v1_32"]
