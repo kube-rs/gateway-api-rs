@@ -1,4 +1,4 @@
-GATEWAY_API_VERSION ?= v1.4.1
+GATEWAY_API_VERSION ?= v1.5.1
 
 .PHONY: all
 all: build generate

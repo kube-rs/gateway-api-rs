@@ -12,11 +12,11 @@
 
 # Gateway API (Rust)
 
-> **Note**: Currently supports [Gateway API version v1.4.1][gwv]
+> **Note**: Currently supports [Gateway API version v1.5.1][gwv]
 
 This project provides bindings in [Rust] for [Kubernetes] [Gateway API].
 
-[gwv]:https://github.com/kubernetes-sigs/gateway-api/releases/tag/v1.4.1
+[gwv]:https://github.com/kubernetes-sigs/gateway-api/releases/tag/v1.5.1
 [Rust]:https://rust-lang.org
 [Kubernetes]:https://kubernetes.io/
 [Gateway API]:https://gateway-api.sigs.k8s.io/
@@ -43,15 +43,20 @@ generator:
 $ cargo install kopium --version 0.21.1
 ```
 
-After which you can run the `update.sh` script:
+After which you can run the generator:
 
 ```console
-$ ./update.sh
+$ make generate
 ```
 
-Check for errors and/or a non-zero exit code, but upon success you should see
-updates automatically generated for code in the `gateway-api/src/api` directory
-which you can then commit.
+Or with a specific version:
+
+```console
+$ make generate GATEWAY_API_VERSION=v1.5.1
+```
+
+Upon success you should see updates automatically generated for code in the
+`gateway-api/src/apis/` directory which you can then commit.
 
 [Kopium]:https://github.com/kube-rs/kopium
 
