@@ -12,6 +12,23 @@ on:
   workflow_dispatch: {}
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+
+      - name: install rust
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt, clippy
+
+      - name: install cargo-deny
+        run: cargo install --locked cargo-deny
+
+      - name: run lints
+        run: make lint
+
   tests:
     runs-on: ubuntu-latest
     steps:

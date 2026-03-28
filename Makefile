@@ -13,6 +13,18 @@ clean:
 build:
 	cargo build
 
+.PHONY: fmt
+fmt:
+	cargo +nightly fmt
+
+.PHONY: lint
+lint: fmt
+	cargo deny check
+	cargo clippy --all-targets --all-features -- -D warnings \
+		-A clippy::doc_lazy_continuation \
+		-A clippy::tabs_in_doc_comments \
+		-A clippy::derivable_impls
+
 .PHONY: generate
 generate:
 	cargo xtask generate $(GATEWAY_API_VERSION)
