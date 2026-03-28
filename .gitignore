@@ -2,3 +2,4 @@ target
 
 *.md
 !README.md
+!DEVELOPMENT.md
