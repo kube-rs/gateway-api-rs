@@ -93,11 +93,7 @@ pub struct TlsRouteSpec {
     /// connections originating from the same namespace as the Route, for which
     /// the intended destination of the connections are a Service targeted as a
     /// ParentRef of the Route.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "parentRefs"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "parentRefs")]
     pub parent_refs: Option<Vec<TlsRouteParentRefs>>,
     /// Rules are a list of actions.
     pub rules: Vec<TlsRouteRules>,
@@ -113,11 +109,7 @@ pub struct TlsRouteSpec {
     /// appropriate to request a default Gateway for a given Route -- for
     /// example, a Route with specific security requirements should almost
     /// certainly not use a default Gateway.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "useDefaultGateways"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "useDefaultGateways")]
     pub use_default_gateways: Option<TlsRouteUseDefaultGateways>,
 }
 
@@ -237,11 +229,7 @@ pub struct TlsRouteParentRefs {
     /// Route MUST be considered detached from the Gateway.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sectionName"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sectionName")]
     pub section_name: Option<String>,
 }
 
@@ -535,10 +523,6 @@ pub struct TlsRouteStatusParentsParentRef {
     /// Route MUST be considered detached from the Gateway.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sectionName"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sectionName")]
     pub section_name: Option<String>,
 }

@@ -1,15 +1,16 @@
 use std::time::Duration;
 
 use anyhow::{Result, bail};
-use hyper_util::client::legacy::Client as HttpClient;
-use hyper_util::rt::TokioExecutor;
+use hyper_util::{client::legacy::Client as HttpClient, rt::TokioExecutor};
 use k8s_openapi::apiextensions_apiserver::pkg::apis::apiextensions::v1::CustomResourceDefinition;
-use kube::api::PostParams;
-use kube::config::{KubeConfigOptions, Kubeconfig};
-use kube::{Api, Client, Config, CustomResourceExt, client::ConfigExt};
+use kube::{
+    Api, Client, Config, CustomResourceExt,
+    api::PostParams,
+    client::ConfigExt,
+    config::{KubeConfigOptions, Kubeconfig},
+};
 use tokio::sync::OnceCell;
-use tower::BoxError;
-use tower::ServiceBuilder;
+use tower::{BoxError, ServiceBuilder};
 
 // -----------------------------------------------------------------------------
 // Shared cluster state
@@ -23,14 +24,11 @@ static CLIENT_INIT: OnceCell<String> = OnceCell::const_new();
 pub async fn client() -> Client {
     let kubeconfig = CLIENT_INIT
         .get_or_init(|| async {
-            let path = std::env::var("KUBECONFIG")
-                .expect("KUBECONFIG env var must be set for integration tests");
-            let kubeconfig = std::fs::read_to_string(&path)
-                .unwrap_or_else(|e| panic!("failed to read KUBECONFIG at {path}: {e}"));
+            let path = std::env::var("KUBECONFIG").expect("KUBECONFIG env var must be set for integration tests");
+            let kubeconfig =
+                std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("failed to read KUBECONFIG at {path}: {e}"));
 
-            let client = make_client(&kubeconfig)
-                .await
-                .expect("failed to create kube client");
+            let client = make_client(&kubeconfig).await.expect("failed to create kube client");
 
             deploy_standard_crds(&client)
                 .await
@@ -45,9 +43,7 @@ pub async fn client() -> Client {
         })
         .await;
 
-    make_client(kubeconfig)
-        .await
-        .expect("failed to create kube client")
+    make_client(kubeconfig).await.expect("failed to create kube client")
 }
 
 // -----------------------------------------------------------------------------
@@ -56,8 +52,7 @@ pub async fn client() -> Client {
 
 async fn make_client(kubeconfig_yaml: &str) -> Result<Client> {
     let kubeconfig = Kubeconfig::from_yaml(kubeconfig_yaml)?;
-    let config =
-        Config::from_custom_kubeconfig(kubeconfig, &KubeConfigOptions::default()).await?;
+    let config = Config::from_custom_kubeconfig(kubeconfig, &KubeConfigOptions::default()).await?;
 
     let https = config.rustls_https_connector()?;
     let http_client = HttpClient::builder(TokioExecutor::new()).build(https);
@@ -101,14 +96,10 @@ async fn deploy_crd(client: &Client, mut crd: CustomResourceDefinition) -> Resul
 }
 
 async fn deploy_standard_crds(client: &Client) -> Result<()> {
-    use gateway_api::backendtlspolicies::BackendTLSPolicy;
-    use gateway_api::gatewayclasses::GatewayClass;
-    use gateway_api::gateways::Gateway;
-    use gateway_api::grpcroutes::GRPCRoute;
-    use gateway_api::httproutes::HTTPRoute;
-    use gateway_api::listenersets::ListenerSet;
-    use gateway_api::referencegrants::ReferenceGrant;
-    use gateway_api::tlsroutes::TLSRoute;
+    use gateway_api::{
+        backendtlspolicies::BackendTLSPolicy, gatewayclasses::GatewayClass, gateways::Gateway, grpcroutes::GRPCRoute,
+        httproutes::HTTPRoute, listenersets::ListenerSet, referencegrants::ReferenceGrant, tlsroutes::TLSRoute,
+    };
 
     deploy_crd(client, BackendTLSPolicy::crd()).await?;
     deploy_crd(client, GatewayClass::crd()).await?;
@@ -123,10 +114,9 @@ async fn deploy_standard_crds(client: &Client) -> Result<()> {
 
 #[cfg(feature = "experimental")]
 async fn deploy_experimental_crds(client: &Client) -> Result<()> {
-    use gateway_api::experimental::tcproutes::TCPRoute;
-    use gateway_api::experimental::udproutes::UDPRoute;
-    use gateway_api::experimental::xbackendtrafficpolicies::XBackendTrafficPolicy;
-    use gateway_api::experimental::xmeshes::XMesh;
+    use gateway_api::experimental::{
+        tcproutes::TCPRoute, udproutes::UDPRoute, xbackendtrafficpolicies::XBackendTrafficPolicy, xmeshes::XMesh,
+    };
 
     deploy_crd(client, TCPRoute::crd()).await?;
     deploy_crd(client, UDPRoute::crd()).await?;

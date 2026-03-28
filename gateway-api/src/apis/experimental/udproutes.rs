@@ -85,11 +85,7 @@ pub struct UdpRouteSpec {
     /// connections originating from the same namespace as the Route, for which
     /// the intended destination of the connections are a Service targeted as a
     /// ParentRef of the Route.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "parentRefs"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "parentRefs")]
     pub parent_refs: Option<Vec<UdpRouteParentRefs>>,
     /// Rules are a list of UDP matchers and actions.
     pub rules: Vec<UdpRouteRules>,
@@ -105,11 +101,7 @@ pub struct UdpRouteSpec {
     /// appropriate to request a default Gateway for a given Route -- for
     /// example, a Route with specific security requirements should almost
     /// certainly not use a default Gateway.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "useDefaultGateways"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "useDefaultGateways")]
     pub use_default_gateways: Option<UdpRouteUseDefaultGateways>,
 }
 
@@ -229,11 +221,7 @@ pub struct UdpRouteParentRefs {
     /// Route MUST be considered detached from the Gateway.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sectionName"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sectionName")]
     pub section_name: Option<String>,
 }
 
@@ -527,10 +515,6 @@ pub struct UdpRouteStatusParentsParentRef {
     /// Route MUST be considered detached from the Gateway.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sectionName"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sectionName")]
     pub section_name: Option<String>,
 }

@@ -1,14 +1,16 @@
-use gateway_api::constants::{
-    GatewayConditionReason, GatewayConditionType, ListenerConditionReason, ListenerConditionType,
+use gateway_api::{
+    constants::{GatewayConditionReason, GatewayConditionType, ListenerConditionReason, ListenerConditionType},
+    gateways::{Gateway, GatewaySpec, GatewayStatus, GatewayStatusAddresses, GatewayStatusListeners},
 };
-use gateway_api::gateways::{
-    Gateway, GatewaySpec, GatewayStatus, GatewayStatusAddresses, GatewayStatusListeners,
+use k8s_openapi::{
+    apimachinery::pkg::apis::meta::v1::{Condition, Time},
+    jiff::Timestamp,
 };
-use k8s_openapi::apimachinery::pkg::apis::meta::v1::{Condition, Time};
-use k8s_openapi::chrono::Utc;
-use kube::Api;
-use kube::api::{Patch, PatchParams, PostParams};
-use kube::core::ObjectMeta;
+use kube::{
+    Api,
+    api::{Patch, PatchParams, PostParams},
+    core::ObjectMeta,
+};
 use serde_json::json;
 
 use crate::common;
@@ -46,7 +48,7 @@ async fn crud_with_status() {
             attached_routes: 0,
             supported_kinds: Some(vec![]),
             conditions: vec![Condition {
-                last_transition_time: Time(Utc::now()),
+                last_transition_time: Time(Timestamp::now()),
                 message: "testing gateway".into(),
                 observed_generation: Some(1),
                 reason: ListenerConditionReason::Programmed.to_string(),
@@ -55,7 +57,7 @@ async fn crud_with_status() {
             }],
         }]),
         conditions: Some(vec![Condition {
-            last_transition_time: Time(Utc::now()),
+            last_transition_time: Time(Timestamp::now()),
             message: "testing gateway".into(),
             observed_generation: Some(1),
             reason: GatewayConditionReason::Programmed.to_string(),

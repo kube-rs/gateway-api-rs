@@ -1,7 +1,5 @@
 use gateway_api::experimental::grpcroutes::{GRPCRoute, GrpcRouteSpec};
-use kube::Api;
-use kube::api::PostParams;
-use kube::core::ObjectMeta;
+use kube::{Api, api::PostParams, core::ObjectMeta};
 
 use crate::common;
 

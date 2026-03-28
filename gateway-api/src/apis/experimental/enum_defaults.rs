@@ -1,13 +1,13 @@
 // WARNING: generated file — do not edit
 
-use super::grpcroutes::{GrpcRouteRulesBackendRefsFiltersType, GrpcRouteRulesFiltersType};
-
-use super::httproutes::{
-    HttpRouteRulesBackendRefsFiltersExternalAuthProtocol,
-    HttpRouteRulesBackendRefsFiltersRequestRedirectPathType, HttpRouteRulesBackendRefsFiltersType,
-    HttpRouteRulesBackendRefsFiltersUrlRewritePathType, HttpRouteRulesFiltersExternalAuthProtocol,
-    HttpRouteRulesFiltersRequestRedirectPathType, HttpRouteRulesFiltersType,
-    HttpRouteRulesFiltersUrlRewritePathType,
+use super::{
+    grpcroutes::{GrpcRouteRulesBackendRefsFiltersType, GrpcRouteRulesFiltersType},
+    httproutes::{
+        HttpRouteRulesBackendRefsFiltersExternalAuthProtocol, HttpRouteRulesBackendRefsFiltersRequestRedirectPathType,
+        HttpRouteRulesBackendRefsFiltersType, HttpRouteRulesBackendRefsFiltersUrlRewritePathType,
+        HttpRouteRulesFiltersExternalAuthProtocol, HttpRouteRulesFiltersRequestRedirectPathType,
+        HttpRouteRulesFiltersType, HttpRouteRulesFiltersUrlRewritePathType,
+    },
 };
 
 impl Default for GrpcRouteRulesBackendRefsFiltersType {

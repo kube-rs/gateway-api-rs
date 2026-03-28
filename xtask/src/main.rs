@@ -80,27 +80,15 @@ const STANDARD: Channel = Channel {
     ],
     enum_defaults: &[
         ("BackendTlsPolicyValidationSubjectAltNamesType", "Hostname"),
-        (
-            "GrpcRouteRulesBackendRefsFiltersType",
-            "RequestHeaderModifier",
-        ),
+        ("GrpcRouteRulesBackendRefsFiltersType", "RequestHeaderModifier"),
         ("GrpcRouteRulesFiltersType", "RequestHeaderModifier"),
         (
             "HttpRouteRulesBackendRefsFiltersRequestRedirectPathType",
             "ReplaceFullPath",
         ),
-        (
-            "HttpRouteRulesBackendRefsFiltersType",
-            "RequestHeaderModifier",
-        ),
-        (
-            "HttpRouteRulesBackendRefsFiltersUrlRewritePathType",
-            "ReplaceFullPath",
-        ),
-        (
-            "HttpRouteRulesFiltersRequestRedirectPathType",
-            "ReplaceFullPath",
-        ),
+        ("HttpRouteRulesBackendRefsFiltersType", "RequestHeaderModifier"),
+        ("HttpRouteRulesBackendRefsFiltersUrlRewritePathType", "ReplaceFullPath"),
+        ("HttpRouteRulesFiltersRequestRedirectPathType", "ReplaceFullPath"),
         ("HttpRouteRulesFiltersType", "RequestHeaderModifier"),
         ("HttpRouteRulesFiltersUrlRewritePathType", "ReplaceFullPath"),
     ],
@@ -108,13 +96,7 @@ const STANDARD: Channel = Channel {
         ("GatewayClassConditionType", &["Accepted"]),
         (
             "GatewayClassConditionReason",
-            &[
-                "Accepted",
-                "InvalidParameters",
-                "Pending",
-                "Unsupported",
-                "Waiting",
-            ],
+            &["Accepted", "InvalidParameters", "Pending", "Unsupported", "Waiting"],
         ),
         ("GatewayConditionType", &["Programmed", "Accepted", "Ready"]),
         (
@@ -136,13 +118,7 @@ const STANDARD: Channel = Channel {
         ),
         (
             "ListenerConditionType",
-            &[
-                "Conflicted",
-                "Accepted",
-                "ResolvedRefs",
-                "Programmed",
-                "Ready",
-            ],
+            &["Conflicted", "Accepted", "ResolvedRefs", "Programmed", "Ready"],
         ),
         (
             "ListenerConditionReason",
@@ -182,40 +158,22 @@ const EXPERIMENTAL: Channel = Channel {
         Api::experimental("xmeshes"),
     ],
     enum_defaults: &[
-        (
-            "GrpcRouteRulesBackendRefsFiltersType",
-            "RequestHeaderModifier",
-        ),
+        ("GrpcRouteRulesBackendRefsFiltersType", "RequestHeaderModifier"),
         ("GrpcRouteRulesFiltersType", "RequestHeaderModifier"),
-        (
-            "HttpRouteRulesBackendRefsFiltersExternalAuthProtocol",
-            "Http",
-        ),
+        ("HttpRouteRulesBackendRefsFiltersExternalAuthProtocol", "Http"),
         (
             "HttpRouteRulesBackendRefsFiltersRequestRedirectPathType",
             "ReplaceFullPath",
         ),
-        (
-            "HttpRouteRulesBackendRefsFiltersType",
-            "RequestHeaderModifier",
-        ),
-        (
-            "HttpRouteRulesBackendRefsFiltersUrlRewritePathType",
-            "ReplaceFullPath",
-        ),
+        ("HttpRouteRulesBackendRefsFiltersType", "RequestHeaderModifier"),
+        ("HttpRouteRulesBackendRefsFiltersUrlRewritePathType", "ReplaceFullPath"),
         ("HttpRouteRulesFiltersExternalAuthProtocol", "Http"),
-        (
-            "HttpRouteRulesFiltersRequestRedirectPathType",
-            "ReplaceFullPath",
-        ),
+        ("HttpRouteRulesFiltersRequestRedirectPathType", "ReplaceFullPath"),
         ("HttpRouteRulesFiltersType", "RequestHeaderModifier"),
         ("HttpRouteRulesFiltersUrlRewritePathType", "ReplaceFullPath"),
     ],
     conditions: &[
-        (
-            "GatewayClassConditionType",
-            &["Accepted", "SupportedVersion"],
-        ),
+        ("GatewayClassConditionType", &["Accepted", "SupportedVersion"]),
         (
             "GatewayClassConditionReason",
             &[
@@ -248,13 +206,7 @@ const EXPERIMENTAL: Channel = Channel {
         ),
         (
             "ListenerConditionType",
-            &[
-                "Conflicted",
-                "Accepted",
-                "ResolvedRefs",
-                "Programmed",
-                "Ready",
-            ],
+            &["Conflicted", "Accepted", "ResolvedRefs", "Programmed", "Ready"],
         ),
         (
             "ListenerConditionReason",
@@ -287,15 +239,15 @@ fn main() -> Result<()> {
 
     match args.get(1).map(String::as_str) {
         Some("generate") => {
-            let version = args.get(2).context(
-                "usage: cargo xtask generate <version>\n  e.g. cargo xtask generate v1.4.1",
-            )?;
+            let version = args
+                .get(2)
+                .context("usage: cargo xtask generate <version>\n  e.g. cargo xtask generate v1.4.1")?;
             generate(version)
-        }
+        },
         _ => {
             eprintln!("usage: cargo xtask generate <version>");
             process::exit(1);
-        }
+        },
     }
 }
 
@@ -440,9 +392,7 @@ fn gen_enum_defaults(defaults: &[(&str, &str)]) -> String {
     out
 }
 
-fn group_enums_by_module<'a>(
-    names: impl Iterator<Item = &'a str>,
-) -> BTreeMap<&'static str, Vec<&'a str>> {
+fn group_enums_by_module<'a>(names: impl Iterator<Item = &'a str>) -> BTreeMap<&'static str, Vec<&'a str>> {
     let mut map: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
     for name in names {
         let module = enum_module(name);
@@ -476,11 +426,7 @@ fn gen_constants(conditions: &[(&str, &[&str])]) -> String {
 
     for (name, variants) in conditions {
         // Enum definition
-        write!(
-            out,
-            "\n#[derive(Debug, PartialEq, Eq)]\npub enum {name} {{\n"
-        )
-        .unwrap();
+        write!(out, "\n#[derive(Debug, PartialEq, Eq)]\npub enum {name} {{\n").unwrap();
         for v in *variants {
             writeln!(out, "    {v},").unwrap();
         }

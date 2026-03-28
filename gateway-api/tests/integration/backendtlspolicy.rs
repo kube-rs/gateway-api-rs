@@ -1,10 +1,7 @@
 use gateway_api::backendtlspolicies::{
-    BackendTLSPolicy, BackendTlsPolicySpec, BackendTlsPolicyTargetRefs,
-    BackendTlsPolicyValidation,
+    BackendTLSPolicy, BackendTlsPolicySpec, BackendTlsPolicyTargetRefs, BackendTlsPolicyValidation,
 };
-use kube::Api;
-use kube::api::PostParams;
-use kube::core::ObjectMeta;
+use kube::{Api, api::PostParams, core::ObjectMeta};
 
 use crate::common;
 

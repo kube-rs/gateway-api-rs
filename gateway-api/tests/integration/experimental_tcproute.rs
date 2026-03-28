@@ -1,7 +1,5 @@
 use gateway_api::experimental::tcproutes::{TCPRoute, TcpRouteRules, TcpRouteSpec};
-use kube::Api;
-use kube::api::PostParams;
-use kube::core::ObjectMeta;
+use kube::{Api, api::PostParams, core::ObjectMeta};
 
 use crate::common;
 

@@ -1,9 +1,5 @@
-use gateway_api::referencegrants::{
-    ReferenceGrant, ReferenceGrantFrom, ReferenceGrantSpec, ReferenceGrantTo,
-};
-use kube::Api;
-use kube::api::PostParams;
-use kube::core::ObjectMeta;
+use gateway_api::referencegrants::{ReferenceGrant, ReferenceGrantFrom, ReferenceGrantSpec, ReferenceGrantTo};
+use kube::{Api, api::PostParams, core::ObjectMeta};
 
 use crate::common;
 

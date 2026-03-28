@@ -126,11 +126,7 @@ pub struct GrpcRouteSpec {
     /// allowed by something in the namespace they are referring to. For example,
     /// Gateway has the AllowedRoutes field, and ReferenceGrant provides a
     /// generic way to enable other kinds of cross-namespace reference.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "parentRefs"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "parentRefs")]
     pub parent_refs: Option<Vec<GrpcRouteParentRefs>>,
     /// Rules are a list of GRPC matchers, filters and actions.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -235,11 +231,7 @@ pub struct GrpcRouteParentRefs {
     /// Route MUST be considered detached from the Gateway.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sectionName"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sectionName")]
     pub section_name: Option<String>,
 }
 
@@ -276,11 +268,7 @@ pub struct GrpcRouteRules {
     /// Support: Implementation-specific for any other resource
     ///
     /// Support for weight: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "backendRefs"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "backendRefs")]
     pub backend_refs: Option<Vec<GrpcRouteRulesBackendRefs>>,
     /// Filters define the filters that are applied to requests that match
     /// this rule.
@@ -454,21 +442,13 @@ pub struct GrpcRouteRulesBackendRefsFilters {
     /// Support: Implementation-specific
     ///
     /// This filter can be used multiple times within the same rule.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "extensionRef"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "extensionRef")]
     pub extension_ref: Option<GrpcRouteRulesBackendRefsFiltersExtensionRef>,
     /// RequestHeaderModifier defines a schema for a filter that modifies request
     /// headers.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "requestHeaderModifier"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestHeaderModifier")]
     pub request_header_modifier: Option<GrpcRouteRulesBackendRefsFiltersRequestHeaderModifier>,
     /// RequestMirror defines a schema for a filter that mirrors requests.
     /// Requests are sent to the specified destination, but responses from
@@ -479,21 +459,13 @@ pub struct GrpcRouteRulesBackendRefsFilters {
     /// backends.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "requestMirror"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestMirror")]
     pub request_mirror: Option<GrpcRouteRulesBackendRefsFiltersRequestMirror>,
     /// ResponseHeaderModifier defines a schema for a filter that modifies response
     /// headers.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "responseHeaderModifier"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "responseHeaderModifier")]
     pub response_header_modifier: Option<GrpcRouteRulesBackendRefsFiltersResponseHeaderModifier>,
     /// Type identifies the type of filter to apply. As with other API fields,
     /// types are classified into three conformance levels:
@@ -892,21 +864,13 @@ pub struct GrpcRouteRulesFilters {
     /// Support: Implementation-specific
     ///
     /// This filter can be used multiple times within the same rule.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "extensionRef"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "extensionRef")]
     pub extension_ref: Option<GrpcRouteRulesFiltersExtensionRef>,
     /// RequestHeaderModifier defines a schema for a filter that modifies request
     /// headers.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "requestHeaderModifier"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestHeaderModifier")]
     pub request_header_modifier: Option<GrpcRouteRulesFiltersRequestHeaderModifier>,
     /// RequestMirror defines a schema for a filter that mirrors requests.
     /// Requests are sent to the specified destination, but responses from
@@ -917,21 +881,13 @@ pub struct GrpcRouteRulesFilters {
     /// backends.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "requestMirror"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestMirror")]
     pub request_mirror: Option<GrpcRouteRulesFiltersRequestMirror>,
     /// ResponseHeaderModifier defines a schema for a filter that modifies response
     /// headers.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "responseHeaderModifier"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "responseHeaderModifier")]
     pub response_header_modifier: Option<GrpcRouteRulesFiltersResponseHeaderModifier>,
     /// Type identifies the type of filter to apply. As with other API fields,
     /// types are classified into three conformance levels:
@@ -1329,7 +1285,6 @@ pub enum GrpcRouteRulesFiltersType {
 ///   - headers:
 ///     name: "version"
 ///     value "v1"
-///
 /// ```
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GrpcRouteRulesMatches {
@@ -1558,10 +1513,6 @@ pub struct GrpcRouteStatusParentsParentRef {
     /// Route MUST be considered detached from the Gateway.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sectionName"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sectionName")]
     pub section_name: Option<String>,
 }

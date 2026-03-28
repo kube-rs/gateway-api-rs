@@ -1,7 +1,5 @@
 use gateway_api::experimental::gatewayclasses::{GatewayClass, GatewayClassSpec};
-use kube::Api;
-use kube::api::PostParams;
-use kube::core::ObjectMeta;
+use kube::{Api, api::PostParams, core::ObjectMeta};
 
 use crate::common;
 

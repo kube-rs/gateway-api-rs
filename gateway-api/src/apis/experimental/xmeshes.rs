@@ -52,11 +52,7 @@ pub struct XMeshSpec {
     /// "InvalidParameters" reason.
     ///
     /// Support: Implementation-specific
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "parametersRef"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "parametersRef")]
     pub parameters_ref: Option<XMeshParametersRef>,
 }
 
@@ -102,11 +98,7 @@ pub struct XMeshStatus {
     pub conditions: Option<Vec<Condition>>,
     /// SupportedFeatures is the set of features the Mesh support.
     /// It MUST be sorted in ascending alphabetical order by the Name key.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "supportedFeatures"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "supportedFeatures")]
     pub supported_features: Option<Vec<XMeshStatusSupportedFeatures>>,
 }
 

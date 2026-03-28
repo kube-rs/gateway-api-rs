@@ -11,12 +11,11 @@
 //! digits each. See https://gateway-api.sigs.k8s.io/geps/gep-2257 for the
 //! complete specification.
 
+use std::{fmt, str::FromStr, time::Duration as stdDuration};
+
 use kube::core::Duration as k8sDuration;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use std::fmt;
-use std::str::FromStr;
-use std::time::Duration as stdDuration;
 
 /// GEP-2257-compliant Duration type for Gateway API
 ///
@@ -70,7 +69,7 @@ const MAX_DURATION_MS: u128 = (((99999 * 3600) + (59 * 60) + 59) * 1_000) + 999;
 pub fn is_valid(duration: stdDuration) -> Result<(), String> {
     // Check nanoseconds to see if we have sub-millisecond precision in
     // this duration.
-    if duration.subsec_nanos() % 1_000_000 != 0 {
+    if !duration.subsec_nanos().is_multiple_of(1_000_000) {
         return Err("Cannot express sub-millisecond precision in GEP-2257".to_string());
     }
 
@@ -174,7 +173,6 @@ impl TryFrom<stdDuration> for Duration {
 ///   Err(e) => eprintln!("Error: {}", e),
 /// }
 /// ```
-
 impl TryFrom<k8sDuration> for Duration {
     type Error = String;
 
@@ -389,13 +387,12 @@ impl FromStr for Duration {
         // This Lazy Regex::new should never ever fail, given that the regex
         // is a compile-time constant. But just in case.....
         static RE: Lazy<Regex> = Lazy::new(|| {
-            Regex::new(GEP2257_PATTERN).expect(
-                format!(
+            Regex::new(GEP2257_PATTERN).unwrap_or_else(|_| {
+                panic!(
                     r#"GEP2257 regex "{}" did not compile (this is a bug!)"#,
                     GEP2257_PATTERN
                 )
-                .as_str(),
-            )
+            })
         });
 
         // If the string doesn't match the regex, it's invalid.
@@ -526,12 +523,7 @@ mod tests {
         ];
 
         for (idx, duration) in test_cases.iter().enumerate() {
-            assert!(
-                duration.is_ok(),
-                "{:?}: Duration {:?} should be OK",
-                idx,
-                duration
-            );
+            assert!(duration.is_ok(), "{:?}: Duration {:?} should be OK", idx, duration);
         }
     }
 
@@ -568,14 +560,8 @@ mod tests {
     /// to gateway_api::Duration and validates the result.
     fn test_gep2257_from_valid_k8s_duration() {
         let test_cases = vec![
-            (
-                k8sDuration::from_str("0s").unwrap(),
-                Duration::from_secs(0).unwrap(),
-            ),
-            (
-                k8sDuration::from_str("1h").unwrap(),
-                Duration::from_secs(3600).unwrap(),
-            ),
+            (k8sDuration::from_str("0s").unwrap(), Duration::from_secs(0).unwrap()),
+            (k8sDuration::from_str("1h").unwrap(), Duration::from_secs(3600).unwrap()),
             (
                 k8sDuration::from_str("500ms").unwrap(),
                 Duration::from_millis(500).unwrap(),
@@ -654,17 +640,11 @@ mod tests {
             ("10s30m1h", Duration::from_secs(5410)),
             ("100ms200ms300ms", Duration::from_millis(600)),
             ("100ms200ms300ms", Duration::from_millis(600)),
-            (
-                "99999h59m59s999ms",
-                Duration::from_millis(MAX_DURATION_MS as u64),
-            ),
+            ("99999h59m59s999ms", Duration::from_millis(MAX_DURATION_MS as u64)),
             ("1d", Err("Invalid duration format".to_string())),
             ("1", Err("Invalid duration format".to_string())),
             ("1m1", Err("Invalid duration format".to_string())),
-            (
-                "1h30m10s20ms50h",
-                Err("Invalid duration format".to_string()),
-            ),
+            ("1h30m10s20ms50h", Err("Invalid duration format".to_string())),
             ("999999h", Err("Invalid duration format".to_string())),
             ("1.5h", Err("Invalid duration format".to_string())),
             ("-15m", Err("Invalid duration format".to_string())),
@@ -700,10 +680,7 @@ mod tests {
             (Duration::from_secs(5410), "1h30m10s".to_string()),
             (Duration::from_millis(600), "600ms".to_string()),
             (Duration::new(7200, 600_000_000), "2h600ms".to_string()),
-            (
-                Duration::new(7200 + 1800, 600_000_000),
-                "2h30m600ms".to_string(),
-            ),
+            (Duration::new(7200 + 1800, 600_000_000), "2h30m600ms".to_string()),
             (
                 Duration::new(7200 + 1800 + 10, 600_000_000),
                 "2h30m10s600ms".to_string(),
@@ -712,9 +689,7 @@ mod tests {
 
         for (idx, (duration, expected)) in test_cases.into_iter().enumerate() {
             assert!(
-                duration
-                    .as_ref()
-                    .is_ok_and(|d| format!("{}", d) == expected),
+                duration.as_ref().is_ok_and(|d| format!("{}", d) == expected),
                 "{:?}: Duration {:?} should be {:?}",
                 idx,
                 duration,

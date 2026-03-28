@@ -82,11 +82,7 @@ pub struct TlsRouteSpec {
     /// allowed by something in the namespace they are referring to. For example,
     /// Gateway has the AllowedRoutes field, and ReferenceGrant provides a
     /// generic way to enable other kinds of cross-namespace reference.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "parentRefs"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "parentRefs")]
     pub parent_refs: Option<Vec<TlsRouteParentRefs>>,
     /// Rules are a list of actions.
     pub rules: Vec<TlsRouteRules>,
@@ -190,11 +186,7 @@ pub struct TlsRouteParentRefs {
     /// Route MUST be considered detached from the Gateway.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sectionName"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sectionName")]
     pub section_name: Option<String>,
 }
 
@@ -447,10 +439,6 @@ pub struct TlsRouteStatusParentsParentRef {
     /// Route MUST be considered detached from the Gateway.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sectionName"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sectionName")]
     pub section_name: Option<String>,
 }

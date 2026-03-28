@@ -1,9 +1,5 @@
-use gateway_api::listenersets::{
-    ListenerSet, ListenerSetListeners, ListenerSetParentRef, ListenerSetSpec,
-};
-use kube::Api;
-use kube::api::PostParams;
-use kube::core::ObjectMeta;
+use gateway_api::listenersets::{ListenerSet, ListenerSetListeners, ListenerSetParentRef, ListenerSetSpec};
+use kube::{Api, api::PostParams, core::ObjectMeta};
 
 use crate::common;
 

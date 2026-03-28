@@ -54,11 +54,7 @@ pub struct GatewayClassSpec {
     /// It is generally recommended that GatewayClass provides defaults that can be overridden by a Gateway.
     ///
     /// Support: Implementation-specific
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "parametersRef"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "parametersRef")]
     pub parameters_ref: Option<GatewayClassParametersRef>,
 }
 
@@ -110,11 +106,7 @@ pub struct GatewayClassStatus {
     pub conditions: Option<Vec<Condition>>,
     /// SupportedFeatures is the set of features the GatewayClass support.
     /// It MUST be sorted in ascending alphabetical order by the Name key.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "supportedFeatures"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "supportedFeatures")]
     pub supported_features: Option<Vec<GatewayClassStatusSupportedFeatures>>,
 }
 

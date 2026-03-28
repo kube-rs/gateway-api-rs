@@ -137,11 +137,7 @@ pub struct GrpcRouteSpec {
     /// connections originating from the same namespace as the Route, for which
     /// the intended destination of the connections are a Service targeted as a
     /// ParentRef of the Route.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "parentRefs"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "parentRefs")]
     pub parent_refs: Option<Vec<GrpcRouteParentRefs>>,
     /// Rules are a list of GRPC matchers, filters and actions.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -158,11 +154,7 @@ pub struct GrpcRouteSpec {
     /// appropriate to request a default Gateway for a given Route -- for
     /// example, a Route with specific security requirements should almost
     /// certainly not use a default Gateway.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "useDefaultGateways"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "useDefaultGateways")]
     pub use_default_gateways: Option<GrpcRouteUseDefaultGateways>,
 }
 
@@ -282,11 +274,7 @@ pub struct GrpcRouteParentRefs {
     /// Route MUST be considered detached from the Gateway.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sectionName"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sectionName")]
     pub section_name: Option<String>,
 }
 
@@ -323,11 +311,7 @@ pub struct GrpcRouteRules {
     /// Support: Implementation-specific for any other resource
     ///
     /// Support for weight: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "backendRefs"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "backendRefs")]
     pub backend_refs: Option<Vec<GrpcRouteRulesBackendRefs>>,
     /// Filters define the filters that are applied to requests that match
     /// this rule.
@@ -415,11 +399,7 @@ pub struct GrpcRouteRules {
     /// for the route rule.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sessionPersistence"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sessionPersistence")]
     pub session_persistence: Option<GrpcRouteRulesSessionPersistence>,
 }
 
@@ -526,21 +506,13 @@ pub struct GrpcRouteRulesBackendRefsFilters {
     /// Support: Implementation-specific
     ///
     /// This filter can be used multiple times within the same rule.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "extensionRef"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "extensionRef")]
     pub extension_ref: Option<GrpcRouteRulesBackendRefsFiltersExtensionRef>,
     /// RequestHeaderModifier defines a schema for a filter that modifies request
     /// headers.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "requestHeaderModifier"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestHeaderModifier")]
     pub request_header_modifier: Option<GrpcRouteRulesBackendRefsFiltersRequestHeaderModifier>,
     /// RequestMirror defines a schema for a filter that mirrors requests.
     /// Requests are sent to the specified destination, but responses from
@@ -551,21 +523,13 @@ pub struct GrpcRouteRulesBackendRefsFilters {
     /// backends.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "requestMirror"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestMirror")]
     pub request_mirror: Option<GrpcRouteRulesBackendRefsFiltersRequestMirror>,
     /// ResponseHeaderModifier defines a schema for a filter that modifies response
     /// headers.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "responseHeaderModifier"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "responseHeaderModifier")]
     pub response_header_modifier: Option<GrpcRouteRulesBackendRefsFiltersResponseHeaderModifier>,
     /// Type identifies the type of filter to apply. As with other API fields,
     /// types are classified into three conformance levels:
@@ -976,21 +940,13 @@ pub struct GrpcRouteRulesFilters {
     /// Support: Implementation-specific
     ///
     /// This filter can be used multiple times within the same rule.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "extensionRef"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "extensionRef")]
     pub extension_ref: Option<GrpcRouteRulesFiltersExtensionRef>,
     /// RequestHeaderModifier defines a schema for a filter that modifies request
     /// headers.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "requestHeaderModifier"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestHeaderModifier")]
     pub request_header_modifier: Option<GrpcRouteRulesFiltersRequestHeaderModifier>,
     /// RequestMirror defines a schema for a filter that mirrors requests.
     /// Requests are sent to the specified destination, but responses from
@@ -1001,21 +957,13 @@ pub struct GrpcRouteRulesFilters {
     /// backends.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "requestMirror"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestMirror")]
     pub request_mirror: Option<GrpcRouteRulesFiltersRequestMirror>,
     /// ResponseHeaderModifier defines a schema for a filter that modifies response
     /// headers.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "responseHeaderModifier"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "responseHeaderModifier")]
     pub response_header_modifier: Option<GrpcRouteRulesFiltersResponseHeaderModifier>,
     /// Type identifies the type of filter to apply. As with other API fields,
     /// types are classified into three conformance levels:
@@ -1425,7 +1373,6 @@ pub enum GrpcRouteRulesFiltersType {
 ///   - headers:
 ///     name: "version"
 ///     value "v1"
-///
 /// ```
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GrpcRouteRulesMatches {
@@ -1512,32 +1459,20 @@ pub struct GrpcRouteRulesSessionPersistence {
     /// session becomes invalid.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "absoluteTimeout"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "absoluteTimeout")]
     pub absolute_timeout: Option<String>,
     /// CookieConfig provides configuration settings that are specific
     /// to cookie-based session persistence.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "cookieConfig"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "cookieConfig")]
     pub cookie_config: Option<GrpcRouteRulesSessionPersistenceCookieConfig>,
     /// IdleTimeout defines the idle timeout of the persistent session.
     /// Once the session has been idle for more than the specified
     /// IdleTimeout duration, the session becomes invalid.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "idleTimeout"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "idleTimeout")]
     pub idle_timeout: Option<String>,
     /// SessionName defines the name of the persistent session token
     /// which may be reflected in the cookie or the header. Users
@@ -1545,11 +1480,7 @@ pub struct GrpcRouteRulesSessionPersistence {
     /// consequences, such as rejection or unpredictable behavior.
     ///
     /// Support: Implementation-specific
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sessionName"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sessionName")]
     pub session_name: Option<String>,
     /// Type defines the type of session persistence such as through
     /// the use of a header or cookie. Defaults to cookie based session
@@ -1587,11 +1518,7 @@ pub struct GrpcRouteRulesSessionPersistenceCookieConfig {
     /// Support: Core for "Session" type
     ///
     /// Support: Extended for "Permanent" type
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "lifetimeType"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "lifetimeType")]
     pub lifetime_type: Option<GrpcRouteRulesSessionPersistenceCookieConfigLifetimeType>,
 }
 
@@ -1793,10 +1720,6 @@ pub struct GrpcRouteStatusParentsParentRef {
     /// Route MUST be considered detached from the Gateway.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sectionName"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sectionName")]
     pub section_name: Option<String>,
 }

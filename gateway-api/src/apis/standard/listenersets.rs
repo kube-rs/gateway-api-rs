@@ -4,11 +4,12 @@
 
 #[allow(unused_imports)]
 mod prelude {
+    pub use std::collections::BTreeMap;
+
     pub use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
     pub use kube::CustomResource;
     pub use schemars::JsonSchema;
     pub use serde::{Deserialize, Serialize};
-    pub use std::collections::BTreeMap;
 }
 use self::prelude::*;
 
@@ -81,11 +82,7 @@ pub struct ListenerSetListeners {
     /// support for that Route rule should be dropped to ensure consistency. For
     /// example, even if a filter specified by a Route rule is invalid, the rest
     /// of the rules within that Route should still be supported.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "allowedRoutes"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "allowedRoutes")]
     pub allowed_routes: Option<ListenerSetListenersAllowedRoutes>,
     /// Hostname specifies the virtual hostname to match for protocol types that
     /// define this concept. When unspecified, all hostnames are matched. This
@@ -238,21 +235,12 @@ pub enum ListenerSetListenersAllowedRoutesNamespacesFrom {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct ListenerSetListenersAllowedRoutesNamespacesSelector {
     /// matchExpressions is a list of label selector requirements. The requirements are ANDed.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "matchExpressions"
-    )]
-    pub match_expressions:
-        Option<Vec<ListenerSetListenersAllowedRoutesNamespacesSelectorMatchExpressions>>,
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "matchExpressions")]
+    pub match_expressions: Option<Vec<ListenerSetListenersAllowedRoutesNamespacesSelectorMatchExpressions>>,
     /// matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
     /// map is equivalent to an element of matchExpressions, whose key field is "key", the
     /// operator is "In", and the values array contains only "value". The requirements are ANDed.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "matchLabels"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "matchLabels")]
     pub match_labels: Option<BTreeMap<String, String>>,
 }
 
@@ -308,11 +296,7 @@ pub struct ListenerSetListenersTls {
     /// Support: Core - A single reference to a Kubernetes Secret of type kubernetes.io/tls
     ///
     /// Support: Implementation-specific (More than one reference or other resource types)
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "certificateRefs"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "certificateRefs")]
     pub certificate_refs: Option<Vec<ListenerSetListenersTlsCertificateRefs>>,
     /// Mode defines the TLS behavior for the TLS session initiated by the client.
     /// There are two possible modes:
@@ -468,11 +452,7 @@ pub struct ListenerSetStatusListeners {
     /// condition to "False" with the "InvalidRouteKinds" reason. If both valid
     /// and invalid Route kinds are specified, the implementation MUST
     /// reference the valid Route kinds that have been specified.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "supportedKinds"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "supportedKinds")]
     pub supported_kinds: Option<Vec<ListenerSetStatusListenersSupportedKinds>>,
 }
 

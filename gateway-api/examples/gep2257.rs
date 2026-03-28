@@ -1,6 +1,6 @@
+use std::{env, str::FromStr};
+
 use gateway_api::Duration;
-use std::env;
-use std::str::FromStr;
 
 /// Simple example of using the gateway_api::Duration: just parse the duration
 /// string given on the command line, then print it back out (which formats it).
@@ -25,13 +25,10 @@ fn main() {
     match Duration::from_str(value) {
         Ok(duration) => {
             println!("Parsed duration: {}", duration);
-        }
+        },
         Err(error) => {
-            eprintln!(
-                "Failed to parse duration from: {}\nError: {:#?}",
-                value, error
-            );
+            eprintln!("Failed to parse duration from: {}\nError: {:#?}", value, error);
             std::process::exit(1);
-        }
+        },
     }
 }

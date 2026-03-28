@@ -53,21 +53,13 @@ pub struct XBackendTrafficPolicySpec {
     /// defined in the future.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "retryConstraint"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "retryConstraint")]
     pub retry_constraint: Option<XBackendTrafficPolicyRetryConstraint>,
     /// SessionPersistence defines and configures session persistence
     /// for the backend.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sessionPersistence"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sessionPersistence")]
     pub session_persistence: Option<XBackendTrafficPolicySessionPersistence>,
     /// TargetRefs identifies API object(s) to apply this policy to.
     /// Currently, Backends (A grouping of like endpoints such as Service,
@@ -126,11 +118,7 @@ pub struct XBackendTrafficPolicyRetryConstraint {
     /// value.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "minRetryRate"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "minRetryRate")]
     pub min_retry_rate: Option<XBackendTrafficPolicyRetryConstraintMinRetryRate>,
 }
 
@@ -189,32 +177,20 @@ pub struct XBackendTrafficPolicySessionPersistence {
     /// session becomes invalid.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "absoluteTimeout"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "absoluteTimeout")]
     pub absolute_timeout: Option<String>,
     /// CookieConfig provides configuration settings that are specific
     /// to cookie-based session persistence.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "cookieConfig"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "cookieConfig")]
     pub cookie_config: Option<XBackendTrafficPolicySessionPersistenceCookieConfig>,
     /// IdleTimeout defines the idle timeout of the persistent session.
     /// Once the session has been idle for more than the specified
     /// IdleTimeout duration, the session becomes invalid.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "idleTimeout"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "idleTimeout")]
     pub idle_timeout: Option<String>,
     /// SessionName defines the name of the persistent session token
     /// which may be reflected in the cookie or the header. Users
@@ -222,11 +198,7 @@ pub struct XBackendTrafficPolicySessionPersistence {
     /// consequences, such as rejection or unpredictable behavior.
     ///
     /// Support: Implementation-specific
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sessionName"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sessionName")]
     pub session_name: Option<String>,
     /// Type defines the type of session persistence such as through
     /// the use of a header or cookie. Defaults to cookie based session
@@ -264,11 +236,7 @@ pub struct XBackendTrafficPolicySessionPersistenceCookieConfig {
     /// Support: Core for "Session" type
     ///
     /// Support: Extended for "Permanent" type
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "lifetimeType"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "lifetimeType")]
     pub lifetime_type: Option<XBackendTrafficPolicySessionPersistenceCookieConfigLifetimeType>,
 }
 
@@ -503,10 +471,6 @@ pub struct XBackendTrafficPolicyStatusAncestorsAncestorRef {
     /// Route MUST be considered detached from the Gateway.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sectionName"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sectionName")]
     pub section_name: Option<String>,
 }

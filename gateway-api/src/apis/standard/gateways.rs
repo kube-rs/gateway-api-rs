@@ -4,11 +4,12 @@
 
 #[allow(unused_imports)]
 mod prelude {
+    pub use std::collections::BTreeMap;
+
     pub use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
     pub use kube::CustomResource;
     pub use schemars::JsonSchema;
     pub use serde::{Deserialize, Serialize};
-    pub use std::collections::BTreeMap;
 }
 use self::prelude::*;
 
@@ -49,11 +50,7 @@ pub struct GatewaySpec {
     pub addresses: Option<Vec<GatewayAddresses>>,
     /// AllowedListeners defines which ListenerSets can be attached to this Gateway.
     /// The default value is to allow no ListenerSets.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "allowedListeners"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "allowedListeners")]
     pub allowed_listeners: Option<GatewayAllowedListeners>,
     /// GatewayClassName used for this Gateway. This is the name of a
     /// GatewayClass resource.
@@ -298,20 +295,12 @@ pub enum GatewayAllowedListenersNamespacesFrom {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GatewayAllowedListenersNamespacesSelector {
     /// matchExpressions is a list of label selector requirements. The requirements are ANDed.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "matchExpressions"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "matchExpressions")]
     pub match_expressions: Option<Vec<GatewayAllowedListenersNamespacesSelectorMatchExpressions>>,
     /// matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
     /// map is equivalent to an element of matchExpressions, whose key field is "key", the
     /// operator is "In", and the values array contains only "value". The requirements are ANDed.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "matchLabels"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "matchLabels")]
     pub match_labels: Option<BTreeMap<String, String>>,
 }
 
@@ -376,11 +365,7 @@ pub struct GatewayInfrastructure {
     /// "InvalidParameters" reason.
     ///
     /// Support: Implementation-specific
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "parametersRef"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "parametersRef")]
     pub parameters_ref: Option<GatewayInfrastructureParametersRef>,
 }
 
@@ -438,11 +423,7 @@ pub struct GatewayListeners {
     /// of the rules within that Route should still be supported.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "allowedRoutes"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "allowedRoutes")]
     pub allowed_routes: Option<GatewayListenersAllowedRoutes>,
     /// Hostname specifies the virtual hostname to match for protocol types that
     /// define this concept. When unspecified, all hostnames are matched. This
@@ -624,21 +605,12 @@ pub enum GatewayListenersAllowedRoutesNamespacesFrom {
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GatewayListenersAllowedRoutesNamespacesSelector {
     /// matchExpressions is a list of label selector requirements. The requirements are ANDed.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "matchExpressions"
-    )]
-    pub match_expressions:
-        Option<Vec<GatewayListenersAllowedRoutesNamespacesSelectorMatchExpressions>>,
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "matchExpressions")]
+    pub match_expressions: Option<Vec<GatewayListenersAllowedRoutesNamespacesSelectorMatchExpressions>>,
     /// matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
     /// map is equivalent to an element of matchExpressions, whose key field is "key", the
     /// operator is "In", and the values array contains only "value". The requirements are ANDed.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "matchLabels"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "matchLabels")]
     pub match_labels: Option<BTreeMap<String, String>>,
 }
 
@@ -696,11 +668,7 @@ pub struct GatewayListenersTls {
     /// Support: Core - A single reference to a Kubernetes Secret of type kubernetes.io/tls
     ///
     /// Support: Implementation-specific (More than one reference or other resource types)
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "certificateRefs"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "certificateRefs")]
     pub certificate_refs: Option<Vec<GatewayListenersTlsCertificateRefs>>,
     /// Mode defines the TLS behavior for the TLS session initiated by the client.
     /// There are two possible modes:
@@ -836,11 +804,7 @@ pub struct GatewayTlsBackend {
     /// Support: Core - Reference to a Kubernetes TLS Secret (with the type `kubernetes.io/tls`).
     /// Support: Implementation-specific - Other resource kinds or Secrets with a
     /// different type (e.g., `Opaque`).
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "clientCertificateRef"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "clientCertificateRef")]
     pub client_certificate_ref: Option<GatewayTlsBackendClientCertificateRef>,
 }
 
@@ -1221,11 +1185,7 @@ pub struct GatewayStatus {
     ///
     /// Uses for this field include troubleshooting AttachedListenerSets attachment and
     /// measuring blast radius/impact of changes to a Gateway.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "attachedListenerSets"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "attachedListenerSets")]
     pub attached_listener_sets: Option<i32>,
     /// Conditions describe the current conditions of the Gateway.
     ///
@@ -1297,11 +1257,7 @@ pub struct GatewayStatusListeners {
     /// condition to "False" with the "InvalidRouteKinds" reason. If both valid
     /// and invalid Route kinds are specified, the implementation MUST
     /// reference the valid Route kinds that have been specified.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "supportedKinds"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "supportedKinds")]
     pub supported_kinds: Option<Vec<GatewayStatusListenersSupportedKinds>>,
 }
 

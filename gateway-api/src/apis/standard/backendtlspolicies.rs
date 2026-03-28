@@ -4,11 +4,12 @@
 
 #[allow(unused_imports)]
 mod prelude {
+    pub use std::collections::BTreeMap;
+
     pub use k8s_openapi::apimachinery::pkg::apis::meta::v1::Condition;
     pub use kube::CustomResource;
     pub use schemars::JsonSchema;
     pub use serde::{Deserialize, Serialize};
-    pub use std::collections::BTreeMap;
 }
 use self::prelude::*;
 
@@ -128,11 +129,7 @@ pub struct BackendTlsPolicyTargetRefs {
     /// If a SectionName is specified, but does not exist on the targeted object,
     /// the Policy must fail to attach, and the policy implementation should record
     /// a `ResolvedRefs` or similar Condition in the Policy's status.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sectionName"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sectionName")]
     pub section_name: Option<String>,
 }
 
@@ -183,11 +180,7 @@ pub struct BackendTlsPolicyValidation {
     ///
     /// Support: Implementation-specific - More than one reference, other kinds
     /// of resources, or a single reference that includes multiple certificates.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "caCertificateRefs"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "caCertificateRefs")]
     pub ca_certificate_refs: Option<Vec<BackendTlsPolicyValidationCaCertificateRefs>>,
     /// Hostname is used for two purposes in the connection between Gateways and
     /// backends:
@@ -206,11 +199,7 @@ pub struct BackendTlsPolicyValidation {
     /// have at least one Subject Alternate Name matching one of the specified SubjectAltNames.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "subjectAltNames"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "subjectAltNames")]
     pub subject_alt_names: Option<Vec<BackendTlsPolicyValidationSubjectAltNames>>,
     /// WellKnownCACertificates specifies whether a well-known set of CA certificates
     /// may be used in the TLS handshake between the gateway and backend pod.
@@ -231,11 +220,7 @@ pub struct BackendTlsPolicyValidation {
     /// `mycompany.com/my-custom-ca-certificates`.
     ///
     /// Support: Implementation-specific
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "wellKnownCACertificates"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "wellKnownCACertificates")]
     pub well_known_ca_certificates: Option<String>,
 }
 
@@ -468,10 +453,6 @@ pub struct BackendTlsPolicyStatusAncestorsAncestorRef {
     /// Route MUST be considered detached from the Gateway.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sectionName"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sectionName")]
     pub section_name: Option<String>,
 }

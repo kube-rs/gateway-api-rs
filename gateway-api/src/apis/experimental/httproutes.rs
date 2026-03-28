@@ -140,11 +140,7 @@ pub struct HttpRouteSpec {
     /// connections originating from the same namespace as the Route, for which
     /// the intended destination of the connections are a Service targeted as a
     /// ParentRef of the Route.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "parentRefs"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "parentRefs")]
     pub parent_refs: Option<Vec<HttpRouteParentRefs>>,
     /// Rules are a list of HTTP matchers, filters and actions.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -161,11 +157,7 @@ pub struct HttpRouteSpec {
     /// appropriate to request a default Gateway for a given Route -- for
     /// example, a Route with specific security requirements should almost
     /// certainly not use a default Gateway.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "useDefaultGateways"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "useDefaultGateways")]
     pub use_default_gateways: Option<HttpRouteUseDefaultGateways>,
 }
 
@@ -285,11 +277,7 @@ pub struct HttpRouteParentRefs {
     /// Route MUST be considered detached from the Gateway.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sectionName"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sectionName")]
     pub section_name: Option<String>,
 }
 
@@ -333,11 +321,7 @@ pub struct HttpRouteRules {
     /// Support: Implementation-specific for any other resource
     ///
     /// Support for weight: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "backendRefs"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "backendRefs")]
     pub backend_refs: Option<Vec<HttpRouteRulesBackendRefs>>,
     /// Filters define the filters that are applied to requests that match
     /// this rule.
@@ -449,11 +433,7 @@ pub struct HttpRouteRules {
     /// for the route rule.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sessionPersistence"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sessionPersistence")]
     pub session_persistence: Option<HttpRouteRulesSessionPersistence>,
     /// Timeouts defines the timeouts that can be configured for an HTTP request.
     ///
@@ -571,11 +551,7 @@ pub struct HttpRouteRulesBackendRefsFilters {
     /// This filter can be used multiple times within the same rule.
     ///
     /// Support: Implementation-specific
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "extensionRef"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "extensionRef")]
     pub extension_ref: Option<HttpRouteRulesBackendRefsFiltersExtensionRef>,
     /// ExternalAuth configures settings related to sending request details
     /// to an external auth service. The external service MUST authenticate
@@ -585,21 +561,13 @@ pub struct HttpRouteRulesBackendRefsFilters {
     /// this filter MUST fail closed.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "externalAuth"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "externalAuth")]
     pub external_auth: Option<HttpRouteRulesBackendRefsFiltersExternalAuth>,
     /// RequestHeaderModifier defines a schema for a filter that modifies request
     /// headers.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "requestHeaderModifier"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestHeaderModifier")]
     pub request_header_modifier: Option<HttpRouteRulesBackendRefsFiltersRequestHeaderModifier>,
     /// RequestMirror defines a schema for a filter that mirrors requests.
     /// Requests are sent to the specified destination, but responses from
@@ -610,31 +578,19 @@ pub struct HttpRouteRulesBackendRefsFilters {
     /// backends.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "requestMirror"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestMirror")]
     pub request_mirror: Option<HttpRouteRulesBackendRefsFiltersRequestMirror>,
     /// RequestRedirect defines a schema for a filter that responds to the
     /// request with an HTTP redirection.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "requestRedirect"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestRedirect")]
     pub request_redirect: Option<HttpRouteRulesBackendRefsFiltersRequestRedirect>,
     /// ResponseHeaderModifier defines a schema for a filter that modifies response
     /// headers.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "responseHeaderModifier"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "responseHeaderModifier")]
     pub response_header_modifier: Option<HttpRouteRulesBackendRefsFiltersResponseHeaderModifier>,
     /// Type identifies the type of filter to apply. As with other API fields,
     /// types are classified into three conformance levels:
@@ -673,11 +629,7 @@ pub struct HttpRouteRulesBackendRefsFilters {
     /// URLRewrite defines a schema for a filter that modifies a request during forwarding.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "urlRewrite"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "urlRewrite")]
     pub url_rewrite: Option<HttpRouteRulesBackendRefsFiltersUrlRewrite>,
 }
 
@@ -698,11 +650,7 @@ pub struct HttpRouteRulesBackendRefsFiltersCors {
     /// behavior).
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "allowCredentials"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "allowCredentials")]
     pub allow_credentials: Option<bool>,
     /// AllowHeaders indicates which HTTP request headers are supported for
     /// accessing the requested resource.
@@ -743,11 +691,7 @@ pub struct HttpRouteRulesBackendRefsFiltersCors {
     /// response header, instead of specifying the `*` wildcard.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "allowHeaders"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "allowHeaders")]
     pub allow_headers: Option<Vec<String>>,
     /// AllowMethods indicates which HTTP methods are supported for accessing the
     /// requested resource.
@@ -792,11 +736,7 @@ pub struct HttpRouteRulesBackendRefsFiltersCors {
     /// instead of specifying the `*` wildcard.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "allowMethods"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "allowMethods")]
     pub allow_methods: Option<Vec<String>>,
     /// AllowOrigins indicates whether the response can be shared with requested
     /// resource from the given `Origin`.
@@ -860,11 +800,7 @@ pub struct HttpRouteRulesBackendRefsFiltersCors {
     /// the client.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "allowOrigins"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "allowOrigins")]
     pub allow_origins: Option<Vec<String>>,
     /// ExposeHeaders indicates which HTTP response headers can be exposed
     /// to client-side scripts in response to a cross-origin request.
@@ -900,11 +836,7 @@ pub struct HttpRouteRulesBackendRefsFiltersCors {
     /// the `Access-Control-Expose-Headers` response header.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "exposeHeaders"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "exposeHeaders")]
     pub expose_headers: Option<Vec<String>>,
     /// MaxAge indicates the duration (in seconds) for the client to cache the
     /// results of a "preflight" request.
@@ -975,11 +907,7 @@ pub struct HttpRouteRulesBackendRefsFiltersExternalAuth {
     /// be forwarded.
     ///
     /// Feature Name: HTTPRouteExternalAuthForwardBody
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "forwardBody"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "forwardBody")]
     pub forward_body: Option<HttpRouteRulesBackendRefsFiltersExternalAuthForwardBody>,
     /// GRPCAuthConfig contains configuration for communication with ext_authz
     /// protocol-speaking backends.
@@ -1109,11 +1037,7 @@ pub struct HttpRouteRulesBackendRefsFiltersExternalAuthGrpc {
     /// If this list is empty, then all headers must be sent.
     ///
     /// If the list has entries, only those entries must be sent.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "allowedHeaders"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "allowedHeaders")]
     pub allowed_headers: Option<Vec<String>>,
 }
 
@@ -1147,22 +1071,14 @@ pub struct HttpRouteRulesBackendRefsFiltersExternalAuthHttp {
     /// to `0`, then `Content-Length` must be `0`. If `forwardBody.maxSize` is set
     /// to anything other than `0`, then the `Content-Length` of the authorization
     /// request must be set to the actual number of bytes forwarded.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "allowedHeaders"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "allowedHeaders")]
     pub allowed_headers: Option<Vec<String>>,
     /// AllowedResponseHeaders specifies what headers from the authorization response
     /// will be copied into the request to the backend.
     ///
     /// If this list is empty, then all headers from the authorization server
     /// except Authority or Host must be copied.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "allowedResponseHeaders"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "allowedResponseHeaders")]
     pub allowed_response_headers: Option<Vec<String>>,
     /// Path sets the prefix that paths from the client request will have added
     /// when forwarded to the authorization server.
@@ -1495,11 +1411,7 @@ pub struct HttpRouteRulesBackendRefsFiltersRequestRedirect {
     /// Reason of `UnsupportedValue`.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "statusCode"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "statusCode")]
     pub status_code: Option<i64>,
 }
 
@@ -1512,11 +1424,7 @@ pub struct HttpRouteRulesBackendRefsFiltersRequestRedirect {
 pub struct HttpRouteRulesBackendRefsFiltersRequestRedirectPath {
     /// ReplaceFullPath specifies the value with which to replace the full path
     /// of a request during a rewrite or redirect.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "replaceFullPath"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "replaceFullPath")]
     pub replace_full_path: Option<String>,
     /// ReplacePrefixMatch specifies the value with which to replace the prefix
     /// match of a request during a rewrite or redirect. For example, a request
@@ -1534,11 +1442,7 @@ pub struct HttpRouteRulesBackendRefsFiltersRequestRedirectPath {
     /// the implementation setting the Accepted Condition for the Route to `status: False`.
     ///
     /// Request Path | Prefix Match | Replace Prefix | Modified Path
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "replacePrefixMatch"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "replacePrefixMatch")]
     pub replace_prefix_match: Option<String>,
     /// Type defines the type of path modifier. Additional types may be
     /// added in a future release of the API.
@@ -1739,11 +1643,7 @@ pub struct HttpRouteRulesBackendRefsFiltersUrlRewrite {
 pub struct HttpRouteRulesBackendRefsFiltersUrlRewritePath {
     /// ReplaceFullPath specifies the value with which to replace the full path
     /// of a request during a rewrite or redirect.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "replaceFullPath"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "replaceFullPath")]
     pub replace_full_path: Option<String>,
     /// ReplacePrefixMatch specifies the value with which to replace the prefix
     /// match of a request during a rewrite or redirect. For example, a request
@@ -1761,11 +1661,7 @@ pub struct HttpRouteRulesBackendRefsFiltersUrlRewritePath {
     /// the implementation setting the Accepted Condition for the Route to `status: False`.
     ///
     /// Request Path | Prefix Match | Replace Prefix | Modified Path
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "replacePrefixMatch"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "replacePrefixMatch")]
     pub replace_prefix_match: Option<String>,
     /// Type defines the type of path modifier. Additional types may be
     /// added in a future release of the API.
@@ -1811,11 +1707,7 @@ pub struct HttpRouteRulesFilters {
     /// This filter can be used multiple times within the same rule.
     ///
     /// Support: Implementation-specific
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "extensionRef"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "extensionRef")]
     pub extension_ref: Option<HttpRouteRulesFiltersExtensionRef>,
     /// ExternalAuth configures settings related to sending request details
     /// to an external auth service. The external service MUST authenticate
@@ -1825,21 +1717,13 @@ pub struct HttpRouteRulesFilters {
     /// this filter MUST fail closed.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "externalAuth"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "externalAuth")]
     pub external_auth: Option<HttpRouteRulesFiltersExternalAuth>,
     /// RequestHeaderModifier defines a schema for a filter that modifies request
     /// headers.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "requestHeaderModifier"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestHeaderModifier")]
     pub request_header_modifier: Option<HttpRouteRulesFiltersRequestHeaderModifier>,
     /// RequestMirror defines a schema for a filter that mirrors requests.
     /// Requests are sent to the specified destination, but responses from
@@ -1850,31 +1734,19 @@ pub struct HttpRouteRulesFilters {
     /// backends.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "requestMirror"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestMirror")]
     pub request_mirror: Option<HttpRouteRulesFiltersRequestMirror>,
     /// RequestRedirect defines a schema for a filter that responds to the
     /// request with an HTTP redirection.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "requestRedirect"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "requestRedirect")]
     pub request_redirect: Option<HttpRouteRulesFiltersRequestRedirect>,
     /// ResponseHeaderModifier defines a schema for a filter that modifies response
     /// headers.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "responseHeaderModifier"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "responseHeaderModifier")]
     pub response_header_modifier: Option<HttpRouteRulesFiltersResponseHeaderModifier>,
     /// Type identifies the type of filter to apply. As with other API fields,
     /// types are classified into three conformance levels:
@@ -1913,11 +1785,7 @@ pub struct HttpRouteRulesFilters {
     /// URLRewrite defines a schema for a filter that modifies a request during forwarding.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "urlRewrite"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "urlRewrite")]
     pub url_rewrite: Option<HttpRouteRulesFiltersUrlRewrite>,
 }
 
@@ -1938,11 +1806,7 @@ pub struct HttpRouteRulesFiltersCors {
     /// behavior).
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "allowCredentials"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "allowCredentials")]
     pub allow_credentials: Option<bool>,
     /// AllowHeaders indicates which HTTP request headers are supported for
     /// accessing the requested resource.
@@ -1983,11 +1847,7 @@ pub struct HttpRouteRulesFiltersCors {
     /// response header, instead of specifying the `*` wildcard.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "allowHeaders"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "allowHeaders")]
     pub allow_headers: Option<Vec<String>>,
     /// AllowMethods indicates which HTTP methods are supported for accessing the
     /// requested resource.
@@ -2032,11 +1892,7 @@ pub struct HttpRouteRulesFiltersCors {
     /// instead of specifying the `*` wildcard.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "allowMethods"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "allowMethods")]
     pub allow_methods: Option<Vec<String>>,
     /// AllowOrigins indicates whether the response can be shared with requested
     /// resource from the given `Origin`.
@@ -2100,11 +1956,7 @@ pub struct HttpRouteRulesFiltersCors {
     /// the client.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "allowOrigins"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "allowOrigins")]
     pub allow_origins: Option<Vec<String>>,
     /// ExposeHeaders indicates which HTTP response headers can be exposed
     /// to client-side scripts in response to a cross-origin request.
@@ -2140,11 +1992,7 @@ pub struct HttpRouteRulesFiltersCors {
     /// the `Access-Control-Expose-Headers` response header.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "exposeHeaders"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "exposeHeaders")]
     pub expose_headers: Option<Vec<String>>,
     /// MaxAge indicates the duration (in seconds) for the client to cache the
     /// results of a "preflight" request.
@@ -2215,11 +2063,7 @@ pub struct HttpRouteRulesFiltersExternalAuth {
     /// be forwarded.
     ///
     /// Feature Name: HTTPRouteExternalAuthForwardBody
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "forwardBody"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "forwardBody")]
     pub forward_body: Option<HttpRouteRulesFiltersExternalAuthForwardBody>,
     /// GRPCAuthConfig contains configuration for communication with ext_authz
     /// protocol-speaking backends.
@@ -2349,11 +2193,7 @@ pub struct HttpRouteRulesFiltersExternalAuthGrpc {
     /// If this list is empty, then all headers must be sent.
     ///
     /// If the list has entries, only those entries must be sent.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "allowedHeaders"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "allowedHeaders")]
     pub allowed_headers: Option<Vec<String>>,
 }
 
@@ -2387,22 +2227,14 @@ pub struct HttpRouteRulesFiltersExternalAuthHttp {
     /// to `0`, then `Content-Length` must be `0`. If `forwardBody.maxSize` is set
     /// to anything other than `0`, then the `Content-Length` of the authorization
     /// request must be set to the actual number of bytes forwarded.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "allowedHeaders"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "allowedHeaders")]
     pub allowed_headers: Option<Vec<String>>,
     /// AllowedResponseHeaders specifies what headers from the authorization response
     /// will be copied into the request to the backend.
     ///
     /// If this list is empty, then all headers from the authorization server
     /// except Authority or Host must be copied.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "allowedResponseHeaders"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "allowedResponseHeaders")]
     pub allowed_response_headers: Option<Vec<String>>,
     /// Path sets the prefix that paths from the client request will have added
     /// when forwarded to the authorization server.
@@ -2735,11 +2567,7 @@ pub struct HttpRouteRulesFiltersRequestRedirect {
     /// Reason of `UnsupportedValue`.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "statusCode"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "statusCode")]
     pub status_code: Option<i64>,
 }
 
@@ -2752,11 +2580,7 @@ pub struct HttpRouteRulesFiltersRequestRedirect {
 pub struct HttpRouteRulesFiltersRequestRedirectPath {
     /// ReplaceFullPath specifies the value with which to replace the full path
     /// of a request during a rewrite or redirect.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "replaceFullPath"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "replaceFullPath")]
     pub replace_full_path: Option<String>,
     /// ReplacePrefixMatch specifies the value with which to replace the prefix
     /// match of a request during a rewrite or redirect. For example, a request
@@ -2774,11 +2598,7 @@ pub struct HttpRouteRulesFiltersRequestRedirectPath {
     /// the implementation setting the Accepted Condition for the Route to `status: False`.
     ///
     /// Request Path | Prefix Match | Replace Prefix | Modified Path
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "replacePrefixMatch"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "replacePrefixMatch")]
     pub replace_prefix_match: Option<String>,
     /// Type defines the type of path modifier. Additional types may be
     /// added in a future release of the API.
@@ -2979,11 +2799,7 @@ pub struct HttpRouteRulesFiltersUrlRewrite {
 pub struct HttpRouteRulesFiltersUrlRewritePath {
     /// ReplaceFullPath specifies the value with which to replace the full path
     /// of a request during a rewrite or redirect.
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "replaceFullPath"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "replaceFullPath")]
     pub replace_full_path: Option<String>,
     /// ReplacePrefixMatch specifies the value with which to replace the prefix
     /// match of a request during a rewrite or redirect. For example, a request
@@ -3001,11 +2817,7 @@ pub struct HttpRouteRulesFiltersUrlRewritePath {
     /// the implementation setting the Accepted Condition for the Route to `status: False`.
     ///
     /// Request Path | Prefix Match | Replace Prefix | Modified Path
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "replacePrefixMatch"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "replacePrefixMatch")]
     pub replace_prefix_match: Option<String>,
     /// Type defines the type of path modifier. Additional types may be
     /// added in a future release of the API.
@@ -3044,7 +2856,6 @@ pub enum HttpRouteRulesFiltersUrlRewritePathType {
 /// 	headers:
 /// 	- name: "version"
 /// 	  value "v1"
-///
 /// ```
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct HttpRouteRulesMatches {
@@ -3069,11 +2880,7 @@ pub struct HttpRouteRulesMatches {
     /// specified query parameters to select the route.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "queryParams"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "queryParams")]
     pub query_params: Option<Vec<HttpRouteRulesMatchesQueryParams>>,
 }
 
@@ -3138,7 +2945,6 @@ pub enum HttpRouteRulesMatchesHeadersType {
 /// 	headers:
 /// 	- name: "version"
 /// 	  value "v1"
-///
 /// ```
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
 pub enum HttpRouteRulesMatchesMethod {
@@ -3307,32 +3113,20 @@ pub struct HttpRouteRulesSessionPersistence {
     /// session becomes invalid.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "absoluteTimeout"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "absoluteTimeout")]
     pub absolute_timeout: Option<String>,
     /// CookieConfig provides configuration settings that are specific
     /// to cookie-based session persistence.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "cookieConfig"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "cookieConfig")]
     pub cookie_config: Option<HttpRouteRulesSessionPersistenceCookieConfig>,
     /// IdleTimeout defines the idle timeout of the persistent session.
     /// Once the session has been idle for more than the specified
     /// IdleTimeout duration, the session becomes invalid.
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "idleTimeout"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "idleTimeout")]
     pub idle_timeout: Option<String>,
     /// SessionName defines the name of the persistent session token
     /// which may be reflected in the cookie or the header. Users
@@ -3340,11 +3134,7 @@ pub struct HttpRouteRulesSessionPersistence {
     /// consequences, such as rejection or unpredictable behavior.
     ///
     /// Support: Implementation-specific
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sessionName"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sessionName")]
     pub session_name: Option<String>,
     /// Type defines the type of session persistence such as through
     /// the use of a header or cookie. Defaults to cookie based session
@@ -3382,11 +3172,7 @@ pub struct HttpRouteRulesSessionPersistenceCookieConfig {
     /// Support: Core for "Session" type
     ///
     /// Support: Extended for "Permanent" type
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "lifetimeType"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "lifetimeType")]
     pub lifetime_type: Option<HttpRouteRulesSessionPersistenceCookieConfigLifetimeType>,
 }
 
@@ -3434,11 +3220,7 @@ pub struct HttpRouteRulesTimeouts {
     /// Request timeout (since the Request timeout encompasses the BackendRequest timeout).
     ///
     /// Support: Extended
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "backendRequest"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "backendRequest")]
     pub backend_request: Option<String>,
     /// Request specifies the maximum duration for a gateway to respond to an HTTP request.
     /// If the gateway has not been able to respond before this deadline is met, the gateway
@@ -3644,10 +3426,6 @@ pub struct HttpRouteStatusParentsParentRef {
     /// Route MUST be considered detached from the Gateway.
     ///
     /// Support: Core
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        rename = "sectionName"
-    )]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sectionName")]
     pub section_name: Option<String>,
 }
