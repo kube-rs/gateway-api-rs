@@ -8,13 +8,12 @@
 //! Go's `time.ParseDuration`, with additional restrictions: negative
 //! durations, units smaller than millisecond, and floating point are not
 //! allowed, and durations are limited to four components of no more than five
-//! digits each. See https://gateway-api.sigs.k8s.io/geps/gep-2257 for the
+//! digits each. See <https://gateway-api.sigs.k8s.io/geps/gep-2257> for the
 //! complete specification.
 
-use std::{fmt, str::FromStr, time::Duration as stdDuration};
+use std::{fmt, str::FromStr, sync::LazyLock, time::Duration as stdDuration};
 
 use kube::core::Duration as k8sDuration;
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// GEP-2257-compliant Duration type for Gateway API
@@ -23,7 +22,7 @@ use regex::Regex;
 /// obey GEP-2257. It is based on `std::time::Duration` and uses
 /// `kube::core::Duration` for the heavy lifting of parsing.
 ///
-/// See https://gateway-api.sigs.k8s.io/geps/gep-2257 for the complete
+/// See <https://gateway-api.sigs.k8s.io/geps/gep-2257> for the complete
 /// specification.
 ///
 /// Per GEP-2257, when parsing a `gateway_api::Duration` from a string, the
@@ -50,6 +49,11 @@ const GEP2257_PATTERN: &str = r"^([0-9]{1,5}(h|m|s|ms)){1,4}$";
 
 /// Maximum duration that can be represented by GEP-2257, in milliseconds.
 const MAX_DURATION_MS: u128 = (((99999 * 3600) + (59 * 60) + 59) * 1_000) + 999;
+
+/// `MAX_DURATION_MS` as `u64` (safe: the value fits in 37 bits).
+#[cfg(test)]
+#[allow(clippy::cast_possible_truncation)]
+const MAX_DURATION_MS_U64: u64 = MAX_DURATION_MS as u64;
 
 /// Checks if a duration is valid according to GEP-2257. If it's not, return
 /// an error result explaining why the duration is not valid.
@@ -238,6 +242,8 @@ impl Duration {
     /// ```
     pub fn from_micros(micros: u64) -> Result<Self, String> {
         let sec = micros / 1_000_000;
+        // Safe: (micros % 1_000_000) * 1_000 maxes at 999_999_000, fits in u32.
+        #[allow(clippy::cast_possible_truncation)]
         let ns = ((micros % 1_000_000) * 1_000) as u32;
 
         Self::new(sec, ns)
@@ -254,6 +260,8 @@ impl Duration {
     /// ```
     pub fn from_millis(millis: u64) -> Result<Self, String> {
         let sec = millis / 1_000;
+        // Safe: (millis % 1_000) * 1_000_000 maxes at 999_000_000, fits in u32.
+        #[allow(clippy::cast_possible_truncation)]
         let ns = ((millis % 1_000) * 1_000_000) as u32;
 
         Self::new(sec, ns)
@@ -386,13 +394,9 @@ impl FromStr for Duration {
         //
         // This Lazy Regex::new should never ever fail, given that the regex
         // is a compile-time constant. But just in case.....
-        static RE: Lazy<Regex> = Lazy::new(|| {
-            Regex::new(GEP2257_PATTERN).unwrap_or_else(|_| {
-                panic!(
-                    r#"GEP2257 regex "{}" did not compile (this is a bug!)"#,
-                    GEP2257_PATTERN
-                )
-            })
+        static RE: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(GEP2257_PATTERN)
+                .unwrap_or_else(|_| panic!(r#"GEP2257 regex "{GEP2257_PATTERN}" did not compile (this is a bug!)"#))
         });
 
         // If the string doesn't match the regex, it's invalid.
@@ -468,21 +472,21 @@ impl fmt::Display for Duration {
 
         if hours > 0 {
             secs -= hours * 3600;
-            write!(f, "{}h", hours)?;
+            write!(f, "{hours}h")?;
         }
 
         let minutes = secs / 60;
         if minutes > 0 {
             secs -= minutes * 60;
-            write!(f, "{}m", minutes)?;
+            write!(f, "{minutes}m")?;
         }
 
         if secs > 0 {
-            write!(f, "{}s", secs)?;
+            write!(f, "{secs}s")?;
         }
 
         if ms > 0 {
-            write!(f, "{}ms", ms)?;
+            write!(f, "{ms}ms")?;
         }
 
         Ok(())
@@ -506,24 +510,24 @@ mod tests {
     #[test]
     /// Test that the validation logic in `Duration`'s constructor
     /// method(s) correctly handles known-good durations. (The tests are
-    /// ordered to match the from_str test cases.)
+    /// ordered to match the `from_str` test cases.)
     fn test_gep2257_from_valid_duration() {
         let test_cases = vec![
-            Duration::from_secs(0),                        // 0s / 0h0m0s / 0m0s
-            Duration::from_secs(3600),                     // 1h
-            Duration::from_secs(1800),                     // 30m
-            Duration::from_secs(10),                       // 10s
-            Duration::from_millis(500),                    // 500ms
-            Duration::from_secs(9000),                     // 2h30m / 150m
-            Duration::from_secs(5410),                     // 1h30m10s / 10s30m1h
-            Duration::new(7200, 600_000_000),              // 2h600ms
-            Duration::new(7200 + 1800, 600_000_000),       // 2h30m600ms
-            Duration::new(7200 + 1800 + 10, 600_000_000),  // 2h30m10s600ms
-            Duration::from_millis(MAX_DURATION_MS as u64), // 99999h59m59s999ms
+            Duration::from_secs(0),                       // 0s / 0h0m0s / 0m0s
+            Duration::from_secs(3600),                    // 1h
+            Duration::from_secs(1800),                    // 30m
+            Duration::from_secs(10),                      // 10s
+            Duration::from_millis(500),                   // 500ms
+            Duration::from_secs(9000),                    // 2h30m / 150m
+            Duration::from_secs(5410),                    // 1h30m10s / 10s30m1h
+            Duration::new(7200, 600_000_000),             // 2h600ms
+            Duration::new(7200 + 1800, 600_000_000),      // 2h30m600ms
+            Duration::new(7200 + 1800 + 10, 600_000_000), // 2h30m10s600ms
+            Duration::from_millis(MAX_DURATION_MS_U64),   // 99999h59m59s999ms
         ];
 
         for (idx, duration) in test_cases.iter().enumerate() {
-            assert!(duration.is_ok(), "{:?}: Duration {:?} should be OK", idx, duration);
+            assert!(duration.is_ok(), "{idx:?}: Duration {duration:?} should be OK");
         }
     }
 
@@ -541,23 +545,19 @@ mod tests {
                 Err("Duration exceeds GEP-2257 maximum 99999h59m59s999ms".to_string()),
             ),
             (
-                Duration::from_millis((MAX_DURATION_MS + 1) as u64),
+                Duration::from_millis(MAX_DURATION_MS_U64 + 1),
                 Err("Duration exceeds GEP-2257 maximum 99999h59m59s999ms".to_string()),
             ),
         ];
 
         for (idx, (duration, expected)) in test_cases.into_iter().enumerate() {
-            assert_eq!(
-                duration, expected,
-                "{:?}: Duration {:?} should be an error",
-                idx, duration
-            );
+            assert_eq!(duration, expected, "{idx:?}: Duration {duration:?} should be an error");
         }
     }
 
     #[test]
-    /// Test that the TryFrom implementation for k8sDuration correctly converts
-    /// to gateway_api::Duration and validates the result.
+    /// Test that the `TryFrom` implementation for `k8sDuration` correctly converts
+    /// to `gateway_api::Duration` and validates the result.
     fn test_gep2257_from_valid_k8s_duration() {
         let test_cases = vec![
             (k8sDuration::from_str("0s").unwrap(), Duration::from_secs(0).unwrap()),
@@ -577,17 +577,14 @@ mod tests {
 
             assert!(
                 duration.as_ref().is_ok_and(|d| *d == expected),
-                "{:?}: Duration {:?} should be {:?}",
-                idx,
-                duration,
-                expected
+                "{idx:?}: Duration {duration:?} should be {expected:?}",
             );
         }
     }
 
     #[test]
-    /// Test that the TryFrom implementation for k8sDuration correctly fails
-    /// for kube::core::Durations that aren't valid GEP-2257 durations.
+    /// Test that the `TryFrom` implementation for `k8sDuration` correctly fails
+    /// for `kube::core::Duration`s that aren't valid GEP-2257 durations.
     fn test_gep2257_from_invalid_k8s_duration() {
         let test_cases: Vec<(k8sDuration, Result<Duration, String>)> = vec![
             (
@@ -599,7 +596,7 @@ mod tests {
                 Err("Duration exceeds GEP-2257 maximum 99999h59m59s999ms".to_string()),
             ),
             (
-                k8sDuration::from(stdDuration::from_millis((MAX_DURATION_MS + 1) as u64)),
+                k8sDuration::from(stdDuration::from_millis(MAX_DURATION_MS_U64 + 1)),
                 Err("Duration exceeds GEP-2257 maximum 99999h59m59s999ms".to_string()),
             ),
             (
@@ -612,10 +609,7 @@ mod tests {
             assert_eq!(
                 Duration::try_from(k8s_duration),
                 expected,
-                "{:?}: k8sDuration {:?} should be error {:?}",
-                idx,
-                k8s_duration,
-                expected
+                "{idx:?}: k8sDuration {k8s_duration:?} should be error {expected:?}",
             );
         }
     }
@@ -640,7 +634,7 @@ mod tests {
             ("10s30m1h", Duration::from_secs(5410)),
             ("100ms200ms300ms", Duration::from_millis(600)),
             ("100ms200ms300ms", Duration::from_millis(600)),
-            ("99999h59m59s999ms", Duration::from_millis(MAX_DURATION_MS as u64)),
+            ("99999h59m59s999ms", Duration::from_millis(MAX_DURATION_MS_U64)),
             ("1d", Err("Invalid duration format".to_string())),
             ("1", Err("Invalid duration format".to_string())),
             ("1m1", Err("Invalid duration format".to_string())),
@@ -658,10 +652,7 @@ mod tests {
             assert_eq!(
                 Duration::from_str(duration_str),
                 expected,
-                "{:?}: Duration {:?} should be {:?}",
-                idx,
-                duration_str,
-                expected
+                "{idx:?}: Duration {duration_str:?} should be {expected:?}",
             );
         }
     }
@@ -689,11 +680,8 @@ mod tests {
 
         for (idx, (duration, expected)) in test_cases.into_iter().enumerate() {
             assert!(
-                duration.as_ref().is_ok_and(|d| format!("{}", d) == expected),
-                "{:?}: Duration {:?} should be {:?}",
-                idx,
-                duration,
-                expected
+                duration.as_ref().is_ok_and(|d| format!("{d}") == expected),
+                "{idx:?}: Duration {duration:?} should be {expected:?}",
             );
         }
     }

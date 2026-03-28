@@ -1,3 +1,7 @@
+#![deny(unsafe_code)]
+#![warn(clippy::all, clippy::pedantic, rust_2018_idioms)]
+#![allow(clippy::module_name_repetitions, clippy::must_use_candidate)]
+
 use std::{
     collections::BTreeMap,
     env,
@@ -237,17 +241,14 @@ const EXPERIMENTAL: Channel = Channel {
 fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
 
-    match args.get(1).map(String::as_str) {
-        Some("generate") => {
-            let version = args
-                .get(2)
-                .context("usage: cargo xtask generate <version>\n  e.g. cargo xtask generate v1.4.1")?;
-            generate(version)
-        },
-        _ => {
-            eprintln!("usage: cargo xtask generate <version>");
-            process::exit(1);
-        },
+    if let Some("generate") = args.get(1).map(String::as_str) {
+        let version = args
+            .get(2)
+            .context("usage: cargo xtask generate <version>\n  e.g. cargo xtask generate v1.4.1")?;
+        generate(version)
+    } else {
+        eprintln!("usage: cargo xtask generate <version>");
+        process::exit(1);
     }
 }
 
