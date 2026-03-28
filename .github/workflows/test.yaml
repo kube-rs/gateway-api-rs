@@ -24,7 +24,7 @@ jobs:
           components: rustfmt, clippy
 
       - name: install cargo-deny
-        run: cargo install --locked cargo-deny
+        uses: EmbarkStudios/cargo-deny-action/setup@v2
 
       - name: run lints
         run: make lint
