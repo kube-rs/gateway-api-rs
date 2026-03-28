@@ -331,7 +331,6 @@ dependencies = [
  "hyper-util",
  "k8s-openapi",
  "kube",
- "once_cell",
  "regex-lite",
  "schemars",
  "serde",

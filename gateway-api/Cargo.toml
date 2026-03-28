@@ -17,7 +17,6 @@ version.workspace = true
 delegate.workspace = true
 k8s-openapi = { workspace = true, features = ["schemars"] }
 kube = { workspace = true, features = ["derive"] }
-once_cell.workspace = true
 regex.workspace = true
 schemars.workspace = true
 serde_json.workspace = true
