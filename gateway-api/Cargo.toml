@@ -4,13 +4,14 @@ description = "Kubernetes Gateway API bindings in Rust"
 categories = ["api-bindings"]
 keywords = ["kubernetes", "gateway-api"]
 
-homepage = "https://docs.rs/crate/gateway-api/"
+homepage = "https://docs.rs/gateway-api/"
 readme = "../README.md"
 repository = "https://github.com/kube-rs/gateway-api-rs"
 
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
+rust-version.workspace = true
 version.workspace = true
 
 [dependencies]
@@ -21,7 +22,6 @@ regex.workspace = true
 schemars.workspace = true
 serde_json.workspace = true
 serde.workspace = true
-serde_yaml.workspace = true
 
 [dev-dependencies]
 k8s-openapi = { workspace = true, features = ["v1_32", "schemars"] }
