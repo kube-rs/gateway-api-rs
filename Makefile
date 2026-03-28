@@ -17,8 +17,12 @@ build:
 fmt:
 	cargo +nightly fmt
 
+.PHONY: fmt.check
+fmt.check:
+	cargo +nightly fmt -- --check
+
 .PHONY: lint
-lint: fmt
+lint: fmt.check
 	cargo deny check
 	cargo clippy --all-targets --all-features -- -D warnings \
 		-A clippy::doc_lazy_continuation \
