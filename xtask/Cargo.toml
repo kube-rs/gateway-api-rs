@@ -1,6 +1,7 @@
 [package]
 name = "xtask"
 description = "Code generation for Gateway API Rust bindings"
+publish = false
 
 authors.workspace = true
 edition.workspace = true
