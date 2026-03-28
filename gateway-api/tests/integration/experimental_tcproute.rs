@@ -1,5 +1,9 @@
 use gateway_api::experimental::tcproutes::{TCPRoute, TcpRouteRules, TcpRouteSpec};
-use kube::{Api, api::PostParams, core::ObjectMeta};
+use kube::{
+    Api,
+    api::{DeleteParams, PostParams},
+    core::ObjectMeta,
+};
 
 use crate::common;
 
@@ -7,6 +11,7 @@ use crate::common;
 #[tokio::test]
 async fn crud() {
     let client = common::client().await;
+    let api: Api<TCPRoute> = Api::default_namespaced(client.clone());
 
     let route = TCPRoute {
         metadata: ObjectMeta {
@@ -24,11 +29,18 @@ async fn crud() {
         status: None,
     };
 
-    let created = Api::default_namespaced(client.clone())
+    let created = api
         .create(&PostParams::default(), &route)
         .await
         .expect("failed to create TCPRoute");
 
-    assert!(created.metadata.name.is_some());
+    assert_eq!(created.metadata.name.as_deref(), Some("test-tcproute"));
     assert!(created.metadata.uid.is_some());
+    assert_eq!(created.spec.rules.len(), 1);
+    assert!(created.spec.rules[0].backend_refs.is_empty());
+    assert!(created.spec.parent_refs.is_none());
+
+    api.delete("test-tcproute", &DeleteParams::default())
+        .await
+        .expect("failed to delete TCPRoute");
 }

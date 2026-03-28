@@ -1,5 +1,9 @@
 use gateway_api::referencegrants::{ReferenceGrant, ReferenceGrantFrom, ReferenceGrantSpec, ReferenceGrantTo};
-use kube::{Api, api::PostParams, core::ObjectMeta};
+use kube::{
+    Api,
+    api::{DeleteParams, PostParams},
+    core::ObjectMeta,
+};
 
 use crate::common;
 
@@ -7,6 +11,7 @@ use crate::common;
 #[tokio::test]
 async fn crud() {
     let client = common::client().await;
+    let api: Api<ReferenceGrant> = Api::default_namespaced(client.clone());
 
     let grant = ReferenceGrant {
         metadata: ObjectMeta {
@@ -27,11 +32,20 @@ async fn crud() {
         },
     };
 
-    let created = Api::default_namespaced(client.clone())
+    let created = api
         .create(&PostParams::default(), &grant)
         .await
         .expect("failed to create ReferenceGrant");
 
-    assert!(created.metadata.name.is_some());
+    assert_eq!(created.metadata.name.as_deref(), Some("test-referencegrant"));
     assert!(created.metadata.uid.is_some());
+    assert_eq!(created.spec.from.len(), 1);
+    assert_eq!(created.spec.from[0].kind, "HTTPRoute");
+    assert_eq!(created.spec.from[0].namespace, "default");
+    assert_eq!(created.spec.to.len(), 1);
+    assert_eq!(created.spec.to[0].kind, "Service");
+
+    api.delete("test-referencegrant", &DeleteParams::default())
+        .await
+        .expect("failed to delete ReferenceGrant");
 }

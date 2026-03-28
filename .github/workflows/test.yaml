@@ -36,7 +36,7 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-lint-
 
       - name: install cargo-deny
-        run: cargo install --locked cargo-deny
+        run: command -v cargo-deny >/dev/null || cargo install --locked cargo-deny
 
       - name: run lints
         run: make lint

@@ -1,5 +1,9 @@
 use gateway_api::experimental::gateways::{Gateway, GatewaySpec};
-use kube::{Api, api::PostParams, core::ObjectMeta};
+use kube::{
+    Api,
+    api::{DeleteParams, PostParams},
+    core::ObjectMeta,
+};
 
 use crate::common;
 
@@ -7,6 +11,7 @@ use crate::common;
 #[tokio::test]
 async fn crud() {
     let client = common::client().await;
+    let api: Api<Gateway> = Api::default_namespaced(client.clone());
 
     let gw = Gateway {
         metadata: ObjectMeta {
@@ -20,11 +25,16 @@ async fn crud() {
         status: None,
     };
 
-    let created = Api::default_namespaced(client.clone())
+    let created = api
         .create(&PostParams::default(), &gw)
         .await
         .expect("failed to create experimental Gateway");
 
-    assert!(created.metadata.name.is_some());
+    assert_eq!(created.metadata.name.as_deref(), Some("test-exp-gateway"));
     assert!(created.metadata.uid.is_some());
+    assert_eq!(created.spec.gateway_class_name, "test-exp-gateway-class");
+
+    api.delete("test-exp-gateway", &DeleteParams::default())
+        .await
+        .expect("failed to delete experimental Gateway");
 }

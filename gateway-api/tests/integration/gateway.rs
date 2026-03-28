@@ -8,7 +8,7 @@ use k8s_openapi::{
 };
 use kube::{
     Api,
-    api::{Patch, PatchParams, PostParams},
+    api::{DeleteParams, Patch, PatchParams, PostParams},
     core::ObjectMeta,
 };
 use serde_json::json;
@@ -19,6 +19,7 @@ use crate::common;
 #[tokio::test]
 async fn crud_with_status() {
     let client = common::client().await;
+    let api: Api<Gateway> = Api::default_namespaced(client.clone());
 
     let gw = Gateway {
         metadata: ObjectMeta {
@@ -32,13 +33,14 @@ async fn crud_with_status() {
         status: None,
     };
 
-    let created = Api::default_namespaced(client.clone())
+    let created = api
         .create(&PostParams::default(), &gw)
         .await
         .expect("failed to create Gateway");
 
-    assert!(created.metadata.name.is_some());
+    assert_eq!(created.metadata.name.as_deref(), Some("test-gateway"));
     assert!(created.metadata.uid.is_some());
+    assert_eq!(created.spec.gateway_class_name, "test-gateway-class");
 
     let status = GatewayStatus {
         addresses: Some(vec![GatewayStatusAddresses::default()]),
@@ -66,7 +68,7 @@ async fn crud_with_status() {
         }]),
     };
 
-    let patched: Gateway = Api::default_namespaced(client.clone())
+    let patched: Gateway = api
         .patch_status(
             "test-gateway",
             &PatchParams::default(),
@@ -76,7 +78,17 @@ async fn crud_with_status() {
         .expect("failed to patch Gateway status");
 
     let s = patched.status.expect("status should be set");
-    assert!(s.addresses.is_some());
-    assert!(s.listeners.is_some());
-    assert!(s.conditions.is_some());
+    assert_eq!(s.addresses.as_ref().map(|a| a.len()), Some(1));
+    let listeners = s.listeners.as_ref().expect("listeners should be set");
+    assert_eq!(listeners.len(), 1);
+    assert_eq!(listeners[0].name, "tcp");
+    assert_eq!(listeners[0].attached_routes, 0);
+    let conditions = s.conditions.as_ref().expect("conditions should be set");
+    assert_eq!(conditions.len(), 1);
+    assert_eq!(conditions[0].reason, GatewayConditionReason::Programmed.to_string());
+    assert_eq!(conditions[0].status, "True");
+
+    api.delete("test-gateway", &DeleteParams::default())
+        .await
+        .expect("failed to delete Gateway");
 }

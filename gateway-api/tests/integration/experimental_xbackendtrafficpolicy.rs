@@ -1,7 +1,11 @@
 use gateway_api::experimental::xbackendtrafficpolicies::{
     XBackendTrafficPolicy, XBackendTrafficPolicySpec, XBackendTrafficPolicyTargetRefs,
 };
-use kube::{Api, api::PostParams, core::ObjectMeta};
+use kube::{
+    Api,
+    api::{DeleteParams, PostParams},
+    core::ObjectMeta,
+};
 
 use crate::common;
 
@@ -9,6 +13,7 @@ use crate::common;
 #[tokio::test]
 async fn crud() {
     let client = common::client().await;
+    let api: Api<XBackendTrafficPolicy> = Api::default_namespaced(client.clone());
 
     let policy = XBackendTrafficPolicy {
         metadata: ObjectMeta {
@@ -27,11 +32,20 @@ async fn crud() {
         status: None,
     };
 
-    let created = Api::default_namespaced(client.clone())
+    let created = api
         .create(&PostParams::default(), &policy)
         .await
         .expect("failed to create XBackendTrafficPolicy");
 
-    assert!(created.metadata.name.is_some());
+    assert_eq!(created.metadata.name.as_deref(), Some("test-xbackendtrafficpolicy"));
     assert!(created.metadata.uid.is_some());
+    assert_eq!(created.spec.target_refs.len(), 1);
+    assert_eq!(created.spec.target_refs[0].kind, "Service");
+    assert_eq!(created.spec.target_refs[0].name, "test-service");
+    assert!(created.spec.retry_constraint.is_none());
+    assert!(created.spec.session_persistence.is_none());
+
+    api.delete("test-xbackendtrafficpolicy", &DeleteParams::default())
+        .await
+        .expect("failed to delete XBackendTrafficPolicy");
 }

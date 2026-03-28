@@ -1,5 +1,9 @@
 use gateway_api::experimental::tlsroutes::{TLSRoute, TlsRouteRules, TlsRouteSpec};
-use kube::{Api, api::PostParams, core::ObjectMeta};
+use kube::{
+    Api,
+    api::{DeleteParams, PostParams},
+    core::ObjectMeta,
+};
 
 use crate::common;
 
@@ -7,6 +11,7 @@ use crate::common;
 #[tokio::test]
 async fn crud() {
     let client = common::client().await;
+    let api: Api<TLSRoute> = Api::default_namespaced(client.clone());
 
     let route = TLSRoute {
         metadata: ObjectMeta {
@@ -25,11 +30,18 @@ async fn crud() {
         status: None,
     };
 
-    let created = Api::default_namespaced(client.clone())
+    let created = api
         .create(&PostParams::default(), &route)
         .await
         .expect("failed to create experimental TLSRoute");
 
-    assert!(created.metadata.name.is_some());
+    assert_eq!(created.metadata.name.as_deref(), Some("test-exp-tlsroute"));
     assert!(created.metadata.uid.is_some());
+    assert_eq!(created.spec.hostnames, vec!["experimental.example.com"]);
+    assert_eq!(created.spec.rules.len(), 1);
+    assert!(created.spec.parent_refs.is_none());
+
+    api.delete("test-exp-tlsroute", &DeleteParams::default())
+        .await
+        .expect("failed to delete experimental TLSRoute");
 }

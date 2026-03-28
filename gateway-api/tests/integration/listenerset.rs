@@ -1,5 +1,9 @@
 use gateway_api::listenersets::{ListenerSet, ListenerSetListeners, ListenerSetParentRef, ListenerSetSpec};
-use kube::{Api, api::PostParams, core::ObjectMeta};
+use kube::{
+    Api,
+    api::{DeleteParams, PostParams},
+    core::ObjectMeta,
+};
 
 use crate::common;
 
@@ -7,6 +11,7 @@ use crate::common;
 #[tokio::test]
 async fn crud() {
     let client = common::client().await;
+    let api: Api<ListenerSet> = Api::default_namespaced(client.clone());
 
     let ls = ListenerSet {
         metadata: ObjectMeta {
@@ -30,11 +35,20 @@ async fn crud() {
         status: None,
     };
 
-    let created = Api::default_namespaced(client.clone())
+    let created = api
         .create(&PostParams::default(), &ls)
         .await
         .expect("failed to create ListenerSet");
 
-    assert!(created.metadata.name.is_some());
+    assert_eq!(created.metadata.name.as_deref(), Some("test-listenerset"));
     assert!(created.metadata.uid.is_some());
+    assert_eq!(created.spec.parent_ref.name, "test-gateway");
+    assert_eq!(created.spec.listeners.len(), 1);
+    assert_eq!(created.spec.listeners[0].name, "http");
+    assert_eq!(created.spec.listeners[0].port, 8080);
+    assert_eq!(created.spec.listeners[0].protocol, "HTTP");
+
+    api.delete("test-listenerset", &DeleteParams::default())
+        .await
+        .expect("failed to delete ListenerSet");
 }

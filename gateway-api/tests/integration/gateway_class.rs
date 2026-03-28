@@ -1,5 +1,9 @@
 use gateway_api::gatewayclasses::{GatewayClass, GatewayClassSpec};
-use kube::{Api, api::PostParams, core::ObjectMeta};
+use kube::{
+    Api,
+    api::{DeleteParams, PostParams},
+    core::ObjectMeta,
+};
 
 use crate::common;
 
@@ -7,6 +11,7 @@ use crate::common;
 #[tokio::test]
 async fn crud() {
     let client = common::client().await;
+    let api: Api<GatewayClass> = Api::all(client.clone());
 
     let gwc = GatewayClass {
         metadata: ObjectMeta {
@@ -21,11 +26,18 @@ async fn crud() {
         status: None,
     };
 
-    let created = Api::all(client.clone())
+    let created = api
         .create(&PostParams::default(), &gwc)
         .await
         .expect("failed to create GatewayClass");
 
-    assert!(created.metadata.name.is_some());
+    assert_eq!(created.metadata.name.as_deref(), Some("test-gateway-class"));
     assert!(created.metadata.uid.is_some());
+    assert_eq!(created.spec.controller_name, "test-controller");
+    assert!(created.spec.description.is_none());
+    assert!(created.spec.parameters_ref.is_none());
+
+    api.delete("test-gateway-class", &DeleteParams::default())
+        .await
+        .expect("failed to delete GatewayClass");
 }
