@@ -303,7 +303,7 @@ fn write_apis_mod() -> Result<()> {
 }
 
 fn cargo_fmt() -> Result<()> {
-    let status = Command::new("cargo").arg("fmt").status()?;
+    let status = Command::new("cargo").args(["+nightly", "fmt"]).status()?;
     if !status.success() {
         bail!("cargo fmt failed");
     }
