@@ -46,6 +46,41 @@ jobs:
       - name: run lints
         run: make lint
 
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+
+      - name: install nightly rust (for rustfmt)
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt
+
+      - name: install stable rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-generate-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-generate-
+
+      - name: install kopium
+        run: command -v kopium >/dev/null || cargo install --locked kopium --version 0.22.5
+
+      - name: run generate
+        run: make generate
+
+      - name: check for uncommitted changes
+        run: git diff --exit-code
+
   tests:
     runs-on: ubuntu-latest
     steps:
