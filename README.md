@@ -4,7 +4,7 @@
 
 # Gateway API (Rust)
 
-This project provides bindings in [Rust] for [Kubernetes] [Gateway API] resources.
+[Kubernetes] [Gateway API] support for [Rust].
 
 > **Note**: Currently supports [Gateway API version v1.5.1][gwv]
 
