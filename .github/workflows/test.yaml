@@ -18,10 +18,15 @@ jobs:
       - name: checkout repository
         uses: actions/checkout@v4
 
-      - name: install rust
+      - name: install nightly rust (for rustfmt)
         uses: dtolnay/rust-toolchain@nightly
         with:
-          components: rustfmt, clippy
+          components: rustfmt
+
+      - name: install stable rust (for clippy)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
 
       - name: cache cargo
         uses: actions/cache@v4
