@@ -10,3 +10,4 @@ version.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+ureq.workspace = true

@@ -314,33 +314,52 @@ fn cargo_fmt() -> Result<()> {
 // CRD fetching and kopium conversion
 // -----------------------------------------------------------------------------
 
+/// Fetches a URL and returns the response body as a string.
+fn fetch_url(url: &str) -> Result<String> {
+    ureq::get(url)
+        .call()
+        .with_context(|| format!("failed to fetch {url}"))?
+        .into_body()
+        .read_to_string()
+        .with_context(|| format!("failed to read response from {url}"))
+}
+
 fn fetch_and_convert(version: &str, channel: &str, api: &Api) -> Result<String> {
     let url = format!(
         "{CRD_BASE_URL}/{version}/{CRD_PATH}/{channel}/{}{}.yaml",
         api.crd_prefix, api.name,
     );
 
-    let curl = Command::new("curl")
-        .args(["-sSL", &url])
-        .stdout(Stdio::piped())
-        .spawn()
-        .context("failed to spawn curl — is it installed?")?;
+    let crd_yaml = fetch_url(&url)?;
 
-    let kopium = Command::new("kopium")
+    let mut kopium = Command::new("kopium")
         .args(KOPIUM_ARGS)
-        .stdin(curl.stdout.unwrap())
-        .output()
-        .context("failed to run kopium — is it installed?")?;
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .context("failed to spawn kopium — is it installed?")?;
 
-    if !kopium.status.success() {
+    // Write CRD YAML to kopium stdin, then drop to close the pipe.
+    {
+        use std::io::Write;
+        let mut stdin = kopium.stdin.take().expect("stdin was piped");
+        stdin
+            .write_all(crd_yaml.as_bytes())
+            .context("failed to write CRD to kopium stdin")?;
+    }
+
+    let output = kopium.wait_with_output().context("kopium did not exit cleanly")?;
+
+    if !output.status.success() {
         bail!(
             "kopium failed for {channel}/{}: {}",
             api.name,
-            String::from_utf8_lossy(&kopium.stderr)
+            String::from_utf8_lossy(&output.stderr)
         );
     }
 
-    Ok(String::from_utf8(kopium.stdout)?)
+    Ok(String::from_utf8(output.stdout)?)
 }
 
 // -----------------------------------------------------------------------------
