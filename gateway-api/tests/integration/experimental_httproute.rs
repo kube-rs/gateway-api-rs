@@ -1,4 +1,4 @@
-use gateway_api::experimental::httproutes::{HTTPRoute, HttpRouteSpec};
+use gateway_api::experimental::httproutes::{HttpRoute, HttpRouteSpec};
 use kube::{
     Api,
     api::{DeleteParams, PostParams},
@@ -11,9 +11,9 @@ use crate::common;
 #[tokio::test]
 async fn crud() {
     let client = common::client().await;
-    let api: Api<HTTPRoute> = Api::default_namespaced(client.clone());
+    let api: Api<HttpRoute> = Api::default_namespaced(client.clone());
 
-    let route = HTTPRoute {
+    let route = HttpRoute {
         metadata: ObjectMeta {
             name: Some("test-exp-httproute".into()),
             ..Default::default()

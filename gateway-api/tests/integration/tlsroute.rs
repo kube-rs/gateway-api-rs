@@ -1,4 +1,4 @@
-use gateway_api::tlsroutes::{TLSRoute, TlsRouteRules, TlsRouteSpec};
+use gateway_api::tlsroutes::{TlsRoute, TlsRouteRules, TlsRouteSpec};
 use kube::{
     Api,
     api::{DeleteParams, PostParams},
@@ -11,9 +11,9 @@ use crate::common;
 #[tokio::test]
 async fn crud() {
     let client = common::client().await;
-    let api: Api<TLSRoute> = Api::default_namespaced(client.clone());
+    let api: Api<TlsRoute> = Api::default_namespaced(client.clone());
 
-    let route = TLSRoute {
+    let route = TlsRoute {
         metadata: ObjectMeta {
             name: Some("test-tlsroute".into()),
             ..Default::default()

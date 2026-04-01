@@ -9,6 +9,7 @@ mod prelude {
     pub use schemars::JsonSchema;
     pub use serde::{Deserialize, Serialize};
 }
+
 use self::prelude::*;
 
 /// Spec defines the desired state of HTTPRoute.
@@ -17,6 +18,7 @@ use self::prelude::*;
     group = "gateway.networking.k8s.io",
     version = "v1",
     kind = "HTTPRoute",
+    root = "HttpRoute",
     plural = "httproutes"
 )]
 #[kube(namespaced)]

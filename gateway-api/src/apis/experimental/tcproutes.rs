@@ -9,6 +9,7 @@ mod prelude {
     pub use schemars::JsonSchema;
     pub use serde::{Deserialize, Serialize};
 }
+
 use self::prelude::*;
 
 /// Spec defines the desired state of TCPRoute.
@@ -17,6 +18,7 @@ use self::prelude::*;
     group = "gateway.networking.k8s.io",
     version = "v1alpha2",
     kind = "TCPRoute",
+    root = "TcpRoute",
     plural = "tcproutes"
 )]
 #[kube(namespaced)]

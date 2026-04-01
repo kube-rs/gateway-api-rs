@@ -9,6 +9,7 @@ mod prelude {
     pub use schemars::JsonSchema;
     pub use serde::{Deserialize, Serialize};
 }
+
 use self::prelude::*;
 
 /// Spec defines the desired state of GRPCRoute.
@@ -17,6 +18,7 @@ use self::prelude::*;
     group = "gateway.networking.k8s.io",
     version = "v1",
     kind = "GRPCRoute",
+    root = "GrpcRoute",
     plural = "grpcroutes"
 )]
 #[kube(namespaced)]

@@ -97,29 +97,29 @@ async fn deploy_crd(client: &Client, mut crd: CustomResourceDefinition) -> Resul
 
 async fn deploy_standard_crds(client: &Client) -> Result<()> {
     use gateway_api::{
-        backendtlspolicies::BackendTLSPolicy, gatewayclasses::GatewayClass, gateways::Gateway, grpcroutes::GRPCRoute,
-        httproutes::HTTPRoute, listenersets::ListenerSet, referencegrants::ReferenceGrant, tlsroutes::TLSRoute,
+        backendtlspolicies::BackendTlsPolicy, gatewayclasses::GatewayClass, gateways::Gateway, grpcroutes::GrpcRoute,
+        httproutes::HttpRoute, listenersets::ListenerSet, referencegrants::ReferenceGrant, tlsroutes::TlsRoute,
     };
 
-    deploy_crd(client, BackendTLSPolicy::crd()).await?;
+    deploy_crd(client, BackendTlsPolicy::crd()).await?;
     deploy_crd(client, GatewayClass::crd()).await?;
     deploy_crd(client, Gateway::crd()).await?;
-    deploy_crd(client, GRPCRoute::crd()).await?;
-    deploy_crd(client, HTTPRoute::crd()).await?;
+    deploy_crd(client, GrpcRoute::crd()).await?;
+    deploy_crd(client, HttpRoute::crd()).await?;
     deploy_crd(client, ListenerSet::crd()).await?;
     deploy_crd(client, ReferenceGrant::crd()).await?;
-    deploy_crd(client, TLSRoute::crd()).await?;
+    deploy_crd(client, TlsRoute::crd()).await?;
     Ok(())
 }
 
 #[cfg(feature = "experimental")]
 async fn deploy_experimental_crds(client: &Client) -> Result<()> {
     use gateway_api::experimental::{
-        tcproutes::TCPRoute, udproutes::UDPRoute, xbackendtrafficpolicies::XBackendTrafficPolicy, xmeshes::XMesh,
+        tcproutes::TcpRoute, udproutes::UdpRoute, xbackendtrafficpolicies::XBackendTrafficPolicy, xmeshes::XMesh,
     };
 
-    deploy_crd(client, TCPRoute::crd()).await?;
-    deploy_crd(client, UDPRoute::crd()).await?;
+    deploy_crd(client, TcpRoute::crd()).await?;
+    deploy_crd(client, UdpRoute::crd()).await?;
     deploy_crd(client, XBackendTrafficPolicy::crd()).await?;
     deploy_crd(client, XMesh::crd()).await?;
     Ok(())

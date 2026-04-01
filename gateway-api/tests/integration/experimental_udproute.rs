@@ -1,4 +1,4 @@
-use gateway_api::experimental::udproutes::{UDPRoute, UdpRouteRules, UdpRouteSpec};
+use gateway_api::experimental::udproutes::{UdpRoute, UdpRouteRules, UdpRouteSpec};
 use kube::{
     Api,
     api::{DeleteParams, PostParams},
@@ -11,9 +11,9 @@ use crate::common;
 #[tokio::test]
 async fn crud() {
     let client = common::client().await;
-    let api: Api<UDPRoute> = Api::default_namespaced(client.clone());
+    let api: Api<UdpRoute> = Api::default_namespaced(client.clone());
 
-    let route = UDPRoute {
+    let route = UdpRoute {
         metadata: ObjectMeta {
             name: Some("test-udproute".into()),
             ..Default::default()
