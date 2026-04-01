@@ -9,6 +9,7 @@ mod prelude {
     pub use schemars::JsonSchema;
     pub use serde::{Deserialize, Serialize};
 }
+
 use self::prelude::*;
 
 /// Spec defines the desired state of XMesh.
