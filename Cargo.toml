@@ -17,7 +17,7 @@ kube = { version = "3.1.0" }
 k8s-openapi = { version = "0.27.1" }
 regex = { package = "regex-lite", version = "0.1.9" }
 schemars = "1.2.1"
-serde_json = "1.0.149"
+serde_json = "1.0.150"
 serde = { version = "1.0.228", features = ["derive"] }
 tokio = { version = "1.50.0", features = ["full"] }
 tower = { version = "0.5.3", features = ["limit"] }
