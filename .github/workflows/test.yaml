@@ -73,7 +73,7 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-generate-
 
       - name: install kopium
-        run: command -v kopium >/dev/null || cargo install --locked kopium --version 0.22.5
+        run: command -v kopium >/dev/null || cargo install --locked kopium --version 0.23.0
 
       - name: run generate
         run: make generate
