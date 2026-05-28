@@ -1,5 +1,5 @@
 use gateway_api::backendtlspolicies::{
-    BackendTLSPolicy, BackendTlsPolicySpec, BackendTlsPolicyTargetRefs, BackendTlsPolicyValidation,
+    BackendTlsPolicy, BackendTlsPolicySpec, BackendTlsPolicyTargetRefs, BackendTlsPolicyValidation,
 };
 use kube::{
     Api,
@@ -13,9 +13,9 @@ use crate::common;
 #[tokio::test]
 async fn crud() {
     let client = common::client().await;
-    let api: Api<BackendTLSPolicy> = Api::default_namespaced(client.clone());
+    let api: Api<BackendTlsPolicy> = Api::default_namespaced(client.clone());
 
-    let policy = BackendTLSPolicy {
+    let policy = BackendTlsPolicy {
         metadata: ObjectMeta {
             name: Some("test-backendtlspolicy".into()),
             ..Default::default()

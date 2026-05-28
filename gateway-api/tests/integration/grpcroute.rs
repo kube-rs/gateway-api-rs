@@ -1,4 +1,4 @@
-use gateway_api::grpcroutes::{GRPCRoute, GrpcRouteSpec};
+use gateway_api::grpcroutes::{GrpcRoute, GrpcRouteSpec};
 use kube::{
     Api,
     api::{DeleteParams, PostParams},
@@ -11,9 +11,9 @@ use crate::common;
 #[tokio::test]
 async fn crud() {
     let client = common::client().await;
-    let api: Api<GRPCRoute> = Api::default_namespaced(client.clone());
+    let api: Api<GrpcRoute> = Api::default_namespaced(client.clone());
 
-    let route = GRPCRoute {
+    let route = GrpcRoute {
         metadata: ObjectMeta {
             name: Some("test-grpcroute".into()),
             ..Default::default()
