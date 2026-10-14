@@ -7,7 +7,7 @@ API bindings are auto-generated from upstream Gateway API CRDs using [Kopium].
 Install `kopium`:
 
 ```console
-$ cargo install kopium --version 0.23.0
+$ cargo install kopium --version 0.24.1
 ```
 
 Run the generator:
