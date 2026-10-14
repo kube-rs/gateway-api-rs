@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: install nightly rust (for rustfmt)
         uses: dtolnay/rust-toolchain@nightly
@@ -29,7 +29,7 @@ jobs:
           components: clippy
 
       - name: cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/bin/
@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: install nightly rust (for rustfmt)
         uses: dtolnay/rust-toolchain@nightly
@@ -61,7 +61,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/bin/
@@ -73,7 +73,11 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-generate-
 
       - name: install kopium
-        run: command -v kopium >/dev/null || cargo install --locked kopium --version 0.23.0
+        env:
+          KOPIUM_VERSION: 0.24.1
+        run: |
+          kopium --version 2>/dev/null | grep -qx "kopium ${KOPIUM_VERSION}" || \
+            cargo install --locked --force kopium --version "${KOPIUM_VERSION}"
 
       - name: run generate
         run: make generate
@@ -85,13 +89,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: install rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/bin/
