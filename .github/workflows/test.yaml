@@ -73,7 +73,11 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-generate-
 
       - name: install kopium
-        run: command -v kopium >/dev/null || cargo install --locked kopium --version 0.24.1
+        env:
+          KOPIUM_VERSION: 0.24.1
+        run: |
+          kopium --version 2>/dev/null | grep -qx "kopium ${KOPIUM_VERSION}" || \
+            cargo install --locked --force kopium --version "${KOPIUM_VERSION}"
 
       - name: run generate
         run: make generate
