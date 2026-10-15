@@ -297,6 +297,7 @@ fn generate_channel(version: &str, channel: &Channel) -> Result<()> {
 fn write_apis_mod() -> Result<()> {
     let mut out = String::from(GENERATED_HEADER);
     writeln!(out, "#[cfg(feature = \"experimental\")]").unwrap();
+    writeln!(out, "#[cfg_attr(docsrs, doc(cfg(feature = \"experimental\")))]").unwrap();
     writeln!(out, "pub mod experimental;").unwrap();
     writeln!(out, "pub mod standard;").unwrap();
 

@@ -1,3 +1,4 @@
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(unsafe_code)]
 #![warn(clippy::all, clippy::pedantic, missing_docs, rust_2018_idioms, unreachable_pub)]
 #![allow(
@@ -10,6 +11,14 @@
 )]
 
 //! Rust bindings for the Kubernetes Gateway API.
+//!
+//! # Features
+//!
+//! - `experimental`: enables the [experimental channel] APIs under
+//!   `gateway_api::experimental`. These APIs may change or be removed without
+//!   notice.
+//!
+//! [experimental channel]: https://gateway-api.sigs.k8s.io/docs/concepts/versioning/#release-channels
 
 pub mod duration;
 pub use duration::Duration;
@@ -17,5 +26,6 @@ pub use duration::Duration;
 #[allow(missing_docs, unreachable_pub, clippy::all, clippy::pedantic, rust_2018_idioms)]
 pub mod apis;
 #[cfg(feature = "experimental")]
+#[cfg_attr(docsrs, doc(cfg(feature = "experimental")))]
 pub use apis::experimental;
 pub use apis::standard::*;
