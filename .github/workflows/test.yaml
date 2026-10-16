@@ -86,7 +86,16 @@ jobs:
         run: git diff --exit-code
 
   tests:
+    name: tests (${{ matrix.channel }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - channel: standard
+            target-suffix: ""
+          - channel: experimental
+            target-suffix: ".experimental"
     steps:
       - name: checkout repository
         uses: actions/checkout@v7
@@ -103,11 +112,11 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-test-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-test-
+          key: ${{ runner.os }}-cargo-test-${{ matrix.channel }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-test-${{ matrix.channel }}-
 
       - name: run unit tests
-        run: make test.unit
+        run: make test.unit${{ matrix.target-suffix }}
 
       - name: install kind
         run: |
@@ -116,4 +125,4 @@ jobs:
           sudo mv ./kind /usr/local/bin/kind
 
       - name: run integration tests
-        run: make test.integration
+        run: make test.integration${{ matrix.target-suffix }}

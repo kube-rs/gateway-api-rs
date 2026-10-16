@@ -33,7 +33,8 @@ tokio.workspace = true
 tower.workspace = true
 
 [package.metadata.docs.rs]
-features = ["k8s-openapi/v1_32"]
+features = ["experimental", "k8s-openapi/v1_32"]
+rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
 default = []

@@ -295,10 +295,13 @@ fn generate_channel(version: &str, channel: &Channel) -> Result<()> {
 }
 
 fn write_apis_mod() -> Result<()> {
-    fs::write(
-        format!("{APIS_DIR}/mod.rs"),
-        "pub mod experimental;\npub mod standard;\n",
-    )?;
+    let mut out = String::from(GENERATED_HEADER);
+    writeln!(out, "#[cfg(feature = \"experimental\")]").unwrap();
+    writeln!(out, "#[cfg_attr(docsrs, doc(cfg(feature = \"experimental\")))]").unwrap();
+    writeln!(out, "pub mod experimental;").unwrap();
+    writeln!(out, "pub mod standard;").unwrap();
+
+    fs::write(format!("{APIS_DIR}/mod.rs"), out)?;
     Ok(())
 }
 
