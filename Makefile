@@ -2,6 +2,10 @@ GATEWAY_API_VERSION ?= v1.5.1
 KIND_CLUSTER_NAME ?= gateway-api-test
 KIND_KUBECONFIG := /tmp/$(KIND_CLUSTER_NAME)-kubeconfig
 
+CLIPPY_ALLOWS := -A clippy::doc_lazy_continuation \
+	-A clippy::tabs_in_doc_comments \
+	-A clippy::derivable_impls
+
 .PHONY: all
 all: build generate
 
@@ -24,26 +28,37 @@ fmt.check:
 .PHONY: lint
 lint: fmt.check
 	cargo deny check
-	cargo clippy --all-targets --all-features -- -D warnings \
-		-A clippy::doc_lazy_continuation \
-		-A clippy::tabs_in_doc_comments \
-		-A clippy::derivable_impls
+	cargo clippy --all-targets -- -D warnings $(CLIPPY_ALLOWS)
+	cargo clippy --all-targets --all-features -- -D warnings $(CLIPPY_ALLOWS)
 
 .PHONY: generate
 generate:
 	cargo xtask generate $(GATEWAY_API_VERSION)
 
+define run_integration_tests
+	@$(MAKE) --no-print-directory kind.start
+	@trap '$(MAKE) --no-print-directory kind.stop' EXIT; \
+	KUBECONFIG=$(KIND_KUBECONFIG) cargo test -vv $(1) -- --nocapture --ignored
+endef
+
 .PHONY: test.all
-test.all: test.unit test.integration
+test.all: test.unit test.unit.experimental test.integration test.integration.experimental
 
 .PHONY: test.unit
 test.unit:
 	cargo test -vv -- --nocapture
 
+.PHONY: test.unit.experimental
+test.unit.experimental:
+	cargo test -vv --features experimental -- --nocapture
+
 .PHONY: test.integration
-test.integration: kind.start
-	@trap '$(MAKE) kind.stop' EXIT; \
-	KUBECONFIG=$(KIND_KUBECONFIG) cargo test -vv -- --nocapture --ignored
+test.integration:
+	$(call run_integration_tests)
+
+.PHONY: test.integration.experimental
+test.integration.experimental:
+	$(call run_integration_tests,--features experimental)
 
 .PHONY: kind.start
 kind.start:
