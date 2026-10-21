@@ -31,6 +31,10 @@ lint: fmt.check
 	cargo clippy --all-targets -- -D warnings $(CLIPPY_ALLOWS)
 	cargo clippy --all-targets --all-features -- -D warnings $(CLIPPY_ALLOWS)
 
+.PHONY: package
+package:
+	cargo package -p gateway-api --features k8s-openapi/earliest
+
 .PHONY: generate
 generate:
 	cargo xtask generate $(GATEWAY_API_VERSION)

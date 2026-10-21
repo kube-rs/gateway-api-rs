@@ -7,6 +7,7 @@ keywords = ["kubernetes", "gateway-api"]
 homepage = "https://docs.rs/gateway-api/"
 readme = "../README.md"
 repository = "https://github.com/kube-rs/gateway-api-rs"
+autoexamples = false
 
 authors.workspace = true
 edition.workspace = true
