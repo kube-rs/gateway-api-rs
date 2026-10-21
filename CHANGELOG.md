@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (since v0.21.0)
+## 0.22.0 (since v0.21.0)
 
 ### Breaking changes
 
