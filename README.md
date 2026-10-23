@@ -25,7 +25,8 @@ Every API version a CRD defines is available as a submodule of the resource
 module. The module root re-exports the primary version (usually `v1`):
 
 ```rust
-use gateway_api::referencegrants::ReferenceGrant; // v1
+use gateway_api::referencegrants::ReferenceGrant; // re-export of v1
+use gateway_api::referencegrants::v1::ReferenceGrant as ReferenceGrantV1;
 use gateway_api::referencegrants::v1beta1::ReferenceGrant as ReferenceGrantV1beta1;
 ```
 
