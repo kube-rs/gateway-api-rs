@@ -19,6 +19,10 @@ Requires a [kube-rs] [Client] to perform create, read, update and delete (CRUD)
 operations on [Gateway API resources]. See the `gateway-api/examples/` directory
 for detailed (and specific) usage examples.
 
+[kube-rs]:https://github.com/kube-rs/kube
+[Client]:https://docs.rs/kube/latest/kube/struct.Client.html
+[Gateway API resources]:https://gateway-api.sigs.k8s.io/api-types/gateway/
+
 ### API versions
 
 Every API version a CRD defines is available as a submodule of the resource
@@ -29,15 +33,6 @@ use gateway_api::referencegrants::ReferenceGrant; // re-export of v1
 use gateway_api::referencegrants::v1::ReferenceGrant as ReferenceGrantV1;
 use gateway_api::referencegrants::v1beta1::ReferenceGrant as ReferenceGrantV1beta1;
 ```
-
-Each version module's docs state whether the upstream CRD serves it, stores it,
-or marks it deprecated. Some versions are defined but not served, for example
-TLSRoute `v1alpha2` in the standard channel.
-
-[kube-rs]:https://github.com/kube-rs/kube
-[Gateway API resources]:https://gateway-api.sigs.k8s.io/api-types/gateway/
-[Client]:https://docs.rs/kube/latest/kube/struct.Client.html
-[Controller]:https://kube.rs/controllers/intro/
 
 ## Development
 
