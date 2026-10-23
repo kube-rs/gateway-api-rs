@@ -17,6 +17,16 @@
 - **Experimental BackendTLSPolicy** ([#246]).
   `gateway_api::experimental::backendtlspolicies` was missing.
 
+### Upgrade notes
+
+- Resource modules now export public version submodules (`v1`, `v1beta1`,
+  ...). Code that glob-imports a resource module alongside another glob that
+  also brings a `v1` module into scope, e.g.
+  `use gateway_api::httproutes::*;` with
+  `use k8s_openapi::apimachinery::pkg::apis::meta::*;`, can now fail with
+  error E0659 (`v1` is ambiguous). Import the conflicting `v1` path
+  explicitly instead.
+
 [#246]: https://github.com/kube-rs/gateway-api-rs/issues/246
 
 ## 0.22.0 (since v0.21.0)
