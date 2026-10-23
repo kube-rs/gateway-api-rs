@@ -408,6 +408,7 @@ dependencies = [
  "regex-lite",
  "schemars",
  "serde",
+ "serde-saphyr",
  "serde_json",
  "tokio",
  "tower",

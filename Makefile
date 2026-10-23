@@ -17,13 +17,17 @@ clean:
 build:
 	cargo build
 
+# Every Rust file, not just those cargo fmt reaches through the module tree:
+# the integration test bodies are declared inside a macro, which it skips.
+RUST_FILES = $(shell find gateway-api xtask -name '*.rs')
+
 .PHONY: fmt
 fmt:
-	cargo +nightly fmt
+	rustfmt +nightly $(RUST_FILES)
 
 .PHONY: fmt.check
 fmt.check:
-	cargo +nightly fmt -- --check
+	rustfmt +nightly --check $(RUST_FILES)
 
 .PHONY: lint
 lint: fmt.check
