@@ -260,7 +260,7 @@ fn generate(version: &str) -> Result<()> {
     for channel in [&STANDARD, &EXPERIMENTAL] {
         generate_channel(version, channel)?;
     }
-    write_apis_mod()?;
+    write_apis_module()?;
     cargo_fmt()?;
     Ok(())
 }
@@ -283,25 +283,25 @@ fn generate_channel(version: &str, channel: &Channel) -> Result<()> {
     }
 
     // Generate supporting files
-    let mod_rs = gen_mod_rs(channel);
+    let channel_module = gen_channel_module(channel);
     let enum_defaults = gen_enum_defaults(channel.enum_defaults);
     let constants = gen_constants(channel.conditions);
 
-    fs::write(format!("{dir}/mod.rs"), mod_rs)?;
+    fs::write(format!("{dir}.rs"), channel_module)?;
     fs::write(format!("{dir}/enum_defaults.rs"), enum_defaults)?;
     fs::write(format!("{dir}/constants.rs"), constants)?;
 
     Ok(())
 }
 
-fn write_apis_mod() -> Result<()> {
+fn write_apis_module() -> Result<()> {
     let mut out = String::from(GENERATED_HEADER);
     writeln!(out, "#[cfg(feature = \"experimental\")]").unwrap();
     writeln!(out, "#[cfg_attr(docsrs, doc(cfg(feature = \"experimental\")))]").unwrap();
     writeln!(out, "pub mod experimental;").unwrap();
     writeln!(out, "pub mod standard;").unwrap();
 
-    fs::write(format!("{APIS_DIR}/mod.rs"), out)?;
+    fs::write(format!("{APIS_DIR}.rs"), out)?;
     Ok(())
 }
 
@@ -366,10 +366,10 @@ fn fetch_and_convert(version: &str, channel: &str, api: &Api) -> Result<String> 
 }
 
 // -----------------------------------------------------------------------------
-// mod.rs generation
+// Channel module generation
 // -----------------------------------------------------------------------------
 
-fn gen_mod_rs(channel: &Channel) -> String {
+fn gen_channel_module(channel: &Channel) -> String {
     let mut out = String::from(GENERATED_HEADER);
     for api in channel.apis {
         writeln!(out, "pub mod {};", api.name).unwrap();
