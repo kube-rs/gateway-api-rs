@@ -8,6 +8,7 @@ use kube::{
     api::PostParams,
     client::ConfigExt,
     config::{KubeConfigOptions, Kubeconfig},
+    core::crd::merge_crds,
 };
 use tokio::sync::OnceCell;
 use tower::{BoxError, ServiceBuilder};
@@ -95,20 +96,69 @@ async fn deploy_crd(client: &Client, mut crd: CustomResourceDefinition) -> Resul
     bail!("timed out waiting for CRD {name} to become established");
 }
 
+/// Deploys one CRD serving every API version the crate generates. Unlike the
+/// upstream CRDs, every version is served, so each binding can be exercised.
+async fn deploy_merged_crd(client: &Client, crds: Vec<CustomResourceDefinition>, storage: &str) -> Result<()> {
+    deploy_crd(client, merge_crds(crds, storage)?).await
+}
+
 async fn deploy_standard_crds(client: &Client) -> Result<()> {
     use gateway_api::{
-        backendtlspolicies::BackendTlsPolicy, gatewayclasses::GatewayClass, gateways::Gateway, grpcroutes::GrpcRoute,
-        httproutes::HttpRoute, listenersets::ListenerSet, referencegrants::ReferenceGrant, tlsroutes::TlsRoute,
+        backendtlspolicies, gatewayclasses, gateways, grpcroutes::GrpcRoute, httproutes, listenersets::ListenerSet,
+        referencegrants, tlsroutes,
     };
 
-    deploy_crd(client, BackendTlsPolicy::crd()).await?;
-    deploy_crd(client, GatewayClass::crd()).await?;
-    deploy_crd(client, Gateway::crd()).await?;
+    deploy_merged_crd(
+        client,
+        vec![
+            backendtlspolicies::v1::BackendTlsPolicy::crd(),
+            backendtlspolicies::v1alpha3::BackendTlsPolicy::crd(),
+        ],
+        "v1",
+    )
+    .await?;
+    deploy_merged_crd(
+        client,
+        vec![
+            gatewayclasses::v1::GatewayClass::crd(),
+            gatewayclasses::v1beta1::GatewayClass::crd(),
+        ],
+        "v1",
+    )
+    .await?;
+    deploy_merged_crd(
+        client,
+        vec![gateways::v1::Gateway::crd(), gateways::v1beta1::Gateway::crd()],
+        "v1",
+    )
+    .await?;
     deploy_crd(client, GrpcRoute::crd()).await?;
-    deploy_crd(client, HttpRoute::crd()).await?;
+    deploy_merged_crd(
+        client,
+        vec![httproutes::v1::HttpRoute::crd(), httproutes::v1beta1::HttpRoute::crd()],
+        "v1",
+    )
+    .await?;
     deploy_crd(client, ListenerSet::crd()).await?;
-    deploy_crd(client, ReferenceGrant::crd()).await?;
-    deploy_crd(client, TlsRoute::crd()).await?;
+    deploy_merged_crd(
+        client,
+        vec![
+            referencegrants::v1::ReferenceGrant::crd(),
+            referencegrants::v1beta1::ReferenceGrant::crd(),
+        ],
+        "v1beta1",
+    )
+    .await?;
+    deploy_merged_crd(
+        client,
+        vec![
+            tlsroutes::v1::TlsRoute::crd(),
+            tlsroutes::v1alpha2::TlsRoute::crd(),
+            tlsroutes::v1alpha3::TlsRoute::crd(),
+        ],
+        "v1",
+    )
+    .await?;
     Ok(())
 }
 

@@ -10,6 +10,8 @@ mod referencegrant;
 mod tlsroute;
 
 #[cfg(feature = "experimental")]
+mod experimental_backendtlspolicy;
+#[cfg(feature = "experimental")]
 mod experimental_gateway;
 #[cfg(feature = "experimental")]
 mod experimental_gateway_class;

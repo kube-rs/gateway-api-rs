@@ -10,4 +10,6 @@ version.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+serde-saphyr.workspace = true
+serde.workspace = true
 ureq.workspace = true
