@@ -1,18 +1,30 @@
-use std::{fmt::Debug, time::Duration};
+use std::{fmt::Debug, fs, path::Path, time::Duration};
 
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail, ensure};
 use hyper_util::{client::legacy::Client as HttpClient, rt::TokioExecutor};
 use k8s_openapi::apiextensions_apiserver::pkg::apis::apiextensions::v1::CustomResourceDefinition;
 use kube::{
-    Api, Client, Config, CustomResourceExt, Resource,
-    api::{DeleteParams, PostParams},
+    Api, Client, Config, Resource, ResourceExt,
+    api::{DeleteParams, ListParams, Patch, PatchParams, PostParams},
     client::ConfigExt,
     config::{KubeConfigOptions, Kubeconfig},
-    core::crd::merge_crds,
 };
 use serde::{Serialize, de::DeserializeOwned};
 use tokio::sync::OnceCell;
 use tower::{BoxError, ServiceBuilder};
+
+/// The upstream CRD channel installed for this run. Standard and experimental
+/// CRDs share names, so a cluster holds one channel at a time. The standard
+/// types are tested against whichever is installed: the experimental schema
+/// is a superset of the standard one.
+pub const CHANNEL: &str = if cfg!(feature = "experimental") {
+    "experimental"
+} else {
+    "standard"
+};
+
+/// Field manager for server-side apply.
+const FIELD_MANAGER: &str = "gateway-api-tests";
 
 // -----------------------------------------------------------------------------
 // Shared cluster state
@@ -22,7 +34,7 @@ static CLIENT_INIT: OnceCell<String> = OnceCell::const_new();
 
 /// Return a fresh client bound to the current tokio runtime.
 /// The cluster is expected to already exist — `KUBECONFIG` env var must point
-/// at a valid kubeconfig file. CRDs are deployed once on first call.
+/// at a valid kubeconfig file. CRDs are installed once on first call.
 pub async fn client() -> Client {
     let kubeconfig = CLIENT_INIT
         .get_or_init(|| async {
@@ -32,14 +44,9 @@ pub async fn client() -> Client {
 
             let client = make_client(&kubeconfig).await.expect("failed to create kube client");
 
-            deploy_standard_crds(&client)
+            install_crds(&client, CHANNEL)
                 .await
-                .expect("failed to deploy standard CRDs");
-
-            #[cfg(feature = "experimental")]
-            deploy_experimental_crds(&client)
-                .await
-                .expect("failed to deploy experimental CRDs");
+                .unwrap_or_else(|e| panic!("failed to install {CHANNEL} CRDs: {e:#}"));
 
             kubeconfig
         })
@@ -49,34 +56,103 @@ pub async fn client() -> Client {
 }
 
 // -----------------------------------------------------------------------------
-// API version roundtrip
+// API version checks
 // -----------------------------------------------------------------------------
 
-/// Creates `obj` through its own API version, reads it back through `read_via`
-/// (typically the root version), and deletes it. Cleanup happens before the
-/// caller asserts on the returned object, so a failed assertion leaves nothing
-/// behind.
-pub async fn roundtrip<V, R>(create_via: Api<V>, read_via: Api<R>, obj: &V) -> R
+/// Checks one API version of a resource against the installed upstream CRD.
+///
+/// If the CRD serves the version, `object` is created, read, listed, updated
+/// and deleted through `api`. The update is a server-side apply of the object
+/// as read back, with strict field validation, so the API server rejects any
+/// field the type writes that the upstream schema doesn't define.
+///
+/// If the CRD defines the version but doesn't serve it, creating `object` must
+/// fail with 404.
+///
+/// `object` is given a generated name, so checks of the same resource through
+/// different versions or channels never collide.
+pub async fn crud<K>(api: Api<K>, mut object: K)
 where
-    V: Resource<DynamicType = ()> + Clone + Debug + Serialize + DeserializeOwned,
-    R: Resource<DynamicType = ()> + Clone + Debug + DeserializeOwned,
+    K: Resource<DynamicType = ()> + Clone + Debug + PartialEq + Serialize + DeserializeOwned,
 {
-    let name = obj.meta().name.clone().expect("object must have a name");
-    let created_as = format!("{} {}", V::api_version(&()), V::kind(&()));
-    let read_as = format!("{} {}", R::api_version(&()), R::kind(&()));
+    let resource = format!("{} {}", K::api_version(&()), K::kind(&()));
+    object.meta_mut().generate_name = Some("test-".into());
 
-    let created = create_via
-        .create(&PostParams::default(), obj)
-        .await
-        .unwrap_or_else(|e| panic!("failed to create {name} as {created_as}: {e}"));
-    let read = read_via.get(&name).await;
-    create_via
-        .delete(&name, &DeleteParams::default())
-        .await
-        .unwrap_or_else(|e| panic!("failed to delete {name} as {created_as}: {e}"));
+    if !served::<K>().await {
+        match api.create(&PostParams::default(), &object).await {
+            // The URL isn't routed at all, so the body is plain text, not a
+            // `Status` that `is_not_found` could recognize.
+            Err(kube::Error::Api(status)) if status.code == 404 => return,
+            Err(e) => panic!("{resource} is not served, expected 404 on create, got: {e}"),
+            Ok(_) => panic!("{resource} is not served, but create succeeded"),
+        }
+    }
 
-    assert!(created.meta().uid.is_some());
-    read.unwrap_or_else(|e| panic!("failed to read {name} as {read_as}: {e}"))
+    let created = api
+        .create(&PostParams::default(), &object)
+        .await
+        .unwrap_or_else(|e| panic!("{resource}: create failed: {e}"));
+    let name = created.name_any();
+
+    let result = read_update_delete(&api, &name, created).await;
+    // Clean up even when a step failed. After a successful delete this is a
+    // no-op 404.
+    let _ = api.delete(&name, &DeleteParams::default()).await;
+    result.unwrap_or_else(|e| panic!("{resource} {name}: {e:#}"));
+}
+
+async fn read_update_delete<K>(api: &Api<K>, name: &str, created: K) -> Result<()>
+where
+    K: Resource<DynamicType = ()> + Clone + Debug + PartialEq + Serialize + DeserializeOwned,
+{
+    let read = api.get(name).await.context("get failed")?;
+    ensure!(read == created, "read back {read:?}, created {created:?}");
+
+    let list = api.list(&ListParams::default()).await.context("list failed")?;
+    ensure!(
+        list.items.iter().any(|o| o.name_any() == name),
+        "list does not contain the object"
+    );
+
+    let mut apply = read;
+    apply.meta_mut().managed_fields = None;
+    apply
+        .labels_mut()
+        .insert("gateway-api-tests/updated".into(), "true".into());
+    let params = PatchParams::apply(FIELD_MANAGER).force().validation_strict();
+    let updated = api
+        .patch(name, &params, &Patch::Apply(&apply))
+        .await
+        .context("server-side apply failed")?;
+    ensure!(
+        updated.labels().get("gateway-api-tests/updated").map(String::as_str) == Some("true"),
+        "update did not apply the label"
+    );
+
+    api.delete(name, &DeleteParams::default())
+        .await
+        .context("delete failed")?;
+    if api.get_opt(name).await.context("get after delete failed")?.is_some() {
+        bail!("object still exists after delete");
+    }
+    Ok(())
+}
+
+/// Whether the installed CRD serves `K`'s API version. Panics if the CRD
+/// doesn't define that version at all.
+async fn served<K: Resource<DynamicType = ()>>() -> bool {
+    let crd_name = format!("{}.{}", K::plural(&()), K::group(&()));
+    let version = K::version(&());
+    let crd = Api::<CustomResourceDefinition>::all(client().await)
+        .get(&crd_name)
+        .await
+        .unwrap_or_else(|e| panic!("failed to get CRD {crd_name}: {e}"));
+    crd.spec
+        .versions
+        .iter()
+        .find(|v| v.name == version)
+        .unwrap_or_else(|| panic!("{CHANNEL} CRD {crd_name} does not define {version}"))
+        .served
 }
 
 // -----------------------------------------------------------------------------
@@ -99,21 +175,42 @@ async fn make_client(kubeconfig_yaml: &str) -> Result<Client> {
 }
 
 // -----------------------------------------------------------------------------
-// CRD deployment
+// CRD installation
 // -----------------------------------------------------------------------------
 
-async fn deploy_crd(client: &Client, mut crd: CustomResourceDefinition) -> Result<()> {
-    let name = crd.metadata.name.clone().unwrap_or_default();
-    crd.metadata.annotations = Some(std::collections::BTreeMap::from([(
-        "api-approved.kubernetes.io".to_string(),
-        "https://github.com/kubernetes/enhancements/pull/1111".to_string(),
-    )]));
+/// Installs the vendored upstream CRDs of `channel`: the same YAML the
+/// bindings are generated from (see `cargo xtask generate`). Server-side apply
+/// makes this idempotent, and replaces the other channel's CRDs on a reused
+/// cluster.
+async fn install_crds(client: &Client, channel: &str) -> Result<()> {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/crds")
+        .join(channel);
     let api: Api<CustomResourceDefinition> = Api::all(client.clone());
-    api.create(&PostParams::default(), &crd).await?;
+    let params = PatchParams::apply(FIELD_MANAGER).force();
 
-    // Wait for the CRD to be accepted by the API server
+    let mut names = Vec::new();
+    for entry in fs::read_dir(&dir).with_context(|| format!("failed to read {}", dir.display()))? {
+        let path = entry?.path();
+        let yaml = fs::read_to_string(&path)?;
+        let crd: CustomResourceDefinition =
+            serde_saphyr::from_str(&yaml).with_context(|| format!("failed to parse {}", path.display()))?;
+        let name = crd.name_any();
+        api.patch(&name, &params, &Patch::Apply(&crd))
+            .await
+            .with_context(|| format!("failed to apply CRD {name}"))?;
+        names.push(name);
+    }
+
+    for name in &names {
+        wait_established(&api, name).await?;
+    }
+    Ok(())
+}
+
+async fn wait_established(api: &Api<CustomResourceDefinition>, name: &str) -> Result<()> {
     for _ in 0..30 {
-        let c = api.get(&name).await?;
+        let c = api.get(name).await?;
         let established = c
             .status
             .as_ref()
@@ -126,83 +223,4 @@ async fn deploy_crd(client: &Client, mut crd: CustomResourceDefinition) -> Resul
         tokio::time::sleep(Duration::from_millis(250)).await;
     }
     bail!("timed out waiting for CRD {name} to become established");
-}
-
-/// Deploys one CRD serving every API version the crate generates. Unlike the
-/// upstream CRDs, every version is served, so each binding can be exercised.
-async fn deploy_merged_crd(client: &Client, crds: Vec<CustomResourceDefinition>, storage: &str) -> Result<()> {
-    deploy_crd(client, merge_crds(crds, storage)?).await
-}
-
-async fn deploy_standard_crds(client: &Client) -> Result<()> {
-    use gateway_api::{
-        backendtlspolicies, gatewayclasses, gateways, grpcroutes::GrpcRoute, httproutes, listenersets::ListenerSet,
-        referencegrants, tlsroutes,
-    };
-
-    deploy_merged_crd(
-        client,
-        vec![
-            backendtlspolicies::v1::BackendTlsPolicy::crd(),
-            backendtlspolicies::v1alpha3::BackendTlsPolicy::crd(),
-        ],
-        "v1",
-    )
-    .await?;
-    deploy_merged_crd(
-        client,
-        vec![
-            gatewayclasses::v1::GatewayClass::crd(),
-            gatewayclasses::v1beta1::GatewayClass::crd(),
-        ],
-        "v1",
-    )
-    .await?;
-    deploy_merged_crd(
-        client,
-        vec![gateways::v1::Gateway::crd(), gateways::v1beta1::Gateway::crd()],
-        "v1",
-    )
-    .await?;
-    deploy_crd(client, GrpcRoute::crd()).await?;
-    deploy_merged_crd(
-        client,
-        vec![httproutes::v1::HttpRoute::crd(), httproutes::v1beta1::HttpRoute::crd()],
-        "v1",
-    )
-    .await?;
-    deploy_crd(client, ListenerSet::crd()).await?;
-    deploy_merged_crd(
-        client,
-        vec![
-            referencegrants::v1::ReferenceGrant::crd(),
-            referencegrants::v1beta1::ReferenceGrant::crd(),
-        ],
-        "v1beta1",
-    )
-    .await?;
-    deploy_merged_crd(
-        client,
-        vec![
-            tlsroutes::v1::TlsRoute::crd(),
-            tlsroutes::v1alpha2::TlsRoute::crd(),
-            tlsroutes::v1alpha3::TlsRoute::crd(),
-        ],
-        "v1",
-    )
-    .await?;
-    Ok(())
-}
-
-#[cfg(feature = "experimental")]
-async fn deploy_experimental_crds(client: &Client) -> Result<()> {
-    use gateway_api::experimental::{
-        tcproutes::TcpRoute, udproutes::UdpRoute, xbackendtrafficpolicies::XBackendTrafficPolicy, xmeshes::XMesh,
-    };
-
-    deploy_crd(client, TcpRoute::crd()).await?;
-    deploy_crd(client, UdpRoute::crd()).await?;
-    deploy_crd(client, XBackendTrafficPolicy::crd()).await?;
-    deploy_crd(client, XMesh::crd()).await?;
-    Ok(())
 }

@@ -30,6 +30,7 @@ kube = { workspace = true, features = ["derive", "client", "rustls-tls", "ring"]
 
 anyhow.workspace = true
 hyper-util.workspace = true
+serde-saphyr.workspace = true
 tokio.workspace = true
 tower.workspace = true
 
