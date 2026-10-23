@@ -16,8 +16,18 @@
 ## Usage
 
 Requires a [kube-rs] [Client] to perform create, read, update and delete (CRUD)
-operations on [Gateway API resources]. See the `gateway-api/examples/` directory
-for detailed (and specific) usage examples.
+operations on [Gateway API resources].
+
+```rust
+use gateway_api::httproutes::HttpRoute;
+use kube::{Api, Client, ResourceExt, api::ListParams};
+
+let client = Client::try_default().await?;
+let routes: Api<HttpRoute> = Api::default_namespaced(client);
+for route in routes.list(&ListParams::default()).await? {
+    println!("{}", route.name_any());
+}
+```
 
 [kube-rs]:https://github.com/kube-rs/kube
 [Client]:https://docs.rs/kube/latest/kube/struct.Client.html
