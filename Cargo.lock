@@ -1890,6 +1890,8 @@ name = "xtask"
 version = "0.22.0"
 dependencies = [
  "anyhow",
+ "serde",
+ "serde-saphyr",
  "ureq",
 ]
 
