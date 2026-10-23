@@ -99,35 +99,22 @@ async fn v1beta1() {
     use gateway_api::gateways::v1beta1;
 
     let client = common::client().await;
-    let api: Api<v1beta1::Gateway> = Api::default_namespaced(client.clone());
-
-    let gw = v1beta1::Gateway {
-        metadata: ObjectMeta {
-            name: Some("test-gateway-v1beta1".into()),
-            ..Default::default()
+    let read = common::roundtrip(
+        Api::<v1beta1::Gateway>::default_namespaced(client.clone()),
+        Api::<Gateway>::default_namespaced(client),
+        &v1beta1::Gateway {
+            metadata: ObjectMeta {
+                name: Some("test-gateway-v1beta1".into()),
+                ..Default::default()
+            },
+            spec: v1beta1::GatewaySpec {
+                gateway_class_name: "test-gateway-class".into(),
+                ..Default::default()
+            },
+            status: None,
         },
-        spec: v1beta1::GatewaySpec {
-            gateway_class_name: "test-gateway-class".into(),
-            ..Default::default()
-        },
-        status: None,
-    };
+    )
+    .await;
 
-    let created = api
-        .create(&PostParams::default(), &gw)
-        .await
-        .expect("failed to create v1beta1 Gateway");
-
-    assert_eq!(created.metadata.name.as_deref(), Some("test-gateway-v1beta1"));
-    assert!(created.metadata.uid.is_some());
-
-    let read = Api::<Gateway>::default_namespaced(client)
-        .get("test-gateway-v1beta1")
-        .await
-        .expect("failed to read Gateway as v1");
     assert_eq!(read.spec.gateway_class_name, "test-gateway-class");
-
-    api.delete("test-gateway-v1beta1", &DeleteParams::default())
-        .await
-        .expect("failed to delete v1beta1 Gateway");
 }

@@ -1,15 +1,16 @@
-use std::time::Duration;
+use std::{fmt::Debug, time::Duration};
 
 use anyhow::{Result, bail};
 use hyper_util::{client::legacy::Client as HttpClient, rt::TokioExecutor};
 use k8s_openapi::apiextensions_apiserver::pkg::apis::apiextensions::v1::CustomResourceDefinition;
 use kube::{
-    Api, Client, Config, CustomResourceExt,
-    api::PostParams,
+    Api, Client, Config, CustomResourceExt, Resource,
+    api::{DeleteParams, PostParams},
     client::ConfigExt,
     config::{KubeConfigOptions, Kubeconfig},
     core::crd::merge_crds,
 };
+use serde::{Serialize, de::DeserializeOwned};
 use tokio::sync::OnceCell;
 use tower::{BoxError, ServiceBuilder};
 
@@ -45,6 +46,37 @@ pub async fn client() -> Client {
         .await;
 
     make_client(kubeconfig).await.expect("failed to create kube client")
+}
+
+// -----------------------------------------------------------------------------
+// API version roundtrip
+// -----------------------------------------------------------------------------
+
+/// Creates `obj` through its own API version, reads it back through `read_via`
+/// (typically the root version), and deletes it. Cleanup happens before the
+/// caller asserts on the returned object, so a failed assertion leaves nothing
+/// behind.
+pub async fn roundtrip<V, R>(create_via: Api<V>, read_via: Api<R>, obj: &V) -> R
+where
+    V: Resource<DynamicType = ()> + Clone + Debug + Serialize + DeserializeOwned,
+    R: Resource<DynamicType = ()> + Clone + Debug + DeserializeOwned,
+{
+    let name = obj.meta().name.clone().expect("object must have a name");
+    let created_as = format!("{} {}", V::api_version(&()), V::kind(&()));
+    let read_as = format!("{} {}", R::api_version(&()), R::kind(&()));
+
+    let created = create_via
+        .create(&PostParams::default(), obj)
+        .await
+        .unwrap_or_else(|e| panic!("failed to create {name} as {created_as}: {e}"));
+    let read = read_via.get(&name).await;
+    create_via
+        .delete(&name, &DeleteParams::default())
+        .await
+        .unwrap_or_else(|e| panic!("failed to delete {name} as {created_as}: {e}"));
+
+    assert!(created.meta().uid.is_some());
+    read.unwrap_or_else(|e| panic!("failed to read {name} as {read_as}: {e}"))
 }
 
 // -----------------------------------------------------------------------------

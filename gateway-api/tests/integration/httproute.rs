@@ -42,35 +42,22 @@ async fn v1beta1() {
     use gateway_api::httproutes::v1beta1;
 
     let client = common::client().await;
-    let api: Api<v1beta1::HttpRoute> = Api::default_namespaced(client.clone());
-
-    let route = v1beta1::HttpRoute {
-        metadata: ObjectMeta {
-            name: Some("test-httproute-v1beta1".into()),
-            ..Default::default()
+    let read = common::roundtrip(
+        Api::<v1beta1::HttpRoute>::default_namespaced(client.clone()),
+        Api::<HttpRoute>::default_namespaced(client),
+        &v1beta1::HttpRoute {
+            metadata: ObjectMeta {
+                name: Some("test-httproute-v1beta1".into()),
+                ..Default::default()
+            },
+            spec: v1beta1::HttpRouteSpec {
+                hostnames: Some(vec!["example.com".into()]),
+                ..Default::default()
+            },
+            status: None,
         },
-        spec: v1beta1::HttpRouteSpec {
-            hostnames: Some(vec!["example.com".into()]),
-            ..Default::default()
-        },
-        status: None,
-    };
+    )
+    .await;
 
-    let created = api
-        .create(&PostParams::default(), &route)
-        .await
-        .expect("failed to create v1beta1 HTTPRoute");
-
-    assert_eq!(created.metadata.name.as_deref(), Some("test-httproute-v1beta1"));
-    assert!(created.metadata.uid.is_some());
-
-    let read = Api::<HttpRoute>::default_namespaced(client)
-        .get("test-httproute-v1beta1")
-        .await
-        .expect("failed to read HTTPRoute as v1");
     assert_eq!(read.spec.hostnames, Some(vec!["example.com".to_string()]));
-
-    api.delete("test-httproute-v1beta1", &DeleteParams::default())
-        .await
-        .expect("failed to delete v1beta1 HTTPRoute");
 }
