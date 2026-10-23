@@ -5,4 +5,5 @@
 
 pub mod v1;
 pub mod v1alpha3;
+#[doc(inline)]
 pub use v1::*;
