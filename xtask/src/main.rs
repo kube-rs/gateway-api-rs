@@ -9,6 +9,7 @@ use std::{
     fs,
     path::Path,
     process::{self, Command, Stdio},
+    thread,
 };
 
 use anyhow::{Context, Result, bail};
@@ -291,8 +292,11 @@ fn generate_channel(version: &str, channel: &Channel) -> Result<()> {
         let root_version = api.root_version;
         let crd = fetch_crd(version, channel_name, api)?;
 
-        if !crd.spec.versions.iter().any(|v| v.name == root_version) {
+        let Some(root) = crd.spec.versions.iter().find(|v| v.name == root_version) else {
             bail!("{channel_name} {api_name}: root version {root_version} is not defined by the CRD");
+        };
+        if !root.served {
+            bail!("{channel_name} {api_name}: root version {root_version} is not served by the CRD");
         }
 
         fs::create_dir_all(format!("{dir}/{api_name}"))?;
@@ -300,7 +304,7 @@ fn generate_channel(version: &str, channel: &Channel) -> Result<()> {
             generate_version(version, channel, api, &crd, crd_version, &mut unused_defaults)?;
         }
 
-        fs::write(format!("{dir}/{api_name}.rs"), gen_resource_module(api, &crd.spec)?)?;
+        fs::write(format!("{dir}/{api_name}.rs"), gen_resource_module(api, &crd.spec))?;
     }
 
     if let Some(name) = unused_defaults.first() {
@@ -308,8 +312,8 @@ fn generate_channel(version: &str, channel: &Channel) -> Result<()> {
     }
 
     // Generate supporting files
-    let channel_module = gen_channel_module(channel)?;
-    let constants = gen_constants(channel.conditions)?;
+    let channel_module = gen_channel_module(channel);
+    let constants = gen_constants(channel.conditions);
 
     fs::write(format!("{dir}.rs"), channel_module)?;
     fs::write(format!("{dir}/constants.rs"), constants)?;
@@ -337,7 +341,7 @@ fn generate_version(
 
     let mut rs = gen_version_doc(bundle, channel, spec, crd_version);
     rs.push_str(&kopium_rs);
-    rs.push_str(&gen_enum_defaults(&kopium_rs, channel.enum_defaults, unused_defaults)?);
+    rs.push_str(&gen_enum_defaults(&kopium_rs, channel.enum_defaults, unused_defaults));
     fs::write(format!("{APIS_DIR}/{channel_name}/{api_name}/{api_version}.rs"), rs)?;
 
     Ok(())
@@ -404,22 +408,26 @@ fn kopium(crd_yaml: &str, api_version: &str) -> Result<String> {
         .spawn()
         .context("failed to spawn kopium — is it installed?")?;
 
-    // Write CRD YAML to kopium stdin, then drop to close the pipe.
-    {
-        use std::io::Write;
-        let mut stdin = kopium.stdin.take().expect("stdin was piped");
-        stdin
-            .write_all(crd_yaml.as_bytes())
-            .context("failed to write CRD to kopium stdin")?;
-    }
-
-    let output = kopium.wait_with_output().context("kopium did not exit cleanly")?;
+    // Write CRD YAML to kopium stdin from another thread while collecting its
+    // output, so an early exit is reported with kopium's stderr rather than as
+    // a broken pipe. The writer drops stdin when done, closing the pipe.
+    let mut stdin = kopium.stdin.take().expect("stdin was piped");
+    let (written, output) = thread::scope(|s| {
+        let writer = s.spawn(move || {
+            use std::io::Write;
+            stdin.write_all(crd_yaml.as_bytes())
+        });
+        let output = kopium.wait_with_output();
+        (writer.join().expect("kopium stdin writer panicked"), output)
+    });
+    let output = output.context("kopium did not exit cleanly")?;
 
     if !output.status.success() {
         let status = output.status;
         let stderr = String::from_utf8_lossy(&output.stderr);
         bail!("kopium exited with {status}: {stderr}");
     }
+    written.context("failed to write CRD to kopium stdin")?;
 
     Ok(String::from_utf8(output.stdout)?)
 }
@@ -428,13 +436,13 @@ fn kopium(crd_yaml: &str, api_version: &str) -> Result<String> {
 // Channel module generation
 // -----------------------------------------------------------------------------
 
-fn gen_channel_module(channel: &Channel) -> Result<String> {
+fn gen_channel_module(channel: &Channel) -> String {
     let mut out = String::from(GENERATED_HEADER);
     for Api { name, .. } in channel.apis {
-        writeln!(out, "pub mod {name};")?;
+        writeln!(out, "pub mod {name};").unwrap();
     }
     out.push_str("pub mod constants;\n");
-    Ok(out)
+    out
 }
 
 // -----------------------------------------------------------------------------
@@ -472,7 +480,7 @@ struct CrdVersion {
 
 /// Generates the resource module, which declares one submodule per API version
 /// and re-exports the root version.
-fn gen_resource_module(api: &Api, spec: &CrdSpec) -> Result<String> {
+fn gen_resource_module(api: &Api, spec: &CrdSpec) -> String {
     let root_version = api.root_version;
     let kind = &spec.names.kind;
     let group = &spec.group;
@@ -485,10 +493,10 @@ fn gen_resource_module(api: &Api, spec: &CrdSpec) -> Result<String> {
          \n"
     );
     for CrdVersion { name, .. } in &spec.versions {
-        writeln!(out, "pub mod {name};")?;
+        writeln!(out, "pub mod {name};").unwrap();
     }
-    writeln!(out, "pub use {root_version}::*;")?;
-    Ok(out)
+    writeln!(out, "#[doc(inline)]\npub use {root_version}::*;").unwrap();
+    out
 }
 
 /// Generates the module docs for an API version, stating its status in the CRD.
@@ -502,7 +510,7 @@ fn gen_version_doc(bundle: &str, channel: &Channel, spec: &CrdSpec, v: &CrdVersi
     let storage = yes_no(v.storage);
     let deprecated = match (&v.deprecation_warning, v.deprecated) {
         (Some(warning), true) => {
-            let warning = warning.replace('\n', " ");
+            let warning = warning.split_whitespace().collect::<Vec<_>>().join(" ");
             format!("yes ({warning})")
         },
         _ => yes_no(v.deprecated).to_string(),
@@ -526,7 +534,7 @@ fn gen_enum_defaults(
     kopium_rs: &str,
     defaults: &[(&'static str, &str)],
     unused: &mut BTreeSet<&'static str>,
-) -> Result<String> {
+) -> String {
     let mut out = String::new();
     for (name, default) in defaults {
         if !kopium_rs.contains(&format!("pub enum {name} {{")) {
@@ -539,24 +547,25 @@ fn gen_enum_defaults(
                      {name}::{default}\n    \
                  }}\n\
              }}\n"
-        )?;
+        )
+        .unwrap();
         unused.remove(name);
     }
-    Ok(out)
+    out
 }
 
 // -----------------------------------------------------------------------------
 // constants.rs generation
 // -----------------------------------------------------------------------------
 
-fn gen_constants(conditions: &[(&str, &[&str])]) -> Result<String> {
+fn gen_constants(conditions: &[(&str, &[&str])]) -> String {
     let mut out = String::from(GENERATED_HEADER);
 
     for (name, variants) in conditions {
         // Enum definition
-        write!(out, "\n#[derive(Debug, PartialEq, Eq)]\npub enum {name} {{\n")?;
+        write!(out, "\n#[derive(Debug, PartialEq, Eq)]\npub enum {name} {{\n").unwrap();
         for v in *variants {
-            writeln!(out, "    {v},")?;
+            writeln!(out, "    {v},").unwrap();
         }
         out.push_str("}\n");
 
@@ -568,8 +577,9 @@ fn gen_constants(conditions: &[(&str, &[&str])]) -> Result<String> {
                      write!(f, \"{{:?}}\", self)\n    \
                  }}\n\
              }}\n"
-        )?;
+        )
+        .unwrap();
     }
 
-    Ok(out)
+    out
 }
