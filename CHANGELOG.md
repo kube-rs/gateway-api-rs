@@ -1,5 +1,36 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- **Bindings for every CRD API version** ([#246]). Each API version a CRD
+  defines is now a submodule of its resource module, e.g.
+  `gateway_api::httproutes::v1beta1::HttpRoute`.
+  - The existing paths are unchanged: the module root re-exports the root
+    version.
+  - New modules for v1.5.1, in both `standard` and `experimental` channels:
+    - `backendtlspolicies::v1alpha3`
+    - `gatewayclasses::v1beta1`
+    - `gateways::v1beta1`
+    - `httproutes::v1beta1`
+    - `referencegrants::v1beta1` (the storage version)
+    - `tlsroutes::v1alpha2`, `tlsroutes::v1alpha3`
+- **Experimental BackendTLSPolicy** ([#246]).
+  `gateway_api::experimental::backendtlspolicies` was missing.
+
+### Upgrade notes
+
+- Resource modules now export public version submodules (`v1`, `v1beta1`,
+  ...). Code that glob-imports a resource module alongside another glob that
+  also brings a `v1` module into scope, e.g.
+  `use gateway_api::httproutes::*;` with
+  `use k8s_openapi::apimachinery::pkg::apis::meta::*;`, can now fail with
+  error E0659 (`v1` is ambiguous). Import the conflicting `v1` path
+  explicitly instead.
+
+[#246]: https://github.com/kube-rs/gateway-api-rs/issues/246
+
 ## 0.22.0 (since v0.21.0)
 
 ### Breaking changes

@@ -16,13 +16,33 @@
 ## Usage
 
 Requires a [kube-rs] [Client] to perform create, read, update and delete (CRUD)
-operations on [Gateway API resources]. See the `gateway-api/examples/` directory
-for detailed (and specific) usage examples.
+operations on [Gateway API resources].
+
+```rust
+use gateway_api::httproutes::HttpRoute;
+use kube::{Api, Client, ResourceExt, api::ListParams};
+
+let client = Client::try_default().await?;
+let routes: Api<HttpRoute> = Api::default_namespaced(client);
+for route in routes.list(&ListParams::default()).await? {
+    println!("{}", route.name_any());
+}
+```
 
 [kube-rs]:https://github.com/kube-rs/kube
-[Gateway API resources]:https://gateway-api.sigs.k8s.io/api-types/gateway/
 [Client]:https://docs.rs/kube/latest/kube/struct.Client.html
-[Controller]:https://kube.rs/controllers/intro/
+[Gateway API resources]:https://gateway-api.sigs.k8s.io/api-types/gateway/
+
+### API versions
+
+Every API version a CRD defines is available as a submodule of the resource
+module. The module root re-exports the primary version (usually `v1`):
+
+```rust
+use gateway_api::referencegrants::ReferenceGrant; // re-export of v1
+use gateway_api::referencegrants::v1::ReferenceGrant as ReferenceGrantV1;
+use gateway_api::referencegrants::v1beta1::ReferenceGrant as ReferenceGrantV1beta1;
+```
 
 ## Development
 
