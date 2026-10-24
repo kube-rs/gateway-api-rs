@@ -8,6 +8,7 @@ homepage = "https://docs.rs/gateway-api/"
 readme = "../README.md"
 repository = "https://github.com/kube-rs/gateway-api-rs"
 autoexamples = false
+include = ["/src/**/*.rs", "/LICENSE"]
 
 authors.workspace = true
 edition.workspace = true
