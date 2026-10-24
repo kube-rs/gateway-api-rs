@@ -6,14 +6,16 @@
 
 - **Bindings for every CRD API version** ([#246]). Each API version a CRD
   defines is now a submodule of its resource module, e.g.
-  `gateway_api::httproutes::v1beta1::HttpRoute`. The existing paths are
-  unchanged: the module root re-exports the root version. New in v1.5.1:
-  - `backendtlspolicies::v1alpha3`
-  - `gatewayclasses::v1beta1`
-  - `gateways::v1beta1`
-  - `httproutes::v1beta1`
-  - `referencegrants::v1beta1` (the storage version)
-  - `tlsroutes::v1alpha2`, `tlsroutes::v1alpha3`
+  `gateway_api::httproutes::v1beta1::HttpRoute`.
+  - The existing paths are unchanged: the module root re-exports the root
+    version.
+  - New modules for v1.5.1, in both `standard` and `experimental` channels:
+    - `backendtlspolicies::v1alpha3`
+    - `gatewayclasses::v1beta1`
+    - `gateways::v1beta1`
+    - `httproutes::v1beta1`
+    - `referencegrants::v1beta1` (the storage version)
+    - `tlsroutes::v1alpha2`, `tlsroutes::v1alpha3`
 - **Experimental BackendTLSPolicy** ([#246]).
   `gateway_api::experimental::backendtlspolicies` was missing.
 
