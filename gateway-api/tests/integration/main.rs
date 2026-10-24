@@ -10,6 +10,7 @@
 //! vendors: every API version each CRD defines. A version uses
 //! `suite/<resource>_<version>.rs` if that exists, else `suite/<resource>.rs`,
 //! which generation writes as a failing `todo!` stub for a new resource.
+//! `tests/schema.rs` reads the same tables with its own `channel!`.
 
 // Including one body for several API versions is the point.
 #![allow(clippy::duplicate_mod)]
@@ -21,7 +22,7 @@ mod common;
 /// `gateway_api::apis::standard::httproutes::v1beta1` and includes the given
 /// test body from `suite/`.
 macro_rules! channel {
-    ($channel:ident { $($resource:ident { $($version:ident => $body:literal),+ $(,)? })+ }) => {
+    ($channel:ident { $($resource:ident: $root:ident { $($version:ident => $body:literal),+ $(,)? })+ }) => {
         // The channel module points at `suite/`; the nested modules keep that
         // directory (`.`), so each body path resolves from `suite/`.
         #[path = "suite"]

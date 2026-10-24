@@ -27,7 +27,7 @@ const CRD_FIXTURES_DIR: &str = "gateway-api/tests/fixtures/crds";
 /// Integration test bodies, shared across API versions and channels.
 const TEST_SUITE_DIR: &str = "gateway-api/tests/integration/suite";
 
-/// Integration test tables, included by the integration tests' `main.rs`.
+/// Test tables, included by the integration tests' `main.rs` and by `schema.rs`.
 const TEST_TABLES_FILE: &str = "gateway-api/tests/integration/channels.rs";
 
 const CRD_BASE_URL: &str = "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api";
@@ -273,8 +273,14 @@ fn main() -> Result<()> {
 // Generation orchestration
 // -----------------------------------------------------------------------------
 
-/// API versions a channel's CRDs define, per resource.
-type ChannelVersions = Vec<(&'static str, Vec<String>)>;
+/// What generation produced for one resource, for the test tables.
+struct GeneratedResource {
+    name: &'static str,
+    /// The root type kopium generated, e.g. `HttpRoute`.
+    root: String,
+    /// Every API version the CRD defines.
+    versions: Vec<String>,
+}
 
 fn generate(version: &str) -> Result<()> {
     let mut channels = Vec::new();
@@ -287,7 +293,7 @@ fn generate(version: &str) -> Result<()> {
     Ok(())
 }
 
-fn generate_channel(version: &str, channel: &Channel) -> Result<ChannelVersions> {
+fn generate_channel(version: &str, channel: &Channel) -> Result<Vec<GeneratedResource>> {
     let channel_name = channel.name;
     let dir = format!("{APIS_DIR}/{channel_name}");
     let fixtures_dir = format!("{CRD_FIXTURES_DIR}/{channel_name}");
@@ -302,7 +308,7 @@ fn generate_channel(version: &str, channel: &Channel) -> Result<ChannelVersions>
     }
 
     let mut unused_defaults: BTreeSet<&str> = channel.enum_defaults.iter().map(|(name, _)| *name).collect();
-    let mut versions = ChannelVersions::new();
+    let mut resources = Vec::new();
 
     // Fetch CRDs and run kopium once per API version
     for api in channel.apis {
@@ -325,12 +331,22 @@ fn generate_channel(version: &str, channel: &Channel) -> Result<ChannelVersions>
         }
 
         fs::create_dir_all(format!("{dir}/{api_name}"))?;
+        let mut roots = BTreeSet::new();
         for crd_version in &crd.spec.versions {
-            generate_version(version, channel, api, &crd, crd_version, &mut unused_defaults)?;
+            let root = generate_version(version, channel, api, &crd, crd_version, &mut unused_defaults)?;
+            roots.insert(root);
         }
+        let root = match roots.pop_first() {
+            Some(root) if roots.is_empty() => root,
+            _ => bail!("{channel_name} {api_name}: API versions don't share one root type"),
+        };
 
         fs::write(format!("{dir}/{api_name}.rs"), gen_resource_module(api, &crd.spec))?;
-        versions.push((api_name, crd.spec.versions.into_iter().map(|v| v.name).collect()));
+        resources.push(GeneratedResource {
+            name: api_name,
+            root,
+            versions: crd.spec.versions.into_iter().map(|v| v.name).collect(),
+        });
     }
 
     if let Some(name) = unused_defaults.first() {
@@ -344,10 +360,11 @@ fn generate_channel(version: &str, channel: &Channel) -> Result<ChannelVersions>
     fs::write(format!("{dir}.rs"), channel_module)?;
     fs::write(format!("{dir}/constants.rs"), constants)?;
 
-    Ok(versions)
+    Ok(resources)
 }
 
 /// Runs kopium for one API version of a CRD and writes its module file.
+/// Returns the name of the generated root type.
 fn generate_version(
     bundle: &str,
     channel: &Channel,
@@ -355,7 +372,7 @@ fn generate_version(
     crd: &FetchedCrd,
     crd_version: &CrdVersion,
     unused_defaults: &mut BTreeSet<&'static str>,
-) -> Result<()> {
+) -> Result<String> {
     let spec = &crd.spec;
     let channel_name = channel.name;
     let api_name = api.name;
@@ -370,7 +387,26 @@ fn generate_version(
     rs.push_str(&gen_enum_defaults(&kopium_rs, channel.enum_defaults, unused_defaults));
     fs::write(format!("{APIS_DIR}/{channel_name}/{api_name}/{api_version}.rs"), rs)?;
 
-    Ok(())
+    root_type(&kopium_rs).with_context(|| format!("{channel_name} {api_name} {api_version}"))
+}
+
+/// Reads the root type name from kopium's `#[kube(group = ...)]` line: `root`
+/// when kopium renamed the kind (`HTTPRoute` to `HttpRoute`), else `kind`.
+/// Only that line is read, so the CRD's descriptions, which kopium writes as
+/// doc comments, can't match.
+fn root_type(kopium_rs: &str) -> Result<String> {
+    let line = kopium_rs
+        .lines()
+        .find(|line| line.starts_with("#[kube(group = "))
+        .context("no `#[kube(group = ...)]` line in kopium output")?;
+    let value = |key: &str| {
+        let start = line.find(&format!(" {key} = \""))? + key.len() + 5;
+        let len = line[start..].find('"')?;
+        Some(line[start..start + len].to_string())
+    };
+    value("root")
+        .or_else(|| value("kind"))
+        .with_context(|| format!("no `root` or `kind` in `{line}`"))
 }
 
 fn write_apis_module() -> Result<()> {
@@ -607,9 +643,10 @@ fn gen_crd_fixture(bundle: &str, crd: &FetchedCrd) -> String {
     )
 }
 
-/// Generates the integration test tables: one `channel!` invocation per
-/// channel, mapping every API version each CRD defines to a test body.
-fn gen_test_tables(channels: &[(&Channel, ChannelVersions)]) -> Result<String> {
+/// Generates the test tables: one `channel!` invocation per channel, giving
+/// each resource's root type and mapping every API version its CRD defines to
+/// an integration test body.
+fn gen_test_tables(channels: &[(&Channel, Vec<GeneratedResource>)]) -> Result<String> {
     let mut out = String::from(GENERATED_HEADER);
     for (channel, resources) in channels {
         let channel_name = channel.name;
@@ -618,15 +655,17 @@ fn gen_test_tables(channels: &[(&Channel, ChannelVersions)]) -> Result<String> {
             out.push_str("#[cfg(feature = \"experimental\")]\n");
         }
         writeln!(out, "channel!({channel_name} {{").unwrap();
-        for (resource, versions) in resources {
-            let entries = versions
+        for resource in resources {
+            let GeneratedResource { name, root, .. } = resource;
+            let entries = resource
+                .versions
                 .iter()
                 .map(|version| {
-                    let body = test_body(resource, version)?;
+                    let body = test_body(name, version)?;
                     Ok(format!("{version} => \"{body}\""))
                 })
                 .collect::<Result<Vec<_>>>()?;
-            writeln!(out, "    {resource} {{ {entries} }}", entries = entries.join(", ")).unwrap();
+            writeln!(out, "    {name}: {root} {{ {entries} }}", entries = entries.join(", ")).unwrap();
         }
         out.push_str("});\n");
     }
