@@ -20,7 +20,7 @@ mod common;
 /// Declares a module per channel, resource and API version, e.g.
 /// `standard::httproutes::v1beta1`, that binds `api` to
 /// `gateway_api::apis::standard::httproutes::v1beta1` and includes the given
-/// test body from `suite/`.
+/// test body from `suite/`. `$root` is for `tests/schema.rs`; it's unused here.
 macro_rules! channel {
     ($channel:ident { $($resource:ident: $root:ident { $($version:ident => $body:literal),+ $(,)? })+ }) => {
         // The channel module points at `suite/`; the nested modules keep that

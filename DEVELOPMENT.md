@@ -25,7 +25,7 @@ $ make generate GATEWAY_API_VERSION=v1.5.1
 Generated code lives in `gateway-api/src/apis/` — do not edit it by hand.
 The generator also vendors the upstream CRD YAML it reads into
 `gateway-api/tests/fixtures/crds/<channel>/`, which the integration tests
-install.
+install and `tests/schema.rs` compares the derived schemas against.
 
 [Kopium]:https://github.com/kube-rs/kopium
 

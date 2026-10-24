@@ -277,7 +277,7 @@ fn main() -> Result<()> {
 struct GeneratedResource {
     name: &'static str,
     /// The root type kopium generated, e.g. `HttpRoute`.
-    root: String,
+    root_type: String,
     /// Every API version the CRD defines.
     versions: Vec<String>,
 }
@@ -331,20 +331,20 @@ fn generate_channel(version: &str, channel: &Channel) -> Result<Vec<GeneratedRes
         }
 
         fs::create_dir_all(format!("{dir}/{api_name}"))?;
-        let mut roots = BTreeSet::new();
+        let mut root_types = BTreeSet::new();
         for crd_version in &crd.spec.versions {
-            let root = generate_version(version, channel, api, &crd, crd_version, &mut unused_defaults)?;
-            roots.insert(root);
+            let root_type = generate_version(version, channel, api, &crd, crd_version, &mut unused_defaults)?;
+            root_types.insert(root_type);
         }
-        let root = match roots.pop_first() {
-            Some(root) if roots.is_empty() => root,
+        let root_type = match root_types.pop_first() {
+            Some(root_type) if root_types.is_empty() => root_type,
             _ => bail!("{channel_name} {api_name}: API versions don't share one root type"),
         };
 
         fs::write(format!("{dir}/{api_name}.rs"), gen_resource_module(api, &crd.spec))?;
         resources.push(GeneratedResource {
             name: api_name,
-            root,
+            root_type,
             versions: crd.spec.versions.into_iter().map(|v| v.name).collect(),
         });
     }
@@ -400,9 +400,8 @@ fn root_type(kopium_rs: &str) -> Result<String> {
         .find(|line| line.starts_with("#[kube(group = "))
         .context("no `#[kube(group = ...)]` line in kopium output")?;
     let value = |key: &str| {
-        let start = line.find(&format!(" {key} = \""))? + key.len() + 5;
-        let len = line[start..].find('"')?;
-        Some(line[start..start + len].to_string())
+        let (_, rest) = line.split_once(&format!(" {key} = \""))?;
+        rest.split_once('"').map(|(value, _)| value.to_string())
     };
     value("root")
         .or_else(|| value("kind"))
@@ -656,16 +655,19 @@ fn gen_test_tables(channels: &[(&Channel, Vec<GeneratedResource>)]) -> Result<St
         }
         writeln!(out, "channel!({channel_name} {{").unwrap();
         for resource in resources {
-            let GeneratedResource { name, root, .. } = resource;
-            let entries = resource
-                .versions
+            let GeneratedResource {
+                name,
+                root_type,
+                versions,
+            } = resource;
+            let entries = versions
                 .iter()
                 .map(|version| {
                     let body = test_body(name, version)?;
                     Ok(format!("{version} => \"{body}\""))
                 })
                 .collect::<Result<Vec<_>>>()?;
-            writeln!(out, "    {name}: {root} {{ {entries} }}", entries = entries.join(", ")).unwrap();
+            writeln!(out, "    {name}: {root_type} {{ {entries} }}", entries = entries.join(", ")).unwrap();
         }
         out.push_str("});\n");
     }

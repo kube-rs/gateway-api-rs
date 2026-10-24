@@ -303,12 +303,13 @@ impl Show for BTreeSet<String> {
 fn diff(upstream: &Shape, ours: &Shape) -> Vec<Diff> {
     let mut diffs = Vec::new();
     let mut compare = |path: &str, fact: Fact, upstream: &dyn Show, ours: &dyn Show| {
-        if upstream.show() != ours.show() {
+        let (upstream, ours) = (upstream.show(), ours.show());
+        if upstream != ours {
             diffs.push(Diff {
                 path: path.into(),
                 fact,
-                upstream: upstream.show(),
-                ours: ours.show(),
+                upstream,
+                ours,
             });
         }
     };
