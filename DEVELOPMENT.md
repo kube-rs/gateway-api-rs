@@ -32,9 +32,11 @@ install.
 ## Testing
 
 ```console
-$ cargo test -v -- --nocapture              # Unit tests
-$ cargo test -v -- --nocapture --ignored    # Integration tests (requires Kind cluster)
-$ make test.all                             # Both
+$ make test.unit                         # Unit tests
+$ make test.unit.experimental            # Unit tests with the experimental feature
+$ make test.integration                  # Integration tests
+$ make test.integration.experimental     # Integration tests with the experimental feature
+$ make test.all                          # All of the above
 ```
 
 Integration tests require Docker and [Kind](https://kind.sigs.k8s.io/) installed locally.
