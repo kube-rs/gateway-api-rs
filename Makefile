@@ -46,7 +46,7 @@ generate:
 define run_integration_tests
 	@$(MAKE) --no-print-directory kind.start
 	@trap '$(MAKE) --no-print-directory kind.stop' EXIT; \
-	KUBECONFIG=$(KIND_KUBECONFIG) cargo test -vv $(1) -- --nocapture --ignored
+	KUBECONFIG=$(KIND_KUBECONFIG) cargo test $(1) -- --nocapture --ignored
 endef
 
 .PHONY: test.all
@@ -54,11 +54,11 @@ test.all: test.unit test.unit.experimental test.integration test.integration.exp
 
 .PHONY: test.unit
 test.unit:
-	cargo test -vv -- --nocapture
+	cargo test -- --nocapture
 
 .PHONY: test.unit.experimental
 test.unit.experimental:
-	cargo test -vv --features experimental -- --nocapture
+	cargo test --features experimental -- --nocapture
 
 .PHONY: test.integration
 test.integration:
