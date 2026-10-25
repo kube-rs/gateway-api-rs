@@ -1,6 +1,6 @@
 use kube::Api;
 
-use super::api::{ListenerSet, ListenerSetListeners, ListenerSetParentRef, ListenerSetSpec};
+use self::api::{ListenerSet, ListenerSetListeners, ListenerSetParentRef, ListenerSetSpec};
 use crate::common;
 
 #[ignore]

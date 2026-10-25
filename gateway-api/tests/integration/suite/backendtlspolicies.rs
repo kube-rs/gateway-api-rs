@@ -1,6 +1,6 @@
 use kube::Api;
 
-use super::api::{BackendTlsPolicy, BackendTlsPolicySpec, BackendTlsPolicyTargetRefs, BackendTlsPolicyValidation};
+use self::api::{BackendTlsPolicy, BackendTlsPolicySpec, BackendTlsPolicyTargetRefs, BackendTlsPolicyValidation};
 use crate::common;
 
 #[ignore]

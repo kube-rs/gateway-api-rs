@@ -11,7 +11,7 @@ use kube::{
 };
 use serde_json::json;
 
-use super::api::{
+use self::api::{
     Gateway, GatewayListeners, GatewaySpec, GatewayStatus, GatewayStatusAddresses, GatewayStatusListeners,
 };
 use crate::common;

@@ -1,6 +1,6 @@
 use kube::Api;
 
-use super::api::{GrpcRoute, GrpcRouteSpec};
+use self::api::{GrpcRoute, GrpcRouteSpec};
 use crate::common;
 
 #[ignore]

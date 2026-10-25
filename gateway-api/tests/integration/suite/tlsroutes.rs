@@ -1,6 +1,6 @@
 use kube::Api;
 
-use super::api::{TlsRoute, TlsRouteRules, TlsRouteRulesBackendRefs, TlsRouteSpec};
+use self::api::{TlsRoute, TlsRouteRules, TlsRouteRulesBackendRefs, TlsRouteSpec};
 use crate::common;
 
 #[ignore]

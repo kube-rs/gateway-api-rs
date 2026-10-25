@@ -1,6 +1,6 @@
 use kube::Api;
 
-use super::api::{HttpRoute, HttpRouteSpec};
+use self::api::{HttpRoute, HttpRouteSpec};
 use crate::common;
 
 #[ignore]

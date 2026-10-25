@@ -697,11 +697,11 @@ fn write_test_stub(resource: &str) -> Result<()> {
 fn gen_test_stub(resource: &str) -> String {
     format!(
         "// TODO: written by `cargo xtask generate` because `{resource}` had no test\n\
-         // body. Build a valid object from `super::api` and check it with\n\
+         // body. Build a valid object from `self::api` and check it with\n\
          // `common::crud`, like the other bodies in this directory.\n\
          \n\
          #[allow(unused_imports)] // until the test uses `api`\n\
-         use super::api as _;\n\
+         use self::api as _;\n\
          \n\
          #[ignore]\n\
          #[tokio::test]\n\

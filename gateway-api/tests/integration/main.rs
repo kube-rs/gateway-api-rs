@@ -2,7 +2,7 @@
 //!
 //! Each run installs one channel's CRDs (see [`common::CHANNEL`]) and checks
 //! every API version of every resource through the crate's types. Test bodies
-//! live in `suite/` as plain Rust. Each one imports its types from `super::api`,
+//! live in `suite/` as plain Rust. Each one imports its types from `self::api`,
 //! which [`suite!`] binds to the API version under test, so one body covers
 //! every version that shares its shape, in both channels.
 //!
@@ -11,42 +11,35 @@
 //! `suite/<resource>.rs`, which generation writes as a failing `todo!` stub
 //! for a new resource, unless [`body!`] routes it to a body of its own.
 
-// Including one body for several API versions is the point.
-#![allow(clippy::duplicate_mod)]
-
 #[path = "../support/lib.rs"]
 pub mod support;
 
 mod common;
 
-/// Declares the test body for one resource and API version: `suite/<resource>.rs`,
-/// unless an arm here routes the version to a body of its own, for an API
-/// version whose shape differs from the resource's other versions.
+/// Includes the test body for one resource and API version:
+/// `suite/<resource>.rs`, unless an arm here routes the version to a body of
+/// its own, for an API version whose shape differs from the resource's other
+/// versions. Bodies are included rather than declared as modules, so their
+/// tests are in the version's module, e.g. `standard::httproutes::v1::crud`.
 macro_rules! body {
     (tlsroutes v1alpha2) => {
-        #[path = "tlsroutes_v1alpha2.rs"]
-        mod tlsroutes;
+        include!("suite/tlsroutes_v1alpha2.rs");
     };
     ($resource:ident $version:ident) => {
-        mod $resource;
+        include!(concat!("suite/", stringify!($resource), ".rs"));
     };
 }
 
 /// An [`apis!`] callback that declares a module per channel, resource and API
 /// version, e.g. `standard::httproutes::v1beta1`, that binds `api` to
-/// `gateway_api::apis::standard::httproutes::v1beta1` and declares the
-/// [`body!`] for it, e.g. `standard::httproutes::v1beta1::httproutes::crud`.
+/// `gateway_api::apis::standard::httproutes::v1beta1` and includes the
+/// [`body!`] for it.
 macro_rules! suite {
     ($channel:ident { $($resource:ident: $root:ident [$($version:ident),+])+ }) => {
-        // The channel module points at `suite/`; the nested modules keep that
-        // directory (`.`), so each body resolves from `suite/`.
-        #[path = "suite"]
         mod $channel {
             $(
-                #[path = "."]
                 mod $resource {
                     $(
-                        #[path = "."]
                         mod $version {
                             use gateway_api::apis::$channel::$resource::$version as api;
 
