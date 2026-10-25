@@ -27,8 +27,8 @@ const CRD_FIXTURES_DIR: &str = "gateway-api/tests/fixtures/crds";
 /// Integration test bodies, shared across API versions and channels.
 const TEST_SUITE_DIR: &str = "gateway-api/tests/integration/suite";
 
-/// Integration test tables, included by the integration tests' `main.rs`.
-const TEST_TABLES_FILE: &str = "gateway-api/tests/integration/channels.rs";
+/// The `apis!` macro, in the support module shared by the test crates.
+const TEST_APIS_FILE: &str = "gateway-api/tests/support/apis.rs";
 
 const CRD_BASE_URL: &str = "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api";
 
@@ -273,8 +273,14 @@ fn main() -> Result<()> {
 // Generation orchestration
 // -----------------------------------------------------------------------------
 
-/// API versions a channel's CRDs define, per resource.
-type ChannelVersions = Vec<(&'static str, Vec<String>)>;
+/// What generation produced for one resource, for the tests' `apis!`.
+struct GeneratedResource {
+    name: &'static str,
+    /// The root type kopium generated, e.g. `HttpRoute`.
+    root_type: String,
+    /// Every API version the CRD defines.
+    versions: Vec<String>,
+}
 
 fn generate(version: &str) -> Result<()> {
     let mut channels = Vec::new();
@@ -282,12 +288,17 @@ fn generate(version: &str) -> Result<()> {
         channels.push((channel, generate_channel(version, channel)?));
     }
     write_apis_module()?;
-    fs::write(TEST_TABLES_FILE, gen_test_tables(&channels)?)?;
+    for (_, resources) in &channels {
+        for resource in resources {
+            write_test_stub(resource.name)?;
+        }
+    }
+    fs::write(TEST_APIS_FILE, gen_test_apis(&channels))?;
     rustfmt()?;
     Ok(())
 }
 
-fn generate_channel(version: &str, channel: &Channel) -> Result<ChannelVersions> {
+fn generate_channel(version: &str, channel: &Channel) -> Result<Vec<GeneratedResource>> {
     let channel_name = channel.name;
     let dir = format!("{APIS_DIR}/{channel_name}");
     let fixtures_dir = format!("{CRD_FIXTURES_DIR}/{channel_name}");
@@ -302,7 +313,7 @@ fn generate_channel(version: &str, channel: &Channel) -> Result<ChannelVersions>
     }
 
     let mut unused_defaults: BTreeSet<&str> = channel.enum_defaults.iter().map(|(name, _)| *name).collect();
-    let mut versions = ChannelVersions::new();
+    let mut resources = Vec::new();
 
     // Fetch CRDs and run kopium once per API version
     for api in channel.apis {
@@ -325,12 +336,22 @@ fn generate_channel(version: &str, channel: &Channel) -> Result<ChannelVersions>
         }
 
         fs::create_dir_all(format!("{dir}/{api_name}"))?;
+        let mut root_types = BTreeSet::new();
         for crd_version in &crd.spec.versions {
-            generate_version(version, channel, api, &crd, crd_version, &mut unused_defaults)?;
+            let root_type = generate_version(version, channel, api, &crd, crd_version, &mut unused_defaults)?;
+            root_types.insert(root_type);
         }
+        let root_type = match root_types.pop_first() {
+            Some(root_type) if root_types.is_empty() => root_type,
+            _ => bail!("{channel_name} {api_name}: API versions don't share one root type"),
+        };
 
         fs::write(format!("{dir}/{api_name}.rs"), gen_resource_module(api, &crd.spec))?;
-        versions.push((api_name, crd.spec.versions.into_iter().map(|v| v.name).collect()));
+        resources.push(GeneratedResource {
+            name: api_name,
+            root_type,
+            versions: crd.spec.versions.into_iter().map(|v| v.name).collect(),
+        });
     }
 
     if let Some(name) = unused_defaults.first() {
@@ -344,10 +365,11 @@ fn generate_channel(version: &str, channel: &Channel) -> Result<ChannelVersions>
     fs::write(format!("{dir}.rs"), channel_module)?;
     fs::write(format!("{dir}/constants.rs"), constants)?;
 
-    Ok(versions)
+    Ok(resources)
 }
 
 /// Runs kopium for one API version of a CRD and writes its module file.
+/// Returns the name of the generated root type.
 fn generate_version(
     bundle: &str,
     channel: &Channel,
@@ -355,7 +377,7 @@ fn generate_version(
     crd: &FetchedCrd,
     crd_version: &CrdVersion,
     unused_defaults: &mut BTreeSet<&'static str>,
-) -> Result<()> {
+) -> Result<String> {
     let spec = &crd.spec;
     let channel_name = channel.name;
     let api_name = api.name;
@@ -370,7 +392,25 @@ fn generate_version(
     rs.push_str(&gen_enum_defaults(&kopium_rs, channel.enum_defaults, unused_defaults));
     fs::write(format!("{APIS_DIR}/{channel_name}/{api_name}/{api_version}.rs"), rs)?;
 
-    Ok(())
+    root_type(&kopium_rs).with_context(|| format!("{channel_name} {api_name} {api_version}"))
+}
+
+/// Reads the root type name from kopium's `#[kube(group = ...)]` line: `root`
+/// when kopium renamed the kind (`HTTPRoute` to `HttpRoute`), else `kind`.
+/// Only that line is read, so the CRD's descriptions, which kopium writes as
+/// doc comments, can't match.
+fn root_type(kopium_rs: &str) -> Result<String> {
+    let line = kopium_rs
+        .lines()
+        .find(|line| line.starts_with("#[kube(group = "))
+        .context("no `#[kube(group = ...)]` line in kopium output")?;
+    let value = |key: &str| {
+        let (_, rest) = line.split_once(&format!(" {key} = \""))?;
+        rest.split_once('"').map(|(value, _)| value.to_string())
+    };
+    value("root")
+        .or_else(|| value("kind"))
+        .with_context(|| format!("no `root` or `kind` in `{line}`"))
 }
 
 fn write_apis_module() -> Result<()> {
@@ -591,7 +631,7 @@ fn gen_enum_defaults(
 }
 
 // -----------------------------------------------------------------------------
-// Integration test fixture and table generation
+// Test fixture, `apis!` and stub generation
 // -----------------------------------------------------------------------------
 
 /// Generates a vendored CRD fixture: the upstream YAML, unchanged, under a
@@ -607,60 +647,66 @@ fn gen_crd_fixture(bundle: &str, crd: &FetchedCrd) -> String {
     )
 }
 
-/// Generates the integration test tables: one `channel!` invocation per
-/// channel, mapping every API version each CRD defines to a test body.
-fn gen_test_tables(channels: &[(&Channel, ChannelVersions)]) -> Result<String> {
-    let mut out = String::from(GENERATED_HEADER);
+/// Generates the `apis!` macro, which calls a callback macro once per channel
+/// with each resource's root type and every API version its CRD defines.
+fn gen_test_apis(channels: &[(&Channel, Vec<GeneratedResource>)]) -> String {
+    let mut out = format!(
+        "{GENERATED_HEADER}\
+         \n\
+         /// Calls `$callback!` once per channel, with each resource's root type\n\
+         /// and every API version its CRD defines, e.g.\n\
+         /// `$callback!(standard {{ httproutes: HttpRoute [v1, v1beta1] ... }})`.\n\
+         /// Every channel is passed in every build: `experimental` comes with\n\
+         /// `#[cfg(feature = \"experimental\")]`, for the callback to put on\n\
+         /// whatever uses the channel's types.\n\
+         #[macro_export]\n\
+         macro_rules! apis {{\n    \
+             ($callback:ident) => {{\n"
+    );
     for (channel, resources) in channels {
         let channel_name = channel.name;
-        out.push('\n');
-        if channel_name == EXPERIMENTAL.name {
-            out.push_str("#[cfg(feature = \"experimental\")]\n");
+        let cfg = if channel_name == EXPERIMENTAL.name {
+            "#[cfg(feature = \"experimental\")] "
+        } else {
+            ""
+        };
+        writeln!(out, "        $callback!({cfg}{channel_name} {{").unwrap();
+        for GeneratedResource {
+            name,
+            root_type,
+            versions,
+        } in resources
+        {
+            let versions = versions.join(", ");
+            writeln!(out, "            {name}: {root_type} [{versions}]").unwrap();
         }
-        writeln!(out, "channel!({channel_name} {{").unwrap();
-        for (resource, versions) in resources {
-            let entries = versions
-                .iter()
-                .map(|version| {
-                    let body = test_body(resource, version)?;
-                    Ok(format!("{version} => \"{body}\""))
-                })
-                .collect::<Result<Vec<_>>>()?;
-            writeln!(out, "    {resource} {{ {entries} }}", entries = entries.join(", ")).unwrap();
-        }
-        out.push_str("});\n");
+        out.push_str("        });\n");
     }
-    Ok(out)
+    out.push_str("    };\n}\n");
+    out
 }
 
-/// Finds the test body for an API version: `<resource>_<version>.rs` if it
-/// exists, else `<resource>.rs`, shared by the resource's other versions. If
-/// neither exists, as for a newly added CRD, writes a `<resource>.rs` stub
-/// whose test fails with `todo!`.
-fn test_body(resource: &str, version: &str) -> Result<String> {
-    let suite = Path::new(TEST_SUITE_DIR);
-    let specific = format!("{resource}_{version}.rs");
-    if suite.join(&specific).exists() {
-        return Ok(specific);
-    }
-
-    let shared = format!("{resource}.rs");
-    let path = suite.join(&shared);
+/// Writes a `<resource>.rs` integration test body whose test fails with
+/// `todo!` if there's none, as for a newly added CRD. The integration tests
+/// use it for every API version of the resource unless their `body!` routes
+/// a version elsewhere.
+fn write_test_stub(resource: &str) -> Result<()> {
+    let path = Path::new(TEST_SUITE_DIR).join(format!("{resource}.rs"));
     if !path.exists() {
         eprintln!("writing integration test stub {path}", path = path.display());
         fs::write(&path, gen_test_stub(resource))?;
     }
-    Ok(shared)
+    Ok(())
 }
 
 fn gen_test_stub(resource: &str) -> String {
     format!(
         "// TODO: written by `cargo xtask generate` because `{resource}` had no test\n\
-         // body. Build a valid object from `super::api` and check it with\n\
+         // body. Build a valid object from `self::api` and check it with\n\
          // `common::crud`, like the other bodies in this directory.\n\
          \n\
          #[allow(unused_imports)] // until the test uses `api`\n\
-         use super::api as _;\n\
+         use self::api as _;\n\
          \n\
          #[ignore]\n\
          #[tokio::test]\n\

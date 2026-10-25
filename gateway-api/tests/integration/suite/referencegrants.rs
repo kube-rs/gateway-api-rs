@@ -1,6 +1,6 @@
 use kube::Api;
 
-use super::api::{ReferenceGrant, ReferenceGrantFrom, ReferenceGrantSpec, ReferenceGrantTo};
+use self::api::{ReferenceGrant, ReferenceGrantFrom, ReferenceGrantSpec, ReferenceGrantTo};
 use crate::common;
 
 #[ignore]

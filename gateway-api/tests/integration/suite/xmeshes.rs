@@ -1,6 +1,6 @@
 use kube::Api;
 
-use super::api::{XMesh, XMeshSpec};
+use self::api::{XMesh, XMeshSpec};
 use crate::common;
 
 #[ignore]

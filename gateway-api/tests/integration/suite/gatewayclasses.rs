@@ -1,6 +1,6 @@
 use kube::Api;
 
-use super::api::{GatewayClass, GatewayClassSpec};
+use self::api::{GatewayClass, GatewayClassSpec};
 use crate::common;
 
 #[ignore]

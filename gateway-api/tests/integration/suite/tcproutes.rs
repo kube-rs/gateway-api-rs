@@ -1,6 +1,6 @@
 use kube::Api;
 
-use super::api::{TcpRoute, TcpRouteRules, TcpRouteRulesBackendRefs, TcpRouteSpec};
+use self::api::{TcpRoute, TcpRouteRules, TcpRouteRulesBackendRefs, TcpRouteSpec};
 use crate::common;
 
 #[ignore]

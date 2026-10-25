@@ -1,6 +1,6 @@
 use kube::Api;
 
-use super::api::{UdpRoute, UdpRouteRules, UdpRouteRulesBackendRefs, UdpRouteSpec};
+use self::api::{UdpRoute, UdpRouteRules, UdpRouteRulesBackendRefs, UdpRouteSpec};
 use crate::common;
 
 #[ignore]

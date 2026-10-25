@@ -1,6 +1,6 @@
 use kube::Api;
 
-use super::api::{XBackendTrafficPolicy, XBackendTrafficPolicySpec, XBackendTrafficPolicyTargetRefs};
+use self::api::{XBackendTrafficPolicy, XBackendTrafficPolicySpec, XBackendTrafficPolicyTargetRefs};
 use crate::common;
 
 #[ignore]
