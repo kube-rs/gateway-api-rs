@@ -5,8 +5,8 @@
 //! values). Validations such as CEL rules and patterns are left to the API
 //! server.
 //!
-//! See [`Attribute`] for the attributes compared, and [`ALLOWED`] for known
-//! differences.
+//! See [`Crd`] and [`Schema`] for the attributes compared, and [`ALLOWED`] for
+//! known differences.
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -149,7 +149,8 @@ impl std::fmt::Display for Channel {
 // Known differences
 // -----------------------------------------------------------------------------
 
-/// A known difference between a type's schema and the upstream CRD.
+/// A known difference in a [`Schema`] between a type's CRD and the upstream
+/// one. Differences in the [`Crd`]'s own attributes are never allowed.
 struct Allowed {
     /// The channels the difference is in, each of which it must match.
     channels: &'static [Channel],
@@ -159,7 +160,7 @@ struct Allowed {
     /// leading `*` matches any prefix.
     path: &'static str,
     /// The attribute that differs, e.g. `Required` or `Enum`.
-    attribute: Attribute,
+    attribute: SchemaAttribute,
     /// The upstream value.
     upstream: &'static str,
     /// The crate's value.
@@ -174,7 +175,7 @@ const ALLOWED: &[Allowed] = &[
         channels: &Channel::ALL,
         kind: "*",
         path: "*.conditions[].status",
-        attribute: Attribute::Enum,
+        attribute: SchemaAttribute::Enum,
         upstream: r#"["False", "True", "Unknown"]"#,
         ours: "[]",
         reason: "k8s-openapi's `Condition::status` is a plain string",
@@ -183,7 +184,7 @@ const ALLOWED: &[Allowed] = &[
         channels: &Channel::ALL,
         kind: "Gateway",
         path: "*.addresses[]/oneOf",
-        attribute: Attribute::Exists,
+        attribute: SchemaAttribute::Exists,
         upstream: "true",
         ours: "false",
         reason: "kopium doesn't generate validation; address type and value are still compared",
@@ -192,7 +193,7 @@ const ALLOWED: &[Allowed] = &[
         channels: &Channel::ALL,
         kind: "HTTPRoute",
         path: "*.filters[].requestRedirect.statusCode",
-        attribute: Attribute::Enum,
+        attribute: SchemaAttribute::Enum,
         upstream: "[301, 302, 303, 307, 308]",
         ours: "[]",
         reason: "kopium can't generate an integer enum, so the field is a plain `i64`",
@@ -201,7 +202,7 @@ const ALLOWED: &[Allowed] = &[
         channels: &Channel::ALL,
         kind: "HTTPRoute",
         path: "*.filters[].cors.allowMethods[]",
-        attribute: Attribute::Enum,
+        attribute: SchemaAttribute::Enum,
         upstream: r#"["*", "CONNECT", "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT", "TRACE"]"#,
         ours: "[]",
         reason: "kopium doesn't generate an enum for array items, so the items are plain strings",
@@ -210,7 +211,7 @@ const ALLOWED: &[Allowed] = &[
         channels: &Channel::ALL,
         kind: "ReferenceGrant",
         path: "",
-        attribute: Attribute::Required,
+        attribute: SchemaAttribute::Required,
         upstream: "[]",
         ours: "[spec]",
         reason: "kube's `CustomResource` derive always requires `spec`; upstream makes it optional",
@@ -219,16 +220,27 @@ const ALLOWED: &[Allowed] = &[
 
 impl Allowed {
     fn matches(&self, comparison: &Comparison, diff: &Diff) -> bool {
-        let path = match self.path.strip_prefix('*') {
-            Some(suffix) => diff.path.ends_with(suffix),
-            None => diff.path == self.path,
-        };
-        self.channels.contains(&comparison.channel)
-            && (self.kind == "*" || self.kind == comparison.kind)
-            && path
-            && self.attribute == diff.attribute
-            && self.upstream == diff.upstream
-            && self.ours == diff.ours
+        match diff {
+            // Differences in the CRD itself are never allowed.
+            Diff::Crd { .. } => false,
+            Diff::Schema {
+                path,
+                attribute,
+                upstream,
+                ours,
+            } => {
+                let path = match self.path.strip_prefix('*') {
+                    Some(suffix) => path.ends_with(suffix),
+                    None => path == self.path,
+                };
+                self.channels.contains(&comparison.channel)
+                    && (self.kind == "*" || self.kind == comparison.kind)
+                    && path
+                    && self.attribute == *attribute
+                    && self.upstream == upstream
+                    && self.ours == ours
+            },
+        }
     }
 }
 
@@ -291,10 +303,7 @@ where
     Comparison {
         channel,
         resource: resource.to_owned(),
-        diffs: diff(
-            &attributes(upstream_crd, version),
-            &attributes(&K::crd(), &K::version(&())),
-        ),
+        diffs: diff(&Crd::new(upstream_crd, version), &Crd::new(&K::crd(), &K::version(&()))),
         kind,
         version: version.to_owned(),
     }
@@ -345,102 +354,112 @@ fn check(comparison: Comparison) {
 // Attributes
 // -----------------------------------------------------------------------------
 
-/// The attributes recorded at one path, and their values as text.
-type Node = BTreeMap<Attribute, String>;
-
-/// The attributes of one API version of a CRD, as a [`Node`] per path:
-/// `(crd)` for the CRD itself and `""` for the schema's root.
-fn attributes(crd: &CustomResourceDefinition, version: &str) -> BTreeMap<String, Node> {
-    let spec = &crd.spec;
-    let kind = &spec.names.kind;
-    let v = spec
-        .versions
-        .iter()
-        .find(|v| v.name == version)
-        .unwrap_or_else(|| panic!("{kind} CRD doesn't define {version}"));
-    let schema = v
-        .schema
-        .as_ref()
-        .and_then(|s| s.open_api_v3_schema.as_ref())
-        .unwrap_or_else(|| panic!("{kind} {version} has no schema"));
-
-    let status_subresource = v.subresources.as_ref().is_some_and(|s| s.status.is_some());
-    let mut nodes = BTreeMap::from([(
-        "(crd)".into(),
-        Node::from([
-            (Attribute::Group, spec.group.clone()),
-            (Attribute::Version, v.name.clone()),
-            (Attribute::Kind, spec.names.kind.clone()),
-            (Attribute::Plural, spec.names.plural.clone()),
-            (Attribute::Scope, spec.scope.clone()),
-            (Attribute::StatusSubresource, status_subresource.to_string()),
-        ]),
-    )]);
-    walk(schema, "", &mut nodes);
-    nodes
+/// One API version of a CRD, as compared: the CRD's own attributes, and its
+/// schema's nodes.
+struct Crd {
+    group: String,
+    version: String,
+    kind: String,
+    plural: String,
+    scope: String,
+    status_subresource: bool,
+    /// The schema's nodes by path, `""` for the root.
+    schemas: BTreeMap<String, Node>,
 }
+
+impl Crd {
+    /// `version` of `crd`.
+    fn new(crd: &CustomResourceDefinition, version: &str) -> Self {
+        let spec = &crd.spec;
+        let kind = &spec.names.kind;
+        let v = spec
+            .versions
+            .iter()
+            .find(|v| v.name == version)
+            .unwrap_or_else(|| panic!("{kind} CRD doesn't define {version}"));
+        let schema = v
+            .schema
+            .as_ref()
+            .and_then(|s| s.open_api_v3_schema.as_ref())
+            .unwrap_or_else(|| panic!("{kind} {version} has no schema"));
+
+        let mut schemas = BTreeMap::new();
+        walk(schema, "", &mut schemas);
+        Self {
+            group: spec.group.clone(),
+            version: v.name.clone(),
+            kind: kind.clone(),
+            plural: spec.names.plural.clone(),
+            scope: spec.scope.clone(),
+            status_subresource: v.subresources.as_ref().is_some_and(|s| s.status.is_some()),
+            schemas,
+        }
+    }
+
+    /// The CRD's own attributes, as text, without its schemas.
+    fn attributes(&self) -> [(CrdAttribute, String); 6] {
+        let Self {
+            group,
+            version,
+            kind,
+            plural,
+            scope,
+            status_subresource,
+            schemas: _,
+        } = self;
+        [
+            (CrdAttribute::Group, group.clone()),
+            (CrdAttribute::Version, version.clone()),
+            (CrdAttribute::Kind, kind.clone()),
+            (CrdAttribute::Plural, plural.clone()),
+            (CrdAttribute::Scope, scope.clone()),
+            (CrdAttribute::StatusSubresource, status_subresource.to_string()),
+        ]
+    }
+}
+
+/// What's at one schema path.
+enum Node {
+    Schema(Schema),
+    /// An `allOf`, `anyOf` or `oneOf`, whose branches are nodes of their own.
+    /// Only whether it exists is compared, so one missing on one side is one
+    /// difference, not one per branch.
+    Combinator,
+}
+
+/// The characters that start a step in a schema path.
+const SEPARATORS: [char; 4] = ['.', '[', '{', '/'];
 
 /// Records the node for `schema` at `path`, then for its properties, map
 /// values, array items and combinators (`allOf`, `anyOf`, `oneOf`, `not`).
-fn walk(schema: &JSONSchemaProps, path: &str, nodes: &mut BTreeMap<String, Node>) {
-    let type_ = schema.type_.as_deref().unwrap_or("(none)");
-    // The API server reads an integer without a format as an `int64`, which
-    // is also what kopium generates for one.
-    let format = match (type_, schema.format.as_deref()) {
-        ("integer", None) => "int64",
-        (_, format) => format.unwrap_or("(none)"),
-    };
-    let required = schema.required.iter().flatten();
-    // Enum values as JSON, so `"301"` and `301` differ. schemars lists `null`
-    // for an `Option`, which `required` already covers.
-    let enum_values = schema.enum_.iter().flatten().filter(|v| !v.0.is_null());
-    // A schema here is walked as `{*}` below.
-    let additional_properties = match schema.additional_properties {
-        Some(JSONSchemaPropsOrBool::Bool(b)) => b.to_string(),
-        _ => "(none)".into(),
-    };
-    nodes.insert(
-        path.into(),
-        Node::from([
-            (Attribute::Type, type_.into()),
-            (Attribute::Format, format.into()),
-            (Attribute::Required, list(required.cloned())),
-            (Attribute::Enum, list(enum_values.map(|v| v.0.to_string()))),
-            (
-                Attribute::IntOrString,
-                (schema.x_kubernetes_int_or_string == Some(true)).to_string(),
-            ),
-            (
-                Attribute::PreserveUnknownFields,
-                (schema.x_kubernetes_preserve_unknown_fields == Some(true)).to_string(),
-            ),
-            (Attribute::AdditionalProperties, additional_properties),
-        ]),
-    );
+fn walk(schema: &JSONSchemaProps, path: &str, schemas: &mut BTreeMap<String, Node>) {
+    schemas.insert(path.into(), Node::Schema(Schema::from(schema)));
 
     for (name, property) in schema.properties.iter().flatten() {
+        assert!(
+            !name.contains(SEPARATORS),
+            "{path}.{name}: property name contains a path separator, one of {SEPARATORS:?}"
+        );
         // Upstream's schemas describe the object's own `apiVersion`, `kind`
         // and `metadata`; kube's derived schemas only describe `spec` and
         // `status`. The API server handles all three itself either way.
         if path.is_empty() && matches!(name.as_str(), "apiVersion" | "kind" | "metadata") {
             continue;
         }
-        walk(property, &format!("{path}.{name}"), nodes);
+        walk(property, &format!("{path}.{name}"), schemas);
     }
     if let Some(JSONSchemaPropsOrBool::Schema(values)) = &schema.additional_properties {
-        walk(values, &format!("{path}{{*}}"), nodes);
+        walk(values, &format!("{path}{{*}}"), schemas);
     }
     match &schema.items {
-        Some(JSONSchemaPropsOrArray::Schema(items)) => walk(items, &format!("{path}[]"), nodes),
+        Some(JSONSchemaPropsOrArray::Schema(items)) => walk(items, &format!("{path}[]"), schemas),
         Some(JSONSchemaPropsOrArray::Schemas(items)) => {
             for (i, item) in items.iter().enumerate() {
-                walk(item, &format!("{path}[{i}]"), nodes);
+                walk(item, &format!("{path}[{i}]"), schemas);
             }
         },
         None => {},
     }
-    // A combinator is a node of its own, so one missing on one side is one
-    // difference, not one per branch.
     for (name, branches) in [
         ("allOf", &schema.all_of),
         ("anyOf", &schema.any_of),
@@ -449,21 +468,99 @@ fn walk(schema: &JSONSchemaProps, path: &str, nodes: &mut BTreeMap<String, Node>
         if let Some(branches) = branches {
             let path = format!("{path}/{name}");
             for (i, branch) in branches.iter().enumerate() {
-                walk(branch, &format!("{path}[{i}]"), nodes);
+                walk(branch, &format!("{path}[{i}]"), schemas);
             }
-            nodes.insert(path, Node::new());
+            schemas.insert(path, Node::Combinator);
         }
     }
     if let Some(not) = &schema.not {
-        walk(not, &format!("{path}/not"), nodes);
+        walk(not, &format!("{path}/not"), schemas);
     }
 }
 
-/// Renders `items` as a set, sorted and without duplicates, as `[a, b]`.
-fn list(items: impl IntoIterator<Item = String>) -> String {
-    let mut items: Vec<_> = items.into_iter().collect();
-    items.sort();
-    items.dedup();
+/// A schema itself, without its subschemas. `nullable` isn't compared: the
+/// derived schemas mark every `Option` field nullable and upstream marks none,
+/// but the generated fields skip `None` when serializing, so the types never
+/// send `null`.
+struct Schema {
+    type_: Option<String>,
+    format: Option<String>,
+    required: BTreeSet<String>,
+    /// Enum values as JSON, so `"301"` and `301` differ.
+    enum_values: BTreeSet<String>,
+    int_or_string: bool,
+    preserve_unknown_fields: bool,
+    /// Whether other properties are allowed, if set to a bool. A schema here
+    /// is walked as `{*}` instead.
+    additional_properties: Option<bool>,
+}
+
+impl From<&JSONSchemaProps> for Schema {
+    fn from(schema: &JSONSchemaProps) -> Self {
+        // The API server reads an integer without a format as an `int64`,
+        // which is also what kopium generates for one.
+        let format = match (schema.type_.as_deref(), &schema.format) {
+            (Some("integer"), None) => Some("int64".into()),
+            (_, format) => format.clone(),
+        };
+        let additional_properties = match schema.additional_properties {
+            Some(JSONSchemaPropsOrBool::Bool(b)) => Some(b),
+            _ => None,
+        };
+        Self {
+            type_: schema.type_.clone(),
+            format,
+            required: schema.required.iter().flatten().cloned().collect(),
+            // schemars lists `null` for an `Option`, which `required` already
+            // covers.
+            enum_values: schema
+                .enum_
+                .iter()
+                .flatten()
+                .filter(|v| !v.0.is_null())
+                .map(|v| v.0.to_string())
+                .collect(),
+            int_or_string: schema.x_kubernetes_int_or_string == Some(true),
+            preserve_unknown_fields: schema.x_kubernetes_preserve_unknown_fields == Some(true),
+            additional_properties,
+        }
+    }
+}
+
+impl Schema {
+    /// The schema's attributes, as text.
+    fn attributes(&self) -> [(SchemaAttribute, String); 7] {
+        let Self {
+            type_,
+            format,
+            required,
+            enum_values,
+            int_or_string,
+            preserve_unknown_fields,
+            additional_properties,
+        } = self;
+        let none = || "(none)".to_owned();
+        [
+            (SchemaAttribute::Type, type_.clone().unwrap_or_else(none)),
+            (SchemaAttribute::Format, format.clone().unwrap_or_else(none)),
+            (SchemaAttribute::Required, list(required)),
+            (SchemaAttribute::Enum, list(enum_values)),
+            (SchemaAttribute::IntOrString, int_or_string.to_string()),
+            (
+                SchemaAttribute::PreserveUnknownFields,
+                preserve_unknown_fields.to_string(),
+            ),
+            (
+                SchemaAttribute::AdditionalProperties,
+                additional_properties.map_or_else(none, |b| b.to_string()),
+            ),
+        ]
+    }
+}
+
+/// Renders `items` as `[a, b]`.
+fn list(items: &BTreeSet<String>) -> String {
+    let items: Vec<_> = items.iter().map(String::as_str).collect();
     format!("[{items}]", items = items.join(", "))
 }
 
@@ -471,19 +568,21 @@ fn list(items: impl IntoIterator<Item = String>) -> String {
 // Diff
 // -----------------------------------------------------------------------------
 
-/// Something compared at a path, and what a difference is in. `Exists` is
-/// never recorded in a [`Node`]: it's the difference when a path is on one
-/// side only. `nullable` isn't compared: the derived schemas mark every
-/// `Option` field nullable and upstream marks none, but the generated fields
-/// skip `None` when serializing, so the types never send `null`.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-enum Attribute {
+/// An attribute of the CRD itself.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum CrdAttribute {
     Group,
     Version,
     Kind,
     Plural,
     Scope,
     StatusSubresource,
+}
+
+/// An attribute of a schema. `Exists` is never recorded in a [`Schema`]: it's
+/// the difference when a path is on one side only.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SchemaAttribute {
     Exists,
     Type,
     Format,
@@ -494,59 +593,99 @@ enum Attribute {
     AdditionalProperties,
 }
 
-struct Diff {
-    /// A schema path, `""` for the root, or `(crd)` for the CRD itself.
-    path: String,
-    attribute: Attribute,
-    upstream: String,
-    ours: String,
+enum Diff {
+    /// The CRD itself differs.
+    Crd {
+        attribute: CrdAttribute,
+        upstream: String,
+        ours: String,
+    },
+    /// The schema differs at `path`, `""` for the root.
+    Schema {
+        path: String,
+        attribute: SchemaAttribute,
+        upstream: String,
+        ours: String,
+    },
 }
 
 impl std::fmt::Display for Diff {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let path = if self.path.is_empty() { "(root)" } else { &self.path };
-        let Self {
-            attribute,
-            upstream,
-            ours,
-            ..
-        } = self;
-        write!(f, "{path} {attribute:?}: upstream {upstream}, ours {ours}")
+        match self {
+            Self::Crd {
+                attribute,
+                upstream,
+                ours,
+            } => write!(f, "CRD {attribute:?}: upstream {upstream}, ours {ours}"),
+            Self::Schema {
+                path,
+                attribute,
+                upstream,
+                ours,
+            } => {
+                let path = if path.is_empty() { "(root)" } else { path };
+                write!(f, "{path} {attribute:?}: upstream {upstream}, ours {ours}")
+            },
+        }
     }
 }
 
-fn diff(upstream: &BTreeMap<String, Node>, ours: &BTreeMap<String, Node>) -> Vec<Diff> {
-    let mut diffs = Vec::new();
+fn diff(upstream: &Crd, ours: &Crd) -> Vec<Diff> {
+    let mut diffs: Vec<_> = changed(upstream.attributes(), ours.attributes())
+        .map(|(attribute, upstream, ours)| Diff::Crd {
+            attribute,
+            upstream,
+            ours,
+        })
+        .collect();
+
     let mut missing = BTreeSet::new();
-    let paths: BTreeSet<_> = upstream.keys().chain(ours.keys()).collect();
+    let paths: BTreeSet<_> = upstream.schemas.keys().chain(ours.schemas.keys()).collect();
     for path in paths {
         // A path on one side only is one difference; its descendants, whose
         // ancestors end where a separator starts, aren't more.
-        let mut ancestors = path.match_indices(['.', '[', '{', '/']).map(|(i, _)| &path[..i]);
+        let mut ancestors = path.match_indices(SEPARATORS).map(|(i, _)| &path[..i]);
         if ancestors.any(|a| missing.contains(a)) {
             continue;
         }
-        let (Some(u), Some(o)) = (upstream.get(path), ours.get(path)) else {
-            missing.insert(path.as_str());
-            diffs.push(Diff {
-                path: path.clone(),
-                attribute: Attribute::Exists,
-                upstream: upstream.contains_key(path).to_string(),
-                ours: ours.contains_key(path).to_string(),
-            });
-            continue;
-        };
-        // Nodes at the same path have the same attributes.
-        for (&attribute, u) in u {
-            if *u != o[&attribute] {
-                diffs.push(Diff {
+        let (u, o) = match (upstream.schemas.get(path), ours.schemas.get(path)) {
+            (Some(Node::Schema(u)), Some(Node::Schema(o))) => (u, o),
+            (Some(Node::Combinator), Some(Node::Combinator)) => continue,
+            // Only a combinator's path ends in `/allOf`, `/anyOf` or `/oneOf`:
+            // `walk` rejects property names that would.
+            (Some(_), Some(_)) => unreachable!("{path} is a schema on one side and a combinator on the other"),
+            (u, o) => {
+                missing.insert(path.as_str());
+                diffs.push(Diff::Schema {
                     path: path.clone(),
-                    attribute,
-                    upstream: u.clone(),
-                    ours: o[&attribute].clone(),
+                    attribute: SchemaAttribute::Exists,
+                    upstream: u.is_some().to_string(),
+                    ours: o.is_some().to_string(),
                 });
-            }
-        }
+                continue;
+            },
+        };
+        diffs.extend(
+            changed(u.attributes(), o.attributes()).map(|(attribute, upstream, ours)| Diff::Schema {
+                path: path.clone(),
+                attribute,
+                upstream,
+                ours,
+            }),
+        );
     }
     diffs
+}
+
+/// The attributes whose values differ, as `(attribute, upstream, ours)`. Both
+/// sides list the same attributes in the same order.
+fn changed<A: Copy, const N: usize>(
+    upstream: [(A, String); N],
+    ours: [(A, String); N],
+) -> impl Iterator<Item = (A, String, String)> {
+    upstream
+        .into_iter()
+        .zip(ours)
+        .filter(|((_, u), (_, o))| u != o)
+        .map(|((attribute, u), (_, o))| (attribute, u, o))
 }
