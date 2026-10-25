@@ -6,14 +6,16 @@
 //! type, so it describes what the type puts on the wire. No cluster needed.
 //!
 //! Only the shape is compared: property names, types, required properties,
-//! enum values, maps and arrays. Descriptions, CEL rules, patterns, bounds,
-//! formats, defaults and list merge strategies are left to the API server.
-//! Known differences are listed in [`ALLOWED`], each with its reason.
+//! enum values, maps, arrays and combinators. Descriptions, CEL rules,
+//! patterns, bounds, formats, defaults and list merge strategies are left to
+//! the API server. Known differences are listed in [`ALLOWED`], each with its
+//! reason; `allowed_entries_match` fails on entries that no longer match.
 
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
     path::Path,
+    sync::LazyLock,
 };
 
 use k8s_openapi::apiextensions_apiserver::pkg::apis::apiextensions::v1::{
@@ -23,18 +25,30 @@ use kube::{CustomResourceExt, Resource};
 
 /// Declares a module per channel and resource with a `#[test]` per API
 /// version, e.g. `standard::httproutes::v1beta1`, that checks the version's
-/// root type. The test bodies in the table are for the integration tests.
+/// root type, and a `COMPARISONS` list of every version's comparison for
+/// `allowed_entries_match`. The test bodies in the table are for the
+/// integration tests.
 macro_rules! channel {
     ($channel:ident { $($resource:ident: $root:ident { $($version:ident => $body:literal),+ $(,)? })+ }) => {
         mod $channel {
+            pub(super) const COMPARISONS: &[fn() -> crate::Comparison] = &[$($(
+                || crate::compare::<gateway_api::apis::$channel::$resource::$version::$root>(
+                    crate::Channel::named(stringify!($channel)),
+                    stringify!($resource),
+                ),
+            )+)+];
+
             $(
                 mod $resource {
                     $(
                         #[test]
                         fn $version() {
-                            crate::check::<gateway_api::apis::$channel::$resource::$version::$root>(
-                                stringify!($channel),
-                            );
+                            crate::check(crate::compare::<
+                                gateway_api::apis::$channel::$resource::$version::$root,
+                            >(
+                                crate::Channel::named(stringify!($channel)),
+                                stringify!($resource),
+                            ));
                         }
                     )+
                 }
@@ -45,176 +59,307 @@ macro_rules! channel {
 
 include!("integration/channels.rs");
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+enum Channel {
+    Standard,
+    Experimental,
+}
+
+impl Channel {
+    const ALL: [Self; 2] = [Self::Standard, Self::Experimental];
+    /// The channels this build checks; `experimental` needs its feature.
+    const BUILT: &[Self] = &[
+        Self::Standard,
+        #[cfg(feature = "experimental")]
+        Self::Experimental,
+    ];
+
+    /// The channel's module and fixture directory name.
+    fn name(self) -> &'static str {
+        match self {
+            Self::Standard => "standard",
+            Self::Experimental => "experimental",
+        }
+    }
+
+    fn named(name: &str) -> Self {
+        Self::ALL
+            .into_iter()
+            .find(|c| c.name() == name)
+            .unwrap_or_else(|| panic!("unknown channel {name}"))
+    }
+}
+
+impl std::fmt::Display for Channel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.name())
+    }
+}
+
 // -----------------------------------------------------------------------------
 // Known differences
 // -----------------------------------------------------------------------------
 
 /// A known difference between a type's schema and the upstream CRD.
 struct Allowed {
-    /// The resource's kind, or `*` for every kind.
+    /// The channels the difference is in, each of which it must match.
+    channels: &'static [Channel],
+    /// The resource's kind, as in the CRD, or `*` for every kind.
     kind: &'static str,
     /// A schema path, as in a failure report, with `""` for the root. A
     /// leading `*` matches any prefix.
     path: &'static str,
-    fact: Fact,
+    /// The attribute that differs, e.g. `Required` or `Enum`.
+    attribute: Attribute,
+    /// The upstream value.
+    upstream: &'static str,
+    /// The crate's value.
+    ours: &'static str,
+    /// Why the difference is allowed.
     reason: &'static str,
 }
 
-/// Differences the check accepts. An entry for one kind that matches nothing
-/// in a version of that kind fails that version's test, so stale entries are
-/// noticed.
+/// Differences the check accepts.
 const ALLOWED: &[Allowed] = &[
     Allowed {
+        channels: &Channel::ALL,
         kind: "*",
         path: "*.conditions[].status",
-        fact: Fact::Enum,
+        attribute: Attribute::Enum,
+        upstream: r#"["False", "True", "Unknown"]"#,
+        ours: "[]",
         reason: "k8s-openapi's `Condition::status` is a plain string",
     },
     Allowed {
+        channels: &Channel::ALL,
+        kind: "Gateway",
+        path: "*.addresses[]/oneOf",
+        attribute: Attribute::Exists,
+        upstream: "true",
+        ours: "false",
+        reason: "kopium doesn't generate validation; address type and value are still compared",
+    },
+    Allowed {
+        channels: &Channel::ALL,
         kind: "HTTPRoute",
         path: "*.filters[].requestRedirect.statusCode",
-        fact: Fact::Enum,
+        attribute: Attribute::Enum,
+        upstream: "[301, 302, 303, 307, 308]",
+        ours: "[]",
         reason: "kopium can't generate an integer enum, so the field is a plain `i64`",
     },
     Allowed {
+        channels: &Channel::ALL,
         kind: "HTTPRoute",
         path: "*.filters[].cors.allowMethods[]",
-        fact: Fact::Enum,
+        attribute: Attribute::Enum,
+        upstream: r#"["*", "CONNECT", "DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT", "TRACE"]"#,
+        ours: "[]",
         reason: "kopium doesn't generate an enum for array items, so the items are plain strings",
     },
     Allowed {
+        channels: &Channel::ALL,
         kind: "ReferenceGrant",
         path: "",
-        fact: Fact::Required,
+        attribute: Attribute::Required,
+        upstream: "[]",
+        ours: "[spec]",
         reason: "kube's `CustomResource` derive always requires `spec`; upstream makes it optional",
     },
 ];
 
 impl Allowed {
-    fn matches(&self, kind: &str, diff: &Diff) -> bool {
+    fn matches(&self, comparison: &Comparison, diff: &Diff) -> bool {
         let path = match self.path.strip_prefix('*') {
             Some(suffix) => diff.path.ends_with(suffix),
             None => diff.path == self.path,
         };
-        (self.kind == "*" || self.kind == kind) && path && self.fact == diff.fact
+        self.channels.contains(&comparison.channel)
+            && (self.kind == "*" || self.kind == comparison.kind)
+            && path
+            && self.attribute == diff.attribute
+            && self.upstream == diff.upstream
+            && self.ours == diff.ours
     }
+}
+
+/// Fails on [`ALLOWED`] entries that match no difference in one of their
+/// channels. Channels the build leaves out, i.e. `experimental` without its
+/// feature, are skipped.
+#[test]
+fn allowed_entries_match() {
+    let channels: &[&[fn() -> Comparison]] = &[
+        standard::COMPARISONS,
+        #[cfg(feature = "experimental")]
+        experimental::COMPARISONS,
+    ];
+    let comparisons: Vec<_> = channels.iter().copied().flatten().map(|f| f()).collect();
+    let stale = ALLOWED
+        .iter()
+        .flat_map(|a| a.channels.iter().map(move |&channel| (a, channel)))
+        .filter(|(_, channel)| Channel::BUILT.contains(channel))
+        .filter(|(a, channel)| {
+            !comparisons
+                .iter()
+                .any(|c| c.channel == *channel && c.diffs.iter().any(|d| a.matches(c, d)))
+        })
+        .map(|(a, channel)| {
+            let Allowed {
+                kind,
+                path,
+                attribute,
+                reason,
+                ..
+            } = a;
+            format!("{channel} {kind} {path} {attribute:?} ({reason})")
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(stale.is_empty(), "stale ALLOWED entries:\n{stale}");
 }
 
 // -----------------------------------------------------------------------------
 // Check
 // -----------------------------------------------------------------------------
 
-/// Checks the CRD that `K` derives against the upstream CRD in `channel`.
-fn check<K>(channel: &str)
+/// One API version's CRD compared with the upstream one.
+struct Comparison {
+    channel: Channel,
+    kind: String,
+    version: String,
+    diffs: Vec<Diff>,
+}
+
+/// Compares the CRD that `K` derives with the upstream CRD for `resource` in
+/// `channel`.
+fn compare<K>(channel: Channel, resource: &str) -> Comparison
 where
     K: CustomResourceExt + Resource<DynamicType = ()>,
 {
-    let kind = K::kind(&());
-    let version = K::version(&());
-    let ours = K::crd();
-    let upstream = load_upstream(channel, &ours);
-
-    let mut diffs = diff(&Shape::of(&upstream, &version), &Shape::of(&ours, &version));
-    let mut report = Vec::new();
-    for allowed in ALLOWED.iter().filter(|a| a.kind == kind) {
-        if !diffs.iter().any(|d| allowed.matches(&kind, d)) {
-            report.push(format!(
-                "stale ALLOWED entry: {} {:?} ({})",
-                allowed.path, allowed.fact, allowed.reason
-            ));
-        }
+    let version = K::version(&()).into_owned();
+    let upstream = UPSTREAM
+        .get(&(channel, resource.to_owned()))
+        .unwrap_or_else(|| panic!("no upstream CRD for {channel} {resource}"));
+    Comparison {
+        channel,
+        kind: K::kind(&()).into_owned(),
+        diffs: diff(&attributes(upstream, &version), &attributes(&K::crd(), &version)),
+        version,
     }
-    diffs.retain(|d| !ALLOWED.iter().any(|a| a.matches(&kind, d)));
-    report.extend(diffs.iter().map(ToString::to_string));
+}
 
+/// Fails on differences that [`ALLOWED`] doesn't accept.
+fn check(comparison: Comparison) {
+    let report = comparison
+        .diffs
+        .iter()
+        .filter(|d| !ALLOWED.iter().any(|a| a.matches(&comparison, d)))
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join("\n");
+    let Comparison {
+        channel, kind, version, ..
+    } = comparison;
     assert!(
         report.is_empty(),
-        "{channel} {kind} {version} differs from the upstream CRD:\n{}",
-        report.join("\n")
+        "{channel} {kind} {version} differs from the upstream CRD:\n{report}"
     );
 }
 
-fn load_upstream(channel: &str, ours: &CustomResourceDefinition) -> CustomResourceDefinition {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("tests/fixtures/crds")
-        .join(channel)
-        .join(format!("{}_{}.yaml", ours.spec.group, ours.spec.names.plural));
-    let yaml = fs::read_to_string(&path).unwrap_or_else(|e| panic!("failed to read {}: {e}", path.display()));
-    serde_saphyr::from_str(&yaml).unwrap_or_else(|e| panic!("failed to parse {}: {e}", path.display()))
-}
-
-// -----------------------------------------------------------------------------
-// Shapes
-// -----------------------------------------------------------------------------
-
-/// What the check compares for one API version of a CRD.
-struct Shape {
-    group: String,
-    kind: String,
-    plural: String,
-    scope: String,
-    status_subresource: bool,
-    /// Every schema node, by path, with `""` for the root.
-    nodes: BTreeMap<String, Node>,
-}
-
-/// What the check compares at one schema path.
-#[derive(Default)]
-struct Node {
-    type_: String,
-    /// Required properties, for an object.
-    required: BTreeSet<String>,
-    /// Enum values as JSON, so `"301"` and `301` differ.
-    enum_values: BTreeSet<String>,
-    int_or_string: bool,
-    preserve_unknown_fields: bool,
-}
-
-impl Shape {
-    fn of(crd: &CustomResourceDefinition, version: &str) -> Self {
-        let spec = &crd.spec;
-        let name = &spec.names.kind;
-        let v = spec
-            .versions
-            .iter()
-            .find(|v| v.name == version)
-            .unwrap_or_else(|| panic!("{name} CRD doesn't define {version}"));
-        let schema = v
-            .schema
-            .as_ref()
-            .and_then(|s| s.open_api_v3_schema.as_ref())
-            .unwrap_or_else(|| panic!("{name} {version} has no schema"));
-
-        let mut nodes = BTreeMap::new();
-        walk(schema, "", &mut nodes);
-        Self {
-            group: spec.group.clone(),
-            kind: spec.names.kind.clone(),
-            plural: spec.names.plural.clone(),
-            scope: spec.scope.clone(),
-            status_subresource: v.subresources.as_ref().is_some_and(|s| s.status.is_some()),
-            nodes,
+/// Every upstream CRD in the channels this build checks, by channel and
+/// resource, parsed once for all tests from the fixtures named
+/// `<group>_<resource>.yaml`.
+static UPSTREAM: LazyLock<BTreeMap<(Channel, String), CustomResourceDefinition>> = LazyLock::new(|| {
+    let mut crds = BTreeMap::new();
+    for &channel in Channel::BUILT {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/crds")
+            .join(channel.name());
+        for entry in fs::read_dir(&dir).unwrap_or_else(|e| panic!("failed to read {dir}: {e}", dir = dir.display())) {
+            let path = entry.expect("failed to read a directory entry").path();
+            let resource = path
+                .file_stem()
+                .and_then(|stem| stem.to_str()?.split_once('_'))
+                .unwrap_or_else(|| panic!("{path} isn't named <group>_<resource>.yaml", path = path.display()))
+                .1;
+            let yaml = fs::read_to_string(&path)
+                .unwrap_or_else(|e| panic!("failed to read {path}: {e}", path = path.display()));
+            let crd = serde_saphyr::from_str(&yaml)
+                .unwrap_or_else(|e| panic!("failed to parse {path}: {e}", path = path.display()));
+            crds.insert((channel, resource.to_owned()), crd);
         }
     }
+    crds
+});
+
+// -----------------------------------------------------------------------------
+// Attributes
+// -----------------------------------------------------------------------------
+
+/// The attributes recorded at one path, and their values as text.
+type Node = BTreeMap<Attribute, String>;
+
+/// The attributes of one API version of a CRD, as a [`Node`] per path:
+/// `(crd)` for the CRD itself and `""` for the schema's root.
+fn attributes(crd: &CustomResourceDefinition, version: &str) -> BTreeMap<String, Node> {
+    let spec = &crd.spec;
+    let name = &spec.names.kind;
+    let v = spec
+        .versions
+        .iter()
+        .find(|v| v.name == version)
+        .unwrap_or_else(|| panic!("{name} CRD doesn't define {version}"));
+    let schema = v
+        .schema
+        .as_ref()
+        .and_then(|s| s.open_api_v3_schema.as_ref())
+        .unwrap_or_else(|| panic!("{name} {version} has no schema"));
+
+    let status_subresource = v.subresources.as_ref().is_some_and(|s| s.status.is_some());
+    let mut nodes = BTreeMap::from([(
+        "(crd)".into(),
+        Node::from([
+            (Attribute::Group, spec.group.clone()),
+            (Attribute::Kind, spec.names.kind.clone()),
+            (Attribute::Plural, spec.names.plural.clone()),
+            (Attribute::Scope, spec.scope.clone()),
+            (Attribute::StatusSubresource, status_subresource.to_string()),
+        ]),
+    )]);
+    walk(schema, "", &mut nodes);
+    nodes
 }
 
 /// Records the node for `schema` at `path`, then for its properties, map
-/// values and array items.
+/// values, array items and combinators (`allOf`, `anyOf`, `oneOf`, `not`).
 fn walk(schema: &JSONSchemaProps, path: &str, nodes: &mut BTreeMap<String, Node>) {
-    let mut node = Node {
-        type_: schema.type_.clone().unwrap_or_default(),
-        int_or_string: schema.x_kubernetes_int_or_string == Some(true),
-        preserve_unknown_fields: schema.x_kubernetes_preserve_unknown_fields == Some(true),
-        ..Node::default()
+    let type_ = schema.type_.as_deref().unwrap_or("(none)");
+    let required = schema.required.iter().flatten().filter(|_| type_ == "object");
+    // Enum values as JSON, so `"301"` and `301` differ. schemars lists `null`
+    // for an `Option`, which `required` already covers.
+    let enum_values = schema.enum_.iter().flatten().filter(|v| !v.0.is_null());
+    // A schema here is walked as `{*}` below.
+    let additional_properties = match schema.additional_properties {
+        Some(JSONSchemaPropsOrBool::Bool(b)) => b.to_string(),
+        _ => "(none)".into(),
     };
-    // schemars lists `null` for an `Option`, which `required` already covers.
-    for value in schema.enum_.iter().flatten().filter(|v| !v.0.is_null()) {
-        node.enum_values.insert(value.0.to_string());
-    }
-    if node.type_ == "object" {
-        node.required = schema.required.iter().flatten().cloned().collect();
-    }
-    nodes.insert(path.into(), node);
+    nodes.insert(
+        path.into(),
+        Node::from([
+            (Attribute::Type, type_.into()),
+            (Attribute::Required, list(required.cloned())),
+            (Attribute::Enum, list(enum_values.map(|v| v.0.to_string()))),
+            (
+                Attribute::IntOrString,
+                (schema.x_kubernetes_int_or_string == Some(true)).to_string(),
+            ),
+            (
+                Attribute::PreserveUnknownFields,
+                (schema.x_kubernetes_preserve_unknown_fields == Some(true)).to_string(),
+            ),
+            (Attribute::AdditionalProperties, additional_properties),
+        ]),
+    );
 
     for (name, property) in schema.properties.iter().flatten() {
         // Upstream's schemas describe the object's own `apiVersion`, `kind`
@@ -237,15 +382,43 @@ fn walk(schema: &JSONSchemaProps, path: &str, nodes: &mut BTreeMap<String, Node>
         },
         None => {},
     }
+    // A combinator is a node of its own, so one missing on one side is one
+    // difference, not one per branch.
+    for (name, branches) in [
+        ("allOf", &schema.all_of),
+        ("anyOf", &schema.any_of),
+        ("oneOf", &schema.one_of),
+    ] {
+        if let Some(branches) = branches {
+            let path = format!("{path}/{name}");
+            for (i, branch) in branches.iter().enumerate() {
+                walk(branch, &format!("{path}[{i}]"), nodes);
+            }
+            nodes.insert(path, Node::new());
+        }
+    }
+    if let Some(not) = &schema.not {
+        walk(not, &format!("{path}/not"), nodes);
+    }
+}
+
+/// Renders `items` as a set, sorted and without duplicates, as `[a, b]`.
+fn list(items: impl IntoIterator<Item = String>) -> String {
+    let mut items: Vec<_> = items.into_iter().collect();
+    items.sort();
+    items.dedup();
+    format!("[{items}]", items = items.join(", "))
 }
 
 // -----------------------------------------------------------------------------
 // Diff
 // -----------------------------------------------------------------------------
 
-/// What a difference is in.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Fact {
+/// Something compared at a path, and what a difference is in. `Exists` is
+/// never recorded in a [`Node`]: it's the difference when a path is on one
+/// side only.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+enum Attribute {
     Group,
     Kind,
     Plural,
@@ -257,12 +430,13 @@ enum Fact {
     Enum,
     IntOrString,
     PreserveUnknownFields,
+    AdditionalProperties,
 }
 
 struct Diff {
     /// A schema path, `""` for the root, or `(crd)` for the CRD itself.
     path: String,
-    fact: Fact,
+    attribute: Attribute,
     upstream: String,
     ours: String,
 }
@@ -271,91 +445,47 @@ impl std::fmt::Display for Diff {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let path = if self.path.is_empty() { "(root)" } else { &self.path };
         let Self {
-            fact, upstream, ours, ..
+            attribute,
+            upstream,
+            ours,
+            ..
         } = self;
-        write!(f, "{path} {fact:?}: upstream {upstream}, ours {ours}")
+        write!(f, "{path} {attribute:?}: upstream {upstream}, ours {ours}")
     }
 }
 
-/// How a compared value reads in a failure report.
-trait Show {
-    fn show(&self) -> String;
-}
-
-impl Show for String {
-    fn show(&self) -> String {
-        if self.is_empty() { "(none)".into() } else { self.clone() }
-    }
-}
-
-impl Show for bool {
-    fn show(&self) -> String {
-        self.to_string()
-    }
-}
-
-impl Show for BTreeSet<String> {
-    fn show(&self) -> String {
-        format!("[{}]", self.iter().map(String::as_str).collect::<Vec<_>>().join(", "))
-    }
-}
-
-fn diff(upstream: &Shape, ours: &Shape) -> Vec<Diff> {
+fn diff(upstream: &BTreeMap<String, Node>, ours: &BTreeMap<String, Node>) -> Vec<Diff> {
     let mut diffs = Vec::new();
-    let mut compare = |path: &str, fact: Fact, upstream: &dyn Show, ours: &dyn Show| {
-        let (upstream, ours) = (upstream.show(), ours.show());
-        if upstream != ours {
-            diffs.push(Diff {
-                path: path.into(),
-                fact,
-                upstream,
-                ours,
-            });
-        }
-    };
-
-    compare("(crd)", Fact::Group, &upstream.group, &ours.group);
-    compare("(crd)", Fact::Kind, &upstream.kind, &ours.kind);
-    compare("(crd)", Fact::Plural, &upstream.plural, &ours.plural);
-    compare("(crd)", Fact::Scope, &upstream.scope, &ours.scope);
-    compare(
-        "(crd)",
-        Fact::StatusSubresource,
-        &upstream.status_subresource,
-        &ours.status_subresource,
-    );
-
-    // A path on one side only is one difference; its descendants aren't more.
-    let mut missing: Vec<&str> = Vec::new();
-    let paths: BTreeSet<_> = upstream.nodes.keys().chain(ours.nodes.keys()).collect();
+    let mut missing = BTreeSet::new();
+    let paths: BTreeSet<_> = upstream.keys().chain(ours.keys()).collect();
     for path in paths {
-        let descendant = |of: &&str| {
-            path.strip_prefix(*of)
-                .is_some_and(|rest| rest.starts_with(['.', '[', '{']))
-        };
-        if missing.iter().any(descendant) {
+        // A path on one side only is one difference; its descendants, whose
+        // ancestors end where a separator starts, aren't more.
+        let mut ancestors = path.match_indices(['.', '[', '{', '/']).map(|(i, _)| &path[..i]);
+        if ancestors.any(|a| missing.contains(a)) {
             continue;
         }
-        let (Some(u), Some(o)) = (upstream.nodes.get(path), ours.nodes.get(path)) else {
-            compare(
-                path,
-                Fact::Exists,
-                &upstream.nodes.contains_key(path),
-                &ours.nodes.contains_key(path),
-            );
-            missing.push(path);
+        let (Some(u), Some(o)) = (upstream.get(path), ours.get(path)) else {
+            missing.insert(path.as_str());
+            diffs.push(Diff {
+                path: path.clone(),
+                attribute: Attribute::Exists,
+                upstream: upstream.contains_key(path).to_string(),
+                ours: ours.contains_key(path).to_string(),
+            });
             continue;
         };
-        compare(path, Fact::Type, &u.type_, &o.type_);
-        compare(path, Fact::Required, &u.required, &o.required);
-        compare(path, Fact::Enum, &u.enum_values, &o.enum_values);
-        compare(path, Fact::IntOrString, &u.int_or_string, &o.int_or_string);
-        compare(
-            path,
-            Fact::PreserveUnknownFields,
-            &u.preserve_unknown_fields,
-            &o.preserve_unknown_fields,
-        );
+        // Nodes at the same path have the same attributes.
+        for (&attribute, u) in u {
+            if *u != o[&attribute] {
+                diffs.push(Diff {
+                    path: path.clone(),
+                    attribute,
+                    upstream: u.clone(),
+                    ours: o[&attribute].clone(),
+                });
+            }
+        }
     }
     diffs
 }
