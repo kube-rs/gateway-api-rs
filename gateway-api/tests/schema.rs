@@ -74,8 +74,9 @@ fn upstream() -> &'static BTreeMap<(Channel, String), CustomResourceDefinition> 
             let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
                 .join("tests/fixtures/crds")
                 .join(channel.name());
-            for entry in fs::read_dir(&dir).unwrap_or_else(|e| panic!("failed to read {dir}: {e}", dir = dir.display()))
-            {
+            let entries =
+                fs::read_dir(&dir).unwrap_or_else(|e| panic!("failed to read {dir}: {e}", dir = dir.display()));
+            for entry in entries {
                 let path = entry.expect("failed to read a directory entry").path();
                 let resource = path
                     .file_stem()
@@ -279,17 +280,20 @@ where
     K: CustomResourceExt + Resource<DynamicType = ()>,
 {
     let kind = K::kind(&()).into_owned();
-    let upstream = upstream()
+    let upstream_crd = upstream()
         .get(&(channel, resource.to_owned()))
         .unwrap_or_else(|| panic!("no upstream CRD for {channel} {resource}"));
     assert!(
-        upstream.spec.versions.iter().any(|v| v.name == version),
+        upstream_crd.spec.versions.iter().any(|v| v.name == version),
         "upstream CRD for {channel} {resource} doesn't define {version}"
     );
     Comparison {
         channel,
         resource: resource.to_owned(),
-        diffs: diff(&attributes(upstream, version), &attributes(&K::crd(), &K::version(&()))),
+        diffs: diff(
+            &attributes(upstream_crd, version),
+            &attributes(&K::crd(), &K::version(&())),
+        ),
         kind,
         version: version.to_owned(),
     }
