@@ -19,11 +19,11 @@ use k8s_openapi::apiextensions_apiserver::pkg::apis::apiextensions::v1::{
 };
 use kube::{CustomResourceExt, Resource};
 
-/// Declares a module per channel and resource with a `#[test]` per API
-/// version, e.g. `standard::httproutes::v1beta1`, that checks the version's
-/// root type, and a `COMPARISONS` list of every version's comparison for the
-/// tests across all of them. The test bodies in the table are for the
-/// integration tests.
+/// Declares a module per channel, resource and API version with a
+/// `matches_upstream` test, e.g. `standard::httproutes::v1::matches_upstream`,
+/// that checks the version's root type, and a `COMPARISONS` list of every
+/// version's comparison for the tests across all of them. The test bodies
+/// in the table are for the integration tests.
 macro_rules! channel {
     ($channel:ident { $($resource:ident: $root:ident { $($version:ident => $body:literal),+ $(,)? })+ }) => {
         mod $channel {
@@ -38,15 +38,17 @@ macro_rules! channel {
             $(
                 mod $resource {
                     $(
-                        #[test]
-                        fn $version() {
-                            crate::check(crate::compare::<
-                                gateway_api::apis::$channel::$resource::$version::$root,
-                            >(
-                                crate::Channel::named(stringify!($channel)),
-                                stringify!($resource),
-                                stringify!($version),
-                            ));
+                        mod $version {
+                            #[test]
+                            fn matches_upstream() {
+                                crate::check(crate::compare::<
+                                    gateway_api::apis::$channel::$resource::$version::$root,
+                                >(
+                                    crate::Channel::named(stringify!($channel)),
+                                    stringify!($resource),
+                                    stringify!($version),
+                                ));
+                            }
                         }
                     )+
                 }
