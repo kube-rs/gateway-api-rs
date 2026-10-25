@@ -630,6 +630,8 @@ impl std::fmt::Display for Diff {
     }
 }
 
+/// The differences between `upstream` and `ours`: first the CRDs' own
+/// attributes, then each schema path.
 fn diff(upstream: &Crd, ours: &Crd) -> Vec<Diff> {
     let mut diffs: Vec<_> = changed(upstream.attributes(), ours.attributes())
         .map(|(attribute, upstream, ours)| Diff::Crd {
@@ -678,14 +680,16 @@ fn diff(upstream: &Crd, ours: &Crd) -> Vec<Diff> {
 }
 
 /// The attributes whose values differ, as `(attribute, upstream, ours)`. Both
-/// sides list the same attributes in the same order.
-fn changed<A: Copy, const N: usize>(
+/// sides must list the same attributes in the same order.
+fn changed<A: PartialEq + std::fmt::Debug, const N: usize>(
     upstream: [(A, String); N],
     ours: [(A, String); N],
 ) -> impl Iterator<Item = (A, String, String)> {
     upstream
         .into_iter()
         .zip(ours)
-        .filter(|((_, u), (_, o))| u != o)
-        .map(|((attribute, u), (_, o))| (attribute, u, o))
+        .filter_map(|((u_a, u), (o_a, o))| {
+            assert_eq!(u_a, o_a, "attributes listed in a different order");
+            (u != o).then_some((u_a, u, o))
+        })
 }
