@@ -44,6 +44,25 @@ use gateway_api::referencegrants::v1::ReferenceGrant as ReferenceGrantV1;
 use gateway_api::referencegrants::v1beta1::ReferenceGrant as ReferenceGrantV1beta1;
 ```
 
+### Experimental APIs
+
+APIs from the [experimental channel] are provided under
+`gateway_api::experimental` and require the `experimental` feature.
+
+```toml
+[dependencies]
+gateway-api = { version = "*", features = ["experimental"] }
+```
+
+```rust
+use gateway_api::experimental::tcproutes::TcpRoute;
+use gateway_api::experimental::httproutes::HttpRoute;
+```
+
+> **Warning**: Experimental APIs may change or be removed without notice.
+
+[experimental channel]:https://gateway-api.sigs.k8s.io/docs/concepts/versioning/#release-channels
+
 ## Development
 
 See [DEVELOPMENT.md](DEVELOPMENT.md).
