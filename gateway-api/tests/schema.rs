@@ -11,7 +11,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
     path::Path,
-    sync::LazyLock,
+    sync::OnceLock,
 };
 
 use k8s_openapi::apiextensions_apiserver::pkg::apis::apiextensions::v1::{
@@ -59,15 +59,52 @@ macro_rules! channel {
 
 include!("integration/channels.rs");
 
+// The shared state below is in a `OnceLock` rather than a `LazyLock`: if
+// initializing panics, the next test retries and reports the same panic,
+// instead of a poisoned lock.
+
+/// Every upstream CRD in the channels this build checks, by channel and
+/// resource, parsed once for all tests from the fixtures named
+/// `<group>_<resource>.yaml`.
+fn upstream() -> &'static BTreeMap<(Channel, String), CustomResourceDefinition> {
+    static UPSTREAM: OnceLock<BTreeMap<(Channel, String), CustomResourceDefinition>> = OnceLock::new();
+    UPSTREAM.get_or_init(|| {
+        let mut crds = BTreeMap::new();
+        for &channel in Channel::BUILT {
+            let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/fixtures/crds")
+                .join(channel.name());
+            for entry in fs::read_dir(&dir).unwrap_or_else(|e| panic!("failed to read {dir}: {e}", dir = dir.display()))
+            {
+                let path = entry.expect("failed to read a directory entry").path();
+                let resource = path
+                    .file_stem()
+                    .and_then(|stem| stem.to_str()?.split_once('_'))
+                    .unwrap_or_else(|| panic!("{path} isn't named <group>_<resource>.yaml", path = path.display()))
+                    .1;
+                let yaml = fs::read_to_string(&path)
+                    .unwrap_or_else(|e| panic!("failed to read {path}: {e}", path = path.display()));
+                let crd = serde_saphyr::from_str(&yaml)
+                    .unwrap_or_else(|e| panic!("failed to parse {path}: {e}", path = path.display()));
+                crds.insert((channel, resource.to_owned()), crd);
+            }
+        }
+        crds
+    })
+}
+
 /// Every API version's comparison in the channels this build checks.
-static ALL_COMPARISONS: LazyLock<Vec<Comparison>> = LazyLock::new(|| {
-    let channels: &[&[fn() -> Comparison]] = &[
-        standard::COMPARISONS,
-        #[cfg(feature = "experimental")]
-        experimental::COMPARISONS,
-    ];
-    channels.iter().copied().flatten().map(|f| f()).collect()
-});
+fn all_comparisons() -> &'static [Comparison] {
+    static ALL_COMPARISONS: OnceLock<Vec<Comparison>> = OnceLock::new();
+    ALL_COMPARISONS.get_or_init(|| {
+        let channels: &[&[fn() -> Comparison]] = &[
+            standard::COMPARISONS,
+            #[cfg(feature = "experimental")]
+            experimental::COMPARISONS,
+        ];
+        channels.iter().copied().flatten().map(|f| f()).collect()
+    })
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Channel {
@@ -203,7 +240,7 @@ fn allowed_entries_match() {
         .flat_map(|a| a.channels.iter().map(move |&channel| (a, channel)))
         .filter(|(_, channel)| Channel::BUILT.contains(channel))
         .filter(|(a, channel)| {
-            !ALL_COMPARISONS
+            !all_comparisons()
                 .iter()
                 .any(|c| c.channel == *channel && c.diffs.iter().any(|d| a.matches(c, d)))
         })
@@ -242,7 +279,7 @@ where
     K: CustomResourceExt + Resource<DynamicType = ()>,
 {
     let kind = K::kind(&()).into_owned();
-    let upstream = UPSTREAM
+    let upstream = upstream()
         .get(&(channel, resource.to_owned()))
         .unwrap_or_else(|| panic!("no upstream CRD for {channel} {resource}"));
     assert!(
@@ -262,11 +299,11 @@ where
 /// compare.
 #[test]
 fn every_upstream_version_is_compared() {
-    let compared: BTreeSet<_> = ALL_COMPARISONS
+    let compared: BTreeSet<_> = all_comparisons()
         .iter()
         .map(|c| (c.channel, c.resource.as_str(), c.version.as_str()))
         .collect();
-    let missing = UPSTREAM
+    let missing = upstream()
         .iter()
         .flat_map(|((channel, resource), crd)| {
             crd.spec
@@ -298,32 +335,6 @@ fn check(comparison: Comparison) {
         "{channel} {kind} {version} differs from the upstream CRD:\n{report}"
     );
 }
-
-/// Every upstream CRD in the channels this build checks, by channel and
-/// resource, parsed once for all tests from the fixtures named
-/// `<group>_<resource>.yaml`.
-static UPSTREAM: LazyLock<BTreeMap<(Channel, String), CustomResourceDefinition>> = LazyLock::new(|| {
-    let mut crds = BTreeMap::new();
-    for &channel in Channel::BUILT {
-        let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("tests/fixtures/crds")
-            .join(channel.name());
-        for entry in fs::read_dir(&dir).unwrap_or_else(|e| panic!("failed to read {dir}: {e}", dir = dir.display())) {
-            let path = entry.expect("failed to read a directory entry").path();
-            let resource = path
-                .file_stem()
-                .and_then(|stem| stem.to_str()?.split_once('_'))
-                .unwrap_or_else(|| panic!("{path} isn't named <group>_<resource>.yaml", path = path.display()))
-                .1;
-            let yaml = fs::read_to_string(&path)
-                .unwrap_or_else(|e| panic!("failed to read {path}: {e}", path = path.display()));
-            let crd = serde_saphyr::from_str(&yaml)
-                .unwrap_or_else(|e| panic!("failed to parse {path}: {e}", path = path.display()));
-            crds.insert((channel, resource.to_owned()), crd);
-        }
-    }
-    crds
-});
 
 // -----------------------------------------------------------------------------
 // Attributes
