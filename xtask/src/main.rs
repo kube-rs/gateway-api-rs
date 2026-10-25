@@ -310,7 +310,10 @@ fn generate_channel(version: &str, channel: &Channel) -> Result<ChannelVersions>
         let root_version = api.root_version;
         let crd = fetch_crd(version, channel_name, api)?;
         fs::write(
-            format!("{fixtures_dir}/{}{api_name}.yaml", api.crd_prefix),
+            format!(
+                "{fixtures_dir}/{crd_prefix}{api_name}.yaml",
+                crd_prefix = api.crd_prefix
+            ),
             gen_crd_fixture(version, &crd),
         )?;
 
@@ -623,7 +626,7 @@ fn gen_test_tables(channels: &[(&Channel, ChannelVersions)]) -> Result<String> {
                     Ok(format!("{version} => \"{body}\""))
                 })
                 .collect::<Result<Vec<_>>>()?;
-            writeln!(out, "    {resource} {{ {} }}", entries.join(", ")).unwrap();
+            writeln!(out, "    {resource} {{ {entries} }}", entries = entries.join(", ")).unwrap();
         }
         out.push_str("});\n");
     }
@@ -644,7 +647,7 @@ fn test_body(resource: &str, version: &str) -> Result<String> {
     let shared = format!("{resource}.rs");
     let path = suite.join(&shared);
     if !path.exists() {
-        eprintln!("writing integration test stub {}", path.display());
+        eprintln!("writing integration test stub {path}", path = path.display());
         fs::write(&path, gen_test_stub(resource))?;
     }
     Ok(shared)

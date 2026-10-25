@@ -75,10 +75,14 @@ pub async fn crud<K>(api: Api<K>, mut object: K)
 where
     K: Resource<DynamicType = ()> + Clone + Debug + PartialEq + Serialize + DeserializeOwned,
 {
-    let resource = format!("{} {}", K::api_version(&()), K::kind(&()));
+    let resource = format!(
+        "{api_version} {kind}",
+        api_version = K::api_version(&()),
+        kind = K::kind(&())
+    );
     object.meta_mut().generate_name = Some("test-".into());
 
-    if !served::<K>().await {
+    if !served::<K>(api.clone().into_client()).await {
         match api.create(&PostParams::default(), &object).await {
             // The URL isn't routed at all, so the body is plain text, not a
             // `Status` that `is_not_found` could recognize.
@@ -140,10 +144,10 @@ where
 
 /// Whether the installed CRD serves `K`'s API version. Panics if the CRD
 /// doesn't define that version at all.
-async fn served<K: Resource<DynamicType = ()>>() -> bool {
-    let crd_name = format!("{}.{}", K::plural(&()), K::group(&()));
+async fn served<K: Resource<DynamicType = ()>>(client: Client) -> bool {
+    let crd_name = format!("{plural}.{group}", plural = K::plural(&()), group = K::group(&()));
     let version = K::version(&());
-    let crd = Api::<CustomResourceDefinition>::all(client().await)
+    let crd = Api::<CustomResourceDefinition>::all(client)
         .get(&crd_name)
         .await
         .unwrap_or_else(|e| panic!("failed to get CRD {crd_name}: {e}"));
@@ -190,11 +194,11 @@ async fn install_crds(client: &Client, channel: &str) -> Result<()> {
     let params = PatchParams::apply(FIELD_MANAGER).force();
 
     let mut names = Vec::new();
-    for entry in fs::read_dir(&dir).with_context(|| format!("failed to read {}", dir.display()))? {
+    for entry in fs::read_dir(&dir).with_context(|| format!("failed to read {dir}", dir = dir.display()))? {
         let path = entry?.path();
         let yaml = fs::read_to_string(&path)?;
         let crd: CustomResourceDefinition =
-            serde_saphyr::from_str(&yaml).with_context(|| format!("failed to parse {}", path.display()))?;
+            serde_saphyr::from_str(&yaml).with_context(|| format!("failed to parse {path}", path = path.display()))?;
         let name = crd.name_any();
         api.patch(&name, &params, &Patch::Apply(&crd))
             .await
