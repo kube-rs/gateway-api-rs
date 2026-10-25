@@ -1,4 +1,4 @@
-use std::{fmt::Debug, fs, path::Path, time::Duration};
+use std::{fmt::Debug, time::Duration};
 
 use anyhow::{Context, Result, bail, ensure};
 use hyper_util::{client::legacy::Client as HttpClient, rt::TokioExecutor};
@@ -13,14 +13,16 @@ use serde::{Serialize, de::DeserializeOwned};
 use tokio::sync::OnceCell;
 use tower::{BoxError, ServiceBuilder};
 
+use crate::support::{Channel, fixtures};
+
 /// The upstream CRD channel installed for this run. Standard and experimental
 /// CRDs share names, so a cluster holds one channel at a time. The standard
 /// types are tested against whichever is installed: the experimental schema
 /// is a superset of the standard one.
-pub const CHANNEL: &str = if cfg!(feature = "experimental") {
-    "experimental"
+pub const CHANNEL: Channel = if cfg!(feature = "experimental") {
+    Channel::Experimental
 } else {
-    "standard"
+    Channel::Standard
 };
 
 /// Field manager for server-side apply.
@@ -182,23 +184,14 @@ async fn make_client(kubeconfig_yaml: &str) -> Result<Client> {
 // CRD installation
 // -----------------------------------------------------------------------------
 
-/// Installs the vendored upstream CRDs of `channel`: the same YAML the
-/// bindings are generated from (see `cargo xtask generate`). Server-side apply
-/// makes this idempotent, and replaces the other channel's CRDs on a reused
-/// cluster.
-async fn install_crds(client: &Client, channel: &str) -> Result<()> {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("tests/fixtures/crds")
-        .join(channel);
+/// Installs the vendored upstream CRDs of `channel`. Server-side apply makes
+/// this idempotent, and replaces the other channel's CRDs on a reused cluster.
+async fn install_crds(client: &Client, channel: Channel) -> Result<()> {
     let api: Api<CustomResourceDefinition> = Api::all(client.clone());
     let params = PatchParams::apply(FIELD_MANAGER).force();
 
     let mut names = Vec::new();
-    for entry in fs::read_dir(&dir).with_context(|| format!("failed to read {dir}", dir = dir.display()))? {
-        let path = entry?.path();
-        let yaml = fs::read_to_string(&path)?;
-        let crd: CustomResourceDefinition =
-            serde_saphyr::from_str(&yaml).with_context(|| format!("failed to parse {path}", path = path.display()))?;
+    for crd in fixtures::upstream_crds(channel).into_values() {
         let name = crd.name_any();
         api.patch(&name, &params, &Patch::Apply(&crd))
             .await

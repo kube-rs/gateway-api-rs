@@ -8,10 +8,11 @@
 //! See [`Crd`] and [`Schema`] for the attributes compared, and [`ALLOWED`] for
 //! known differences.
 
+#[path = "support/lib.rs"]
+pub mod support;
+
 use std::{
     collections::{BTreeMap, BTreeSet},
-    fs,
-    path::Path,
     sync::OnceLock,
 };
 
@@ -19,14 +20,15 @@ use k8s_openapi::apiextensions_apiserver::pkg::apis::apiextensions::v1::{
     CustomResourceDefinition, JSONSchemaProps, JSONSchemaPropsOrArray, JSONSchemaPropsOrBool,
 };
 use kube::{CustomResourceExt, Resource};
+use support::Channel;
 
-/// Declares a module per channel, resource and API version with a
-/// `matches_upstream` test, e.g. `standard::httproutes::v1::matches_upstream`,
-/// that checks the version's root type, and a `COMPARISONS` list of every
-/// version's comparison for the tests across all of them. The test bodies
-/// in the table are for the integration tests.
-macro_rules! channel {
-    ($channel:ident { $($resource:ident: $root:ident { $($version:ident => $body:literal),+ $(,)? })+ }) => {
+/// An [`apis!`] callback that declares a module per channel, resource and API
+/// version with a `matches_upstream` test, e.g.
+/// `standard::httproutes::v1::matches_upstream`, that checks the version's
+/// root type, and a `COMPARISONS` list of every version's comparison for the
+/// tests across all of them.
+macro_rules! schema_tests {
+    ($channel:ident { $($resource:ident: $root:ident [$($version:ident),+])+ }) => {
         mod $channel {
             pub(super) const COMPARISONS: &[fn() -> crate::Comparison] = &[$($(
                 || crate::compare::<gateway_api::apis::$channel::$resource::$version::$root>(
@@ -58,40 +60,25 @@ macro_rules! channel {
     };
 }
 
-include!("integration/channels.rs");
+apis!(schema_tests);
 
 // The shared state below is in a `OnceLock` rather than a `LazyLock`: if
 // initializing panics, the next test retries and reports the same panic,
 // instead of a poisoned lock.
 
 /// Every upstream CRD in the channels this build checks, by channel and
-/// resource, parsed once for all tests from the fixtures named
-/// `<group>_<resource>.yaml`.
+/// resource, parsed once for all tests.
 fn upstream() -> &'static BTreeMap<(Channel, String), CustomResourceDefinition> {
     static UPSTREAM: OnceLock<BTreeMap<(Channel, String), CustomResourceDefinition>> = OnceLock::new();
     UPSTREAM.get_or_init(|| {
-        let mut crds = BTreeMap::new();
-        for &channel in Channel::BUILT {
-            let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("tests/fixtures/crds")
-                .join(channel.name());
-            let entries =
-                fs::read_dir(&dir).unwrap_or_else(|e| panic!("failed to read {dir}: {e}", dir = dir.display()));
-            for entry in entries {
-                let path = entry.expect("failed to read a directory entry").path();
-                let resource = path
-                    .file_stem()
-                    .and_then(|stem| stem.to_str()?.split_once('_'))
-                    .unwrap_or_else(|| panic!("{path} isn't named <group>_<resource>.yaml", path = path.display()))
-                    .1;
-                let yaml = fs::read_to_string(&path)
-                    .unwrap_or_else(|e| panic!("failed to read {path}: {e}", path = path.display()));
-                let crd = serde_saphyr::from_str(&yaml)
-                    .unwrap_or_else(|e| panic!("failed to parse {path}: {e}", path = path.display()));
-                crds.insert((channel, resource.to_owned()), crd);
-            }
-        }
-        crds
+        Channel::BUILT
+            .iter()
+            .flat_map(|&channel| {
+                support::fixtures::upstream_crds(channel)
+                    .into_iter()
+                    .map(move |(resource, crd)| ((channel, resource), crd))
+            })
+            .collect()
     })
 }
 
@@ -106,43 +93,6 @@ fn all_comparisons() -> &'static [Comparison] {
         ];
         channels.iter().copied().flatten().map(|f| f()).collect()
     })
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-enum Channel {
-    Standard,
-    Experimental,
-}
-
-impl Channel {
-    const ALL: [Self; 2] = [Self::Standard, Self::Experimental];
-    /// The channels this build checks; `experimental` needs its feature.
-    const BUILT: &[Self] = &[
-        Self::Standard,
-        #[cfg(feature = "experimental")]
-        Self::Experimental,
-    ];
-
-    /// The channel's module and fixture directory name.
-    fn name(self) -> &'static str {
-        match self {
-            Self::Standard => "standard",
-            Self::Experimental => "experimental",
-        }
-    }
-
-    fn named(name: &str) -> Self {
-        Self::ALL
-            .into_iter()
-            .find(|c| c.name() == name)
-            .unwrap_or_else(|| panic!("unknown channel {name}"))
-    }
-}
-
-impl std::fmt::Display for Channel {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.name())
-    }
 }
 
 // -----------------------------------------------------------------------------

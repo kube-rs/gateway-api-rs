@@ -27,8 +27,8 @@ const CRD_FIXTURES_DIR: &str = "gateway-api/tests/fixtures/crds";
 /// Integration test bodies, shared across API versions and channels.
 const TEST_SUITE_DIR: &str = "gateway-api/tests/integration/suite";
 
-/// Test tables, included by the integration tests' `main.rs` and by `schema.rs`.
-const TEST_TABLES_FILE: &str = "gateway-api/tests/integration/channels.rs";
+/// The `apis!` macro, in the support module shared by the test crates.
+const TEST_APIS_FILE: &str = "gateway-api/tests/support/apis.rs";
 
 const CRD_BASE_URL: &str = "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api";
 
@@ -273,7 +273,7 @@ fn main() -> Result<()> {
 // Generation orchestration
 // -----------------------------------------------------------------------------
 
-/// What generation produced for one resource, for the test tables.
+/// What generation produced for one resource, for the tests' `apis!`.
 struct GeneratedResource {
     name: &'static str,
     /// The root type kopium generated, e.g. `HttpRoute`.
@@ -288,7 +288,12 @@ fn generate(version: &str) -> Result<()> {
         channels.push((channel, generate_channel(version, channel)?));
     }
     write_apis_module()?;
-    fs::write(TEST_TABLES_FILE, gen_test_tables(&channels)?)?;
+    for (_, resources) in &channels {
+        for resource in resources {
+            write_test_stub(resource.name)?;
+        }
+    }
+    fs::write(TEST_APIS_FILE, gen_test_apis(&channels))?;
     rustfmt()?;
     Ok(())
 }
@@ -626,7 +631,7 @@ fn gen_enum_defaults(
 }
 
 // -----------------------------------------------------------------------------
-// Integration test fixture and table generation
+// Test fixture, `apis!` and stub generation
 // -----------------------------------------------------------------------------
 
 /// Generates a vendored CRD fixture: the upstream YAML, unchanged, under a
@@ -642,56 +647,51 @@ fn gen_crd_fixture(bundle: &str, crd: &FetchedCrd) -> String {
     )
 }
 
-/// Generates the test tables: one `channel!` invocation per channel, giving
-/// each resource's root type and mapping every API version its CRD defines to
-/// an integration test body.
-fn gen_test_tables(channels: &[(&Channel, Vec<GeneratedResource>)]) -> Result<String> {
-    let mut out = String::from(GENERATED_HEADER);
+/// Generates the `apis!` macro, which calls a callback macro once per channel
+/// with each resource's root type and every API version its CRD defines.
+fn gen_test_apis(channels: &[(&Channel, Vec<GeneratedResource>)]) -> String {
+    let mut out = format!(
+        "{GENERATED_HEADER}\
+         \n\
+         /// Calls `$callback!` once per channel this build checks, with each\n\
+         /// resource's root type and every API version its CRD defines, e.g.\n\
+         /// `$callback!(standard {{ httproutes: HttpRoute [v1, v1beta1] ... }})`.\n\
+         #[macro_export]\n\
+         macro_rules! apis {{\n    \
+             ($callback:ident) => {{\n"
+    );
     for (channel, resources) in channels {
         let channel_name = channel.name;
-        out.push('\n');
         if channel_name == EXPERIMENTAL.name {
-            out.push_str("#[cfg(feature = \"experimental\")]\n");
+            out.push_str("        #[cfg(feature = \"experimental\")]\n");
         }
-        writeln!(out, "channel!({channel_name} {{").unwrap();
-        for resource in resources {
-            let GeneratedResource {
-                name,
-                root_type,
-                versions,
-            } = resource;
-            let entries = versions
-                .iter()
-                .map(|version| {
-                    let body = test_body(name, version)?;
-                    Ok(format!("{version} => \"{body}\""))
-                })
-                .collect::<Result<Vec<_>>>()?;
-            writeln!(out, "    {name}: {root_type} {{ {entries} }}", entries = entries.join(", ")).unwrap();
+        writeln!(out, "        $callback!({channel_name} {{").unwrap();
+        for GeneratedResource {
+            name,
+            root_type,
+            versions,
+        } in resources
+        {
+            let versions = versions.join(", ");
+            writeln!(out, "            {name}: {root_type} [{versions}]").unwrap();
         }
-        out.push_str("});\n");
+        out.push_str("        });\n");
     }
-    Ok(out)
+    out.push_str("    };\n}\n");
+    out
 }
 
-/// Finds the test body for an API version: `<resource>_<version>.rs` if it
-/// exists, else `<resource>.rs`, shared by the resource's other versions. If
-/// neither exists, as for a newly added CRD, writes a `<resource>.rs` stub
-/// whose test fails with `todo!`.
-fn test_body(resource: &str, version: &str) -> Result<String> {
-    let suite = Path::new(TEST_SUITE_DIR);
-    let specific = format!("{resource}_{version}.rs");
-    if suite.join(&specific).exists() {
-        return Ok(specific);
-    }
-
-    let shared = format!("{resource}.rs");
-    let path = suite.join(&shared);
+/// Writes a `<resource>.rs` integration test body whose test fails with
+/// `todo!` if there's none, as for a newly added CRD. The integration tests
+/// use it for every API version of the resource unless their `body!` routes
+/// a version elsewhere.
+fn write_test_stub(resource: &str) -> Result<()> {
+    let path = Path::new(TEST_SUITE_DIR).join(format!("{resource}.rs"));
     if !path.exists() {
         eprintln!("writing integration test stub {path}", path = path.display());
         fs::write(&path, gen_test_stub(resource))?;
     }
-    Ok(shared)
+    Ok(())
 }
 
 fn gen_test_stub(resource: &str) -> String {
