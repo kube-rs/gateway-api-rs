@@ -635,11 +635,8 @@ fn changed<A: PartialEq + std::fmt::Debug, const N: usize>(
     upstream: [(A, String); N],
     ours: [(A, String); N],
 ) -> impl Iterator<Item = (A, String, String)> {
-    upstream
-        .into_iter()
-        .zip(ours)
-        .filter_map(|((u_a, u), (o_a, o))| {
-            assert_eq!(u_a, o_a, "attributes listed in a different order");
-            (u != o).then_some((u_a, u, o))
-        })
+    upstream.into_iter().zip(ours).filter_map(|((u_a, u), (o_a, o))| {
+        assert_eq!(u_a, o_a, "attributes listed in a different order");
+        (u != o).then_some((u_a, u, o))
+    })
 }
