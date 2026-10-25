@@ -7,8 +7,9 @@
 - **Bindings for every CRD API version** ([#246]). Each API version a CRD
   defines is now a submodule of its resource module, e.g.
   `gateway_api::httproutes::v1beta1::HttpRoute`.
-  - The existing paths are unchanged: the module root re-exports the root
-    version.
+  - Existing paths still resolve to the same types. For example,
+    `gateway_api::httproutes::HttpRoute` is now a re-export of
+    `gateway_api::httproutes::v1::HttpRoute`.
   - New modules for v1.5.1, in both `standard` and `experimental` channels:
     - `backendtlspolicies::v1alpha3`
     - `gatewayclasses::v1beta1`
