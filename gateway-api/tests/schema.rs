@@ -254,9 +254,9 @@ where
     Comparison {
         channel,
         resource: resource.to_owned(),
-        diffs: diff(&Crd::new(upstream_crd, version), &Crd::new(&K::crd(), &K::version(&()))),
         kind,
         version: version.to_owned(),
+        diffs: diff(&Crd::new(upstream_crd, version), &Crd::new(&K::crd(), &K::version(&()))),
     }
 }
 
