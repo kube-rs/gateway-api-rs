@@ -11,7 +11,9 @@ use kube::{
 };
 use serde_json::json;
 
-use super::api::{Gateway, GatewayListeners, GatewaySpec, GatewayStatus, GatewayStatusListeners};
+use super::api::{
+    Gateway, GatewayListeners, GatewaySpec, GatewayStatus, GatewayStatusAddresses, GatewayStatusListeners,
+};
 use crate::common;
 
 fn gateway() -> Gateway {
@@ -47,6 +49,8 @@ async fn status() {
         .await
         .expect("failed to create Gateway");
     let name = created.name_any();
+    assert!(created.metadata.uid.is_some());
+    assert_eq!(created.spec.gateway_class_name, "test-gateway-class");
 
     let condition = |type_: String, reason: String| Condition {
         last_transition_time: Time(Timestamp::now()),
@@ -57,6 +61,10 @@ async fn status() {
         type_,
     };
     let status = GatewayStatus {
+        addresses: Some(vec![GatewayStatusAddresses {
+            r#type: Some("IPAddress".into()),
+            value: "192.0.2.1".into(),
+        }]),
         listeners: Some(vec![GatewayStatusListeners {
             name: "http".into(),
             attached_routes: 0,
@@ -88,9 +96,13 @@ async fn status() {
         .expect("failed to patch Gateway status")
         .status
         .expect("status should be set");
+    let addresses = s.addresses.expect("addresses should be set");
+    assert_eq!(addresses.len(), 1);
+    assert_eq!(addresses[0].value, "192.0.2.1");
     let listeners = s.listeners.expect("listeners should be set");
     assert_eq!(listeners.len(), 1);
     assert_eq!(listeners[0].name, "http");
+    assert_eq!(listeners[0].attached_routes, 0);
     let conditions = s.conditions.expect("conditions should be set");
     assert_eq!(conditions.len(), 1);
     assert_eq!(conditions[0].reason, GatewayConditionReason::Programmed.to_string());
