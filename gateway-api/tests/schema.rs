@@ -1,8 +1,9 @@
 //! Schema conformance of the crate's types against the vendored upstream CRDs.
 //!
 //! This is a structural comparison: the crate's CRDs must describe the same wire
-//! shape as upstream's (fields, types, required fields, enum values). Validations
-//! such as CEL rules and formats are left to the API server.
+//! shape as upstream's (fields, types and formats, required fields, enum
+//! values). Validations such as CEL rules and patterns are left to the API
+//! server.
 //!
 //! See [`Attribute`] for the attributes compared, and [`ALLOWED`] for known
 //! differences.
@@ -383,6 +384,12 @@ fn attributes(crd: &CustomResourceDefinition, version: &str) -> BTreeMap<String,
 /// values, array items and combinators (`allOf`, `anyOf`, `oneOf`, `not`).
 fn walk(schema: &JSONSchemaProps, path: &str, nodes: &mut BTreeMap<String, Node>) {
     let type_ = schema.type_.as_deref().unwrap_or("(none)");
+    // The API server reads an integer without a format as an `int64`, which
+    // is also what kopium generates for one.
+    let format = match (type_, schema.format.as_deref()) {
+        ("integer", None) => "int64",
+        (_, format) => format.unwrap_or("(none)"),
+    };
     let required = schema.required.iter().flatten();
     // Enum values as JSON, so `"301"` and `301` differ. schemars lists `null`
     // for an `Option`, which `required` already covers.
@@ -396,6 +403,7 @@ fn walk(schema: &JSONSchemaProps, path: &str, nodes: &mut BTreeMap<String, Node>
         path.into(),
         Node::from([
             (Attribute::Type, type_.into()),
+            (Attribute::Format, format.into()),
             (Attribute::Required, list(required.cloned())),
             (Attribute::Enum, list(enum_values.map(|v| v.0.to_string()))),
             (
@@ -478,6 +486,7 @@ enum Attribute {
     StatusSubresource,
     Exists,
     Type,
+    Format,
     Required,
     Enum,
     IntOrString,
