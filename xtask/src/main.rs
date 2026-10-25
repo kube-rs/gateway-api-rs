@@ -653,19 +653,24 @@ fn gen_test_apis(channels: &[(&Channel, Vec<GeneratedResource>)]) -> String {
     let mut out = format!(
         "{GENERATED_HEADER}\
          \n\
-         /// Calls `$callback!` once per channel this build checks, with each\n\
-         /// resource's root type and every API version its CRD defines, e.g.\n\
+         /// Calls `$callback!` once per channel, with each resource's root type\n\
+         /// and every API version its CRD defines, e.g.\n\
          /// `$callback!(standard {{ httproutes: HttpRoute [v1, v1beta1] ... }})`.\n\
+         /// Every channel is passed in every build: `experimental` comes with\n\
+         /// `#[cfg(feature = \"experimental\")]`, for the callback to put on\n\
+         /// whatever uses the channel's types.\n\
          #[macro_export]\n\
          macro_rules! apis {{\n    \
              ($callback:ident) => {{\n"
     );
     for (channel, resources) in channels {
         let channel_name = channel.name;
-        if channel_name == EXPERIMENTAL.name {
-            out.push_str("        #[cfg(feature = \"experimental\")]\n");
-        }
-        writeln!(out, "        $callback!({channel_name} {{").unwrap();
+        let cfg = if channel_name == EXPERIMENTAL.name {
+            "#[cfg(feature = \"experimental\")] "
+        } else {
+            ""
+        };
+        writeln!(out, "        $callback!({cfg}{channel_name} {{").unwrap();
         for GeneratedResource {
             name,
             root_type,

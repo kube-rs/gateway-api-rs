@@ -28,7 +28,8 @@ use support::Channel;
 /// root type, and a `COMPARISONS` list of every version's comparison for the
 /// tests across all of them.
 macro_rules! schema_tests {
-    ($channel:ident { $($resource:ident: $root:ident [$($version:ident),+])+ }) => {
+    ($(#[$attr:meta])* $channel:ident { $($resource:ident: $root:ident [$($version:ident),+])+ }) => {
+        $(#[$attr])*
         mod $channel {
             pub(super) const COMPARISONS: &[fn() -> crate::Comparison] = &[$($(
                 || crate::compare::<gateway_api::apis::$channel::$resource::$version::$root>(
@@ -259,8 +260,8 @@ where
     }
 }
 
-/// Fails on API versions an upstream CRD defines that the tables don't
-/// compare.
+/// Fails on API versions an upstream CRD defines that [`apis!`] doesn't
+/// list, so aren't compared.
 #[test]
 fn every_upstream_version_is_compared() {
     let compared: BTreeSet<_> = all_comparisons()
@@ -279,7 +280,7 @@ fn every_upstream_version_is_compared() {
         .map(|(channel, resource, version)| format!("{channel} {resource} {version}"))
         .collect::<Vec<_>>()
         .join("\n");
-    assert!(missing.is_empty(), "upstream API versions the tables miss:\n{missing}");
+    assert!(missing.is_empty(), "upstream API versions `apis!` misses:\n{missing}");
 }
 
 /// Fails on differences that [`ALLOWED`] doesn't accept.

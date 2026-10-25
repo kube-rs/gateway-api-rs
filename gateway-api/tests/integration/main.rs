@@ -10,32 +10,35 @@
 //! lists every API version each CRD defines. A version uses
 //! `suite/<resource>.rs`, which generation writes as a failing `todo!` stub
 //! for a new resource, unless [`body!`] routes it to a body of its own.
+//! [`every_body_is_included`] catches a body that nothing routes to.
 
 #[path = "../support/lib.rs"]
 pub mod support;
 
 mod common;
 
-/// Includes the test body for one resource and API version:
-/// `suite/<resource>.rs`, unless an arm here routes the version to a body of
-/// its own, for an API version whose shape differs from the resource's other
-/// versions. Bodies are included rather than declared as modules, so their
-/// tests are in the version's module, e.g. `standard::httproutes::v1::crud`.
+/// The file in `suite/` with the test body for one resource and API version:
+/// `<resource>.rs`, unless an arm here routes the version to a body of its
+/// own, for an API version whose shape differs from the resource's other
+/// versions.
 macro_rules! body {
     (tlsroutes v1alpha2) => {
-        include!("suite/tlsroutes_v1alpha2.rs");
+        "tlsroutes_v1alpha2.rs"
     };
     ($resource:ident $version:ident) => {
-        include!(concat!("suite/", stringify!($resource), ".rs"));
+        concat!(stringify!($resource), ".rs")
     };
 }
 
 /// An [`apis!`] callback that declares a module per channel, resource and API
 /// version, e.g. `standard::httproutes::v1beta1`, that binds `api` to
 /// `gateway_api::apis::standard::httproutes::v1beta1` and includes the
-/// [`body!`] for it.
+/// [`body!`] for it. Bodies are included rather than declared as modules, so
+/// their tests are in the version's module, e.g.
+/// `standard::httproutes::v1::crud`.
 macro_rules! suite {
-    ($channel:ident { $($resource:ident: $root:ident [$($version:ident),+])+ }) => {
+    ($(#[$attr:meta])* $channel:ident { $($resource:ident: $root:ident [$($version:ident),+])+ }) => {
+        $(#[$attr])*
         mod $channel {
             $(
                 mod $resource {
@@ -43,7 +46,7 @@ macro_rules! suite {
                         mod $version {
                             use gateway_api::apis::$channel::$resource::$version as api;
 
-                            body!($resource $version);
+                            include!(concat!("suite/", body!($resource $version)));
                         }
                     )+
                 }
@@ -53,3 +56,31 @@ macro_rules! suite {
 }
 
 apis!(suite);
+
+/// Fails on files in `suite/` that no API version of any channel includes: a
+/// body that [`body!`] doesn't route to, or one for an API version upstream
+/// dropped. Every channel is checked in every build: the bodies come from
+/// [`apis!`], whose `cfg` for `experimental` this ignores.
+#[test]
+fn every_body_is_included() {
+    use std::{collections::BTreeSet, fs, path::Path};
+
+    let mut included = BTreeSet::new();
+    macro_rules! bodies {
+        ($(#[$attr:meta])* $channel:ident { $($resource:ident: $root:ident [$($version:ident),+])+ }) => {
+            included.extend([$($(body!($resource $version)),+),+]);
+        };
+    }
+    apis!(bodies);
+
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/integration/suite");
+    let entries = fs::read_dir(&dir).unwrap_or_else(|e| panic!("failed to read {dir}: {e}", dir = dir.display()));
+    let mut unused: Vec<_> = entries
+        .map(|entry| entry.expect("failed to read a directory entry").file_name())
+        .filter(|name| name.to_str().is_none_or(|name| !included.contains(name)))
+        .map(|name| name.to_string_lossy().into_owned())
+        .collect();
+    unused.sort();
+    let unused = unused.join("\n");
+    assert!(unused.is_empty(), "test bodies no API version includes:\n{unused}");
+}

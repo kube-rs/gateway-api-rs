@@ -1,8 +1,11 @@
 // WARNING: generated file — do not edit
 
-/// Calls `$callback!` once per channel this build checks, with each
-/// resource's root type and every API version its CRD defines, e.g.
+/// Calls `$callback!` once per channel, with each resource's root type
+/// and every API version its CRD defines, e.g.
 /// `$callback!(standard { httproutes: HttpRoute [v1, v1beta1] ... })`.
+/// Every channel is passed in every build: `experimental` comes with
+/// `#[cfg(feature = "experimental")]`, for the callback to put on
+/// whatever uses the channel's types.
 #[macro_export]
 macro_rules! apis {
     ($callback:ident) => {
@@ -16,8 +19,7 @@ macro_rules! apis {
             referencegrants: ReferenceGrant [v1, v1beta1]
             tlsroutes: TlsRoute [v1, v1alpha2, v1alpha3]
         });
-        #[cfg(feature = "experimental")]
-        $callback!(experimental {
+        $callback!(#[cfg(feature = "experimental")] experimental {
             backendtlspolicies: BackendTlsPolicy [v1, v1alpha3]
             gatewayclasses: GatewayClass [v1, v1beta1]
             gateways: Gateway [v1, v1beta1]
