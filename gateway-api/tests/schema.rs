@@ -1,15 +1,11 @@
 //! Schema conformance of the crate's types against the vendored upstream CRDs.
 //!
-//! For every channel, resource and API version in `integration/channels.rs`,
-//! compares the CRD the type derives (`K::crd()`) with the upstream one. The
-//! derived schema comes from the same serde attributes that (de)serialize the
-//! type, so it describes what the type puts on the wire. No cluster needed.
+//! This is a structural comparison: the crate's CRDs must describe the same wire
+//! shape as upstream's (fields, types, required fields, enum values). Validations
+//! such as CEL rules and formats are left to the API server.
 //!
-//! Only the shape is compared: property names, types, required properties,
-//! enum values, maps, arrays and combinators. Descriptions, CEL rules,
-//! patterns, bounds, formats, defaults and list merge strategies are left to
-//! the API server. Known differences are listed in [`ALLOWED`], each with its
-//! reason; `allowed_entries_match` fails on entries that no longer match.
+//! See [`Attribute`] for the attributes compared, and [`ALLOWED`] for known
+//! differences.
 
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -25,8 +21,8 @@ use kube::{CustomResourceExt, Resource};
 
 /// Declares a module per channel and resource with a `#[test]` per API
 /// version, e.g. `standard::httproutes::v1beta1`, that checks the version's
-/// root type, and a `COMPARISONS` list of every version's comparison for
-/// `allowed_entries_match`. The test bodies in the table are for the
+/// root type, and a `COMPARISONS` list of every version's comparison for the
+/// tests across all of them. The test bodies in the table are for the
 /// integration tests.
 macro_rules! channel {
     ($channel:ident { $($resource:ident: $root:ident { $($version:ident => $body:literal),+ $(,)? })+ }) => {
@@ -35,6 +31,7 @@ macro_rules! channel {
                 || crate::compare::<gateway_api::apis::$channel::$resource::$version::$root>(
                     crate::Channel::named(stringify!($channel)),
                     stringify!($resource),
+                    stringify!($version),
                 ),
             )+)+];
 
@@ -48,6 +45,7 @@ macro_rules! channel {
                             >(
                                 crate::Channel::named(stringify!($channel)),
                                 stringify!($resource),
+                                stringify!($version),
                             ));
                         }
                     )+
@@ -58,6 +56,16 @@ macro_rules! channel {
 }
 
 include!("integration/channels.rs");
+
+/// Every API version's comparison in the channels this build checks.
+static ALL_COMPARISONS: LazyLock<Vec<Comparison>> = LazyLock::new(|| {
+    let channels: &[&[fn() -> Comparison]] = &[
+        standard::COMPARISONS,
+        #[cfg(feature = "experimental")]
+        experimental::COMPARISONS,
+    ];
+    channels.iter().copied().flatten().map(|f| f()).collect()
+});
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Channel {
@@ -188,18 +196,12 @@ impl Allowed {
 /// feature, are skipped.
 #[test]
 fn allowed_entries_match() {
-    let channels: &[&[fn() -> Comparison]] = &[
-        standard::COMPARISONS,
-        #[cfg(feature = "experimental")]
-        experimental::COMPARISONS,
-    ];
-    let comparisons: Vec<_> = channels.iter().copied().flatten().map(|f| f()).collect();
     let stale = ALLOWED
         .iter()
         .flat_map(|a| a.channels.iter().map(move |&channel| (a, channel)))
         .filter(|(_, channel)| Channel::BUILT.contains(channel))
         .filter(|(a, channel)| {
-            !comparisons
+            !ALL_COMPARISONS
                 .iter()
                 .any(|c| c.channel == *channel && c.diffs.iter().any(|d| a.matches(c, d)))
         })
@@ -225,27 +227,56 @@ fn allowed_entries_match() {
 /// One API version's CRD compared with the upstream one.
 struct Comparison {
     channel: Channel,
+    resource: String,
     kind: String,
     version: String,
     diffs: Vec<Diff>,
 }
 
 /// Compares the CRD that `K` derives with the upstream CRD for `resource` in
-/// `channel`.
-fn compare<K>(channel: Channel, resource: &str) -> Comparison
+/// `channel`, at `version`.
+fn compare<K>(channel: Channel, resource: &str, version: &str) -> Comparison
 where
     K: CustomResourceExt + Resource<DynamicType = ()>,
 {
-    let version = K::version(&()).into_owned();
+    let kind = K::kind(&()).into_owned();
     let upstream = UPSTREAM
         .get(&(channel, resource.to_owned()))
         .unwrap_or_else(|| panic!("no upstream CRD for {channel} {resource}"));
+    assert!(
+        upstream.spec.versions.iter().any(|v| v.name == version),
+        "upstream CRD for {channel} {resource} doesn't define {version}"
+    );
     Comparison {
         channel,
-        kind: K::kind(&()).into_owned(),
-        diffs: diff(&attributes(upstream, &version), &attributes(&K::crd(), &version)),
-        version,
+        resource: resource.to_owned(),
+        diffs: diff(&attributes(upstream, version), &attributes(&K::crd(), &K::version(&()))),
+        kind,
+        version: version.to_owned(),
     }
+}
+
+/// Fails on API versions an upstream CRD defines that the tables don't
+/// compare.
+#[test]
+fn every_upstream_version_is_compared() {
+    let compared: BTreeSet<_> = ALL_COMPARISONS
+        .iter()
+        .map(|c| (c.channel, c.resource.as_str(), c.version.as_str()))
+        .collect();
+    let missing = UPSTREAM
+        .iter()
+        .flat_map(|((channel, resource), crd)| {
+            crd.spec
+                .versions
+                .iter()
+                .map(move |v| (*channel, resource.as_str(), v.name.as_str()))
+        })
+        .filter(|key| !compared.contains(key))
+        .map(|(channel, resource, version)| format!("{channel} {resource} {version}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(missing.is_empty(), "upstream API versions the tables miss:\n{missing}");
 }
 
 /// Fails on differences that [`ALLOWED`] doesn't accept.
@@ -303,23 +334,24 @@ type Node = BTreeMap<Attribute, String>;
 /// `(crd)` for the CRD itself and `""` for the schema's root.
 fn attributes(crd: &CustomResourceDefinition, version: &str) -> BTreeMap<String, Node> {
     let spec = &crd.spec;
-    let name = &spec.names.kind;
+    let kind = &spec.names.kind;
     let v = spec
         .versions
         .iter()
         .find(|v| v.name == version)
-        .unwrap_or_else(|| panic!("{name} CRD doesn't define {version}"));
+        .unwrap_or_else(|| panic!("{kind} CRD doesn't define {version}"));
     let schema = v
         .schema
         .as_ref()
         .and_then(|s| s.open_api_v3_schema.as_ref())
-        .unwrap_or_else(|| panic!("{name} {version} has no schema"));
+        .unwrap_or_else(|| panic!("{kind} {version} has no schema"));
 
     let status_subresource = v.subresources.as_ref().is_some_and(|s| s.status.is_some());
     let mut nodes = BTreeMap::from([(
         "(crd)".into(),
         Node::from([
             (Attribute::Group, spec.group.clone()),
+            (Attribute::Version, v.name.clone()),
             (Attribute::Kind, spec.names.kind.clone()),
             (Attribute::Plural, spec.names.plural.clone()),
             (Attribute::Scope, spec.scope.clone()),
@@ -334,7 +366,7 @@ fn attributes(crd: &CustomResourceDefinition, version: &str) -> BTreeMap<String,
 /// values, array items and combinators (`allOf`, `anyOf`, `oneOf`, `not`).
 fn walk(schema: &JSONSchemaProps, path: &str, nodes: &mut BTreeMap<String, Node>) {
     let type_ = schema.type_.as_deref().unwrap_or("(none)");
-    let required = schema.required.iter().flatten().filter(|_| type_ == "object");
+    let required = schema.required.iter().flatten();
     // Enum values as JSON, so `"301"` and `301` differ. schemars lists `null`
     // for an `Option`, which `required` already covers.
     let enum_values = schema.enum_.iter().flatten().filter(|v| !v.0.is_null());
@@ -416,10 +448,13 @@ fn list(items: impl IntoIterator<Item = String>) -> String {
 
 /// Something compared at a path, and what a difference is in. `Exists` is
 /// never recorded in a [`Node`]: it's the difference when a path is on one
-/// side only.
+/// side only. `nullable` isn't compared: the derived schemas mark every
+/// `Option` field nullable and upstream marks none, but the generated fields
+/// skip `None` when serializing, so the types never send `null`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Attribute {
     Group,
+    Version,
     Kind,
     Plural,
     Scope,
