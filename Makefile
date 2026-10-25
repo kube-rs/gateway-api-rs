@@ -17,13 +17,17 @@ clean:
 build:
 	cargo build
 
+# Every Rust file, not just those cargo fmt reaches through the module tree:
+# the integration test bodies are declared inside a macro, which it skips.
+RUST_FILES = $(shell find gateway-api xtask -name '*.rs')
+
 .PHONY: fmt
 fmt:
-	cargo +nightly fmt
+	rustfmt +nightly $(RUST_FILES)
 
 .PHONY: fmt.check
 fmt.check:
-	cargo +nightly fmt -- --check
+	rustfmt +nightly --check $(RUST_FILES)
 
 .PHONY: lint
 lint: fmt.check
@@ -42,7 +46,7 @@ generate:
 define run_integration_tests
 	@$(MAKE) --no-print-directory kind.start
 	@trap '$(MAKE) --no-print-directory kind.stop' EXIT; \
-	KUBECONFIG=$(KIND_KUBECONFIG) cargo test -vv $(1) -- --nocapture --ignored
+	KUBECONFIG=$(KIND_KUBECONFIG) cargo test $(1) -- --nocapture --ignored
 endef
 
 .PHONY: test.all
@@ -50,11 +54,11 @@ test.all: test.unit test.unit.experimental test.integration test.integration.exp
 
 .PHONY: test.unit
 test.unit:
-	cargo test -vv -- --nocapture
+	cargo test -- --nocapture
 
 .PHONY: test.unit.experimental
 test.unit.experimental:
-	cargo test -vv --features experimental -- --nocapture
+	cargo test --features experimental -- --nocapture
 
 .PHONY: test.integration
 test.integration:

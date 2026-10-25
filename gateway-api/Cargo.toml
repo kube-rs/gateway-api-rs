@@ -8,6 +8,7 @@ homepage = "https://docs.rs/gateway-api/"
 readme = "../README.md"
 repository = "https://github.com/kube-rs/gateway-api-rs"
 autoexamples = false
+include = ["/src/**/*.rs", "/LICENSE"]
 
 authors.workspace = true
 edition.workspace = true
@@ -30,6 +31,7 @@ kube = { workspace = true, features = ["derive", "client", "rustls-tls", "ring"]
 
 anyhow.workspace = true
 hyper-util.workspace = true
+serde-saphyr.workspace = true
 tokio.workspace = true
 tower.workspace = true
 
