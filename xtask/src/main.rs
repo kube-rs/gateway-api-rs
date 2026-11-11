@@ -338,7 +338,8 @@ const CONDITIONS: &[ConditionEnum] = &[
             "InvalidCACertificateRef",
             "InvalidKind",
         ],
-    ),
+    )
+    .experimental(&["BackendNotFound", "RefNotPermitted"]),
     ConditionEnum::new("MeshConditionType", &[]).experimental(&["Accepted"]),
     ConditionEnum::new("MeshConditionReason", &[]).experimental(&["Accepted", "InvalidParameters", "Pending"]),
     ConditionEnum::new("BackendConditionType", &[]).experimental(&["Accepted"]),

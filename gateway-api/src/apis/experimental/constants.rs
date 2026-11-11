@@ -252,6 +252,8 @@ pub enum PolicyConditionReason {
     ResolvedRefs,
     InvalidCACertificateRef,
     InvalidKind,
+    BackendNotFound,
+    RefNotPermitted,
 }
 
 impl std::fmt::Display for PolicyConditionReason {
