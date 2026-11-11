@@ -2,8 +2,27 @@
 
 ## Unreleased
 
+### Breaking changes
+
+- **Gateway API v1.7.0** (was v1.5.1). Types with breaking changes:
+  - `HttpRouteRules`
+  - Experimental: `GatewayListeners`, `ListenerSetListeners`,
+    `GatewayAddresses`, `GatewayStatusAddresses`, `...SessionPersistence`,
+    `...SessionPersistenceCookieConfig` (now `...SessionPersistenceCookie`),
+    `...ExternalAuthForwardBody`
+- **Experimental TCPRoute and UDPRoute re-export `v1`** (was `v1alpha2`).
+- **Condition enums gain variants**: `GatewayConditionType`,
+  `GatewayConditionReason`, `ListenerConditionType`,
+  `ListenerConditionReason`.
+
 ### Features
 
+- **New modules**: `tcproutes` and `udproutes` (standard),
+  `experimental::xbackends`, `experimental::xtelemetrypolicies`.
+- **New condition enums**: `RouteConditionType`/`Reason`,
+  `ListenerSetConditionType`/`Reason`, `ListenerEntryConditionType`/`Reason`,
+  `PolicyConditionType`/`Reason`, and in experimental
+  `MeshConditionType`/`Reason`, `BackendConditionType`/`Reason`.
 - **Bindings for every CRD API version** ([#246]). Each API version a CRD
   defines is now a submodule of its resource module, e.g.
   `gateway_api::httproutes::v1beta1::HttpRoute`.
