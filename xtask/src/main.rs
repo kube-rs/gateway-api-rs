@@ -82,7 +82,6 @@ struct Channel {
     name: &'static str,
     apis: &'static [Api],
     enum_defaults: &'static [(&'static str, &'static str)],
-    conditions: &'static [(&'static str, &'static [&'static str])],
 }
 
 const STANDARD: Channel = Channel {
@@ -112,54 +111,6 @@ const STANDARD: Channel = Channel {
         ("HttpRouteRulesFiltersRequestRedirectPathType", "ReplaceFullPath"),
         ("HttpRouteRulesFiltersType", "RequestHeaderModifier"),
         ("HttpRouteRulesFiltersUrlRewritePathType", "ReplaceFullPath"),
-    ],
-    conditions: &[
-        ("GatewayClassConditionType", &["Accepted"]),
-        (
-            "GatewayClassConditionReason",
-            &["Accepted", "InvalidParameters", "Pending", "Unsupported", "Waiting"],
-        ),
-        ("GatewayConditionType", &["Programmed", "Accepted", "Ready"]),
-        (
-            "GatewayConditionReason",
-            &[
-                "Programmed",
-                "Invalid",
-                "NoResources",
-                "AddressNotAssigned",
-                "AddressNotUsable",
-                "Accepted",
-                "ListenersNotValid",
-                "Pending",
-                "UnsupportedAddress",
-                "InvalidParameters",
-                "Ready",
-                "ListenersNotReady",
-            ],
-        ),
-        (
-            "ListenerConditionType",
-            &["Conflicted", "Accepted", "ResolvedRefs", "Programmed", "Ready"],
-        ),
-        (
-            "ListenerConditionReason",
-            &[
-                "HostnameConflict",
-                "ProtocolConflict",
-                "NoConflicts",
-                "Accepted",
-                "PortUnavailable",
-                "UnsupportedProtocol",
-                "ResolvedRefs",
-                "InvalidCertificateRef",
-                "InvalidRouteKinds",
-                "RefNotPermitted",
-                "Programmed",
-                "Invalid",
-                "Pending",
-                "Ready",
-            ],
-        ),
     ],
 };
 
@@ -205,63 +156,194 @@ const EXPERIMENTAL: Channel = Channel {
         ("HttpRouteRulesFiltersType", "RequestHeaderModifier"),
         ("HttpRouteRulesFiltersUrlRewritePathType", "ReplaceFullPath"),
     ],
-    conditions: &[
-        ("GatewayClassConditionType", &["Accepted", "SupportedVersion"]),
-        (
-            "GatewayClassConditionReason",
-            &[
-                "Accepted",
-                "InvalidParameters",
-                "Pending",
-                "Unsupported",
-                "Waiting",
-                "SupportedVersion",
-                "UnsupportedVersion",
-            ],
-        ),
-        ("GatewayConditionType", &["Programmed", "Accepted", "Ready"]),
-        (
-            "GatewayConditionReason",
-            &[
-                "Programmed",
-                "Invalid",
-                "NoResources",
-                "AddressNotAssigned",
-                "AddressNotUsable",
-                "Accepted",
-                "ListenersNotValid",
-                "Pending",
-                "UnsupportedAddress",
-                "InvalidParameters",
-                "Ready",
-                "ListenersNotReady",
-            ],
-        ),
-        (
-            "ListenerConditionType",
-            &["Conflicted", "Accepted", "ResolvedRefs", "Programmed", "Ready"],
-        ),
-        (
-            "ListenerConditionReason",
-            &[
-                "HostnameConflict",
-                "ProtocolConflict",
-                "NoConflicts",
-                "Accepted",
-                "PortUnavailable",
-                "UnsupportedProtocol",
-                "ResolvedRefs",
-                "InvalidCertificateRef",
-                "InvalidRouteKinds",
-                "RefNotPermitted",
-                "Programmed",
-                "Invalid",
-                "Pending",
-                "Ready",
-            ],
-        ),
-    ],
 };
+
+// -----------------------------------------------------------------------------
+// Condition constants
+// -----------------------------------------------------------------------------
+
+/// A condition type or reason enum in `constants.rs`.
+struct ConditionEnum {
+    name: &'static str,
+    /// Variants in both channels.
+    variants: &'static [&'static str],
+    /// Variants in the experimental channel only.
+    experimental: &'static [&'static str],
+}
+
+impl ConditionEnum {
+    const fn new(name: &'static str, variants: &'static [&'static str]) -> Self {
+        Self {
+            name,
+            variants,
+            experimental: &[],
+        }
+    }
+
+    const fn experimental(mut self, variants: &'static [&'static str]) -> Self {
+        self.experimental = variants;
+        self
+    }
+}
+
+const CONDITIONS: &[ConditionEnum] = &[
+    ConditionEnum::new("GatewayClassConditionType", &["Accepted"]).experimental(&["SupportedVersion"]),
+    ConditionEnum::new(
+        "GatewayClassConditionReason",
+        &["Accepted", "InvalidParameters", "Pending", "Unsupported", "Waiting"],
+    )
+    .experimental(&["SupportedVersion", "UnsupportedVersion"]),
+    ConditionEnum::new(
+        "GatewayConditionType",
+        &[
+            "AddressesAssigned",
+            "Programmed",
+            "InsecureFrontendValidationMode",
+            "Accepted",
+            "Scheduled",
+            "ResolvedRefs",
+            "Ready",
+        ],
+    ),
+    ConditionEnum::new(
+        "GatewayConditionReason",
+        &[
+            "AddressesAssigned",
+            "PartiallyAssigned",
+            "NotAssigned",
+            "Programmed",
+            "Invalid",
+            "NoResources",
+            "AddressNotAssigned",
+            "AddressNotUsable",
+            "ConfigurationChanged",
+            "Accepted",
+            "ListenersNotValid",
+            "Pending",
+            "UnsupportedAddress",
+            "InvalidParameters",
+            "Scheduled",
+            "NotReconciled",
+            "ResolvedRefs",
+            "InvalidClientCertificateRef",
+            "RefNotPermitted",
+            "ListenersNotResolved",
+            "Ready",
+            "ListenersNotReady",
+        ],
+    ),
+    ConditionEnum::new(
+        "ListenerConditionType",
+        &[
+            "Conflicted",
+            "Accepted",
+            "Detached",
+            "ResolvedRefs",
+            "Programmed",
+            "OverlappingTLSConfig",
+            "Ready",
+        ],
+    ),
+    ConditionEnum::new(
+        "ListenerConditionReason",
+        &[
+            "HostnameConflict",
+            "ProtocolConflict",
+            "NoConflicts",
+            "Accepted",
+            "Attached",
+            "PortUnavailable",
+            "UnsupportedProtocol",
+            "NoValidCACertificate",
+            "UnsupportedValue",
+            "ResolvedRefs",
+            "InvalidCertificateRef",
+            "InvalidRouteKinds",
+            "RefNotPermitted",
+            "InvalidCACertificateRef",
+            "InvalidCACertificateKind",
+            "Programmed",
+            "Invalid",
+            "Pending",
+            "OverlappingHostnames",
+            "OverlappingCertificates",
+            "Ready",
+        ],
+    ),
+    ConditionEnum::new("ListenerSetConditionType", &["Programmed", "Accepted"]),
+    ConditionEnum::new(
+        "ListenerSetConditionReason",
+        &[
+            "Programmed",
+            "Accepted",
+            "NotAllowed",
+            "ParentNotAccepted",
+            "ListenersNotValid",
+            "Invalid",
+            "Pending",
+        ],
+    ),
+    ConditionEnum::new(
+        "ListenerEntryConditionType",
+        &["Conflicted", "Accepted", "ResolvedRefs", "Programmed", "Ready"],
+    ),
+    ConditionEnum::new(
+        "ListenerEntryConditionReason",
+        &[
+            "HostnameConflict",
+            "ProtocolConflict",
+            "ListenerConflict",
+            "Accepted",
+            "UnsupportedProtocol",
+            "TooManyListeners",
+            "ResolvedRefs",
+            "InvalidCertificateRef",
+            "InvalidRouteKinds",
+            "RefNotPermitted",
+            "Programmed",
+            "PortUnavailable",
+            "Pending",
+            "Invalid",
+            "Ready",
+        ],
+    ),
+    ConditionEnum::new("RouteConditionType", &["Accepted", "ResolvedRefs", "PartiallyInvalid"]),
+    ConditionEnum::new(
+        "RouteConditionReason",
+        &[
+            "Accepted",
+            "NotAllowedByListeners",
+            "NoMatchingListenerHostname",
+            "NoMatchingParent",
+            "UnsupportedValue",
+            "Pending",
+            "IncompatibleFilters",
+            "ResolvedRefs",
+            "RefNotPermitted",
+            "InvalidKind",
+            "BackendNotFound",
+            "UnsupportedProtocol",
+        ],
+    ),
+    ConditionEnum::new("PolicyConditionType", &["Accepted", "ResolvedRefs"]),
+    ConditionEnum::new(
+        "PolicyConditionReason",
+        &[
+            "Accepted",
+            "Conflicted",
+            "Invalid",
+            "TargetNotFound",
+            "NoValidCACertificate",
+            "ResolvedRefs",
+            "InvalidCACertificateRef",
+            "InvalidKind",
+        ],
+    ),
+    ConditionEnum::new("MeshConditionType", &[]).experimental(&["Accepted"]),
+    ConditionEnum::new("MeshConditionReason", &[]).experimental(&["Accepted", "InvalidParameters", "Pending"]),
+    ConditionEnum::new("BackendConditionType", &[]).experimental(&["Accepted"]),
+    ConditionEnum::new("BackendConditionReason", &[]).experimental(&["Accepted"]),
+];
 
 // -----------------------------------------------------------------------------
 // Entrypoint
@@ -372,7 +454,7 @@ fn generate_channel(version: &str, channel: &Channel) -> Result<Vec<GeneratedRes
 
     // Generate supporting files
     let channel_module = gen_channel_module(channel);
-    let constants = gen_constants(channel.conditions);
+    let constants = gen_constants(CONDITIONS, channel_name == EXPERIMENTAL.name);
 
     fs::write(format!("{dir}.rs"), channel_module)?;
     fs::write(format!("{dir}/constants.rs"), constants)?;
@@ -732,13 +814,20 @@ fn gen_test_stub(resource: &str) -> String {
 // constants.rs generation
 // -----------------------------------------------------------------------------
 
-fn gen_constants(conditions: &[(&str, &[&str])]) -> String {
+fn gen_constants(conditions: &[ConditionEnum], experimental: bool) -> String {
     let mut out = String::from(GENERATED_HEADER);
 
-    for (name, variants) in conditions {
+    for condition in conditions {
+        let name = condition.name;
+        let experimental_variants: &[&str] = if experimental { condition.experimental } else { &[] };
+        let variants: Vec<_> = condition.variants.iter().chain(experimental_variants).collect();
+        if variants.is_empty() {
+            continue;
+        }
+
         // Enum definition
         write!(out, "\n#[derive(Debug, PartialEq, Eq)]\npub enum {name} {{\n").unwrap();
-        for v in *variants {
+        for v in variants {
             writeln!(out, "    {v},").unwrap();
         }
         out.push_str("}\n");

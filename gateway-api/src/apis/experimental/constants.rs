@@ -31,8 +31,12 @@ impl std::fmt::Display for GatewayClassConditionReason {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum GatewayConditionType {
+    AddressesAssigned,
     Programmed,
+    InsecureFrontendValidationMode,
     Accepted,
+    Scheduled,
+    ResolvedRefs,
     Ready,
 }
 
@@ -44,16 +48,26 @@ impl std::fmt::Display for GatewayConditionType {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum GatewayConditionReason {
+    AddressesAssigned,
+    PartiallyAssigned,
+    NotAssigned,
     Programmed,
     Invalid,
     NoResources,
     AddressNotAssigned,
     AddressNotUsable,
+    ConfigurationChanged,
     Accepted,
     ListenersNotValid,
     Pending,
     UnsupportedAddress,
     InvalidParameters,
+    Scheduled,
+    NotReconciled,
+    ResolvedRefs,
+    InvalidClientCertificateRef,
+    RefNotPermitted,
+    ListenersNotResolved,
     Ready,
     ListenersNotReady,
 }
@@ -68,8 +82,10 @@ impl std::fmt::Display for GatewayConditionReason {
 pub enum ListenerConditionType {
     Conflicted,
     Accepted,
+    Detached,
     ResolvedRefs,
     Programmed,
+    OverlappingTLSConfig,
     Ready,
 }
 
@@ -85,19 +101,206 @@ pub enum ListenerConditionReason {
     ProtocolConflict,
     NoConflicts,
     Accepted,
+    Attached,
     PortUnavailable,
     UnsupportedProtocol,
+    NoValidCACertificate,
+    UnsupportedValue,
+    ResolvedRefs,
+    InvalidCertificateRef,
+    InvalidRouteKinds,
+    RefNotPermitted,
+    InvalidCACertificateRef,
+    InvalidCACertificateKind,
+    Programmed,
+    Invalid,
+    Pending,
+    OverlappingHostnames,
+    OverlappingCertificates,
+    Ready,
+}
+
+impl std::fmt::Display for ListenerConditionReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ListenerSetConditionType {
+    Programmed,
+    Accepted,
+}
+
+impl std::fmt::Display for ListenerSetConditionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ListenerSetConditionReason {
+    Programmed,
+    Accepted,
+    NotAllowed,
+    ParentNotAccepted,
+    ListenersNotValid,
+    Invalid,
+    Pending,
+}
+
+impl std::fmt::Display for ListenerSetConditionReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ListenerEntryConditionType {
+    Conflicted,
+    Accepted,
+    ResolvedRefs,
+    Programmed,
+    Ready,
+}
+
+impl std::fmt::Display for ListenerEntryConditionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ListenerEntryConditionReason {
+    HostnameConflict,
+    ProtocolConflict,
+    ListenerConflict,
+    Accepted,
+    UnsupportedProtocol,
+    TooManyListeners,
     ResolvedRefs,
     InvalidCertificateRef,
     InvalidRouteKinds,
     RefNotPermitted,
     Programmed,
-    Invalid,
+    PortUnavailable,
     Pending,
+    Invalid,
     Ready,
 }
 
-impl std::fmt::Display for ListenerConditionReason {
+impl std::fmt::Display for ListenerEntryConditionReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum RouteConditionType {
+    Accepted,
+    ResolvedRefs,
+    PartiallyInvalid,
+}
+
+impl std::fmt::Display for RouteConditionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum RouteConditionReason {
+    Accepted,
+    NotAllowedByListeners,
+    NoMatchingListenerHostname,
+    NoMatchingParent,
+    UnsupportedValue,
+    Pending,
+    IncompatibleFilters,
+    ResolvedRefs,
+    RefNotPermitted,
+    InvalidKind,
+    BackendNotFound,
+    UnsupportedProtocol,
+}
+
+impl std::fmt::Display for RouteConditionReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum PolicyConditionType {
+    Accepted,
+    ResolvedRefs,
+}
+
+impl std::fmt::Display for PolicyConditionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum PolicyConditionReason {
+    Accepted,
+    Conflicted,
+    Invalid,
+    TargetNotFound,
+    NoValidCACertificate,
+    ResolvedRefs,
+    InvalidCACertificateRef,
+    InvalidKind,
+}
+
+impl std::fmt::Display for PolicyConditionReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum MeshConditionType {
+    Accepted,
+}
+
+impl std::fmt::Display for MeshConditionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum MeshConditionReason {
+    Accepted,
+    InvalidParameters,
+    Pending,
+}
+
+impl std::fmt::Display for MeshConditionReason {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum BackendConditionType {
+    Accepted,
+}
+
+impl std::fmt::Display for BackendConditionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum BackendConditionReason {
+    Accepted,
+}
+
+impl std::fmt::Display for BackendConditionReason {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
