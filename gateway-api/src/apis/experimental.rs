@@ -10,5 +10,7 @@ pub mod referencegrants;
 pub mod tcproutes;
 pub mod tlsroutes;
 pub mod udproutes;
+pub mod xbackends;
 pub mod xbackendtrafficpolicies;
 pub mod xmeshes;
+pub mod xtelemetrypolicies;

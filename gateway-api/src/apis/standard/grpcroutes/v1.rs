@@ -1,6 +1,6 @@
 //! `GRPCRoute` API version `gateway.networking.k8s.io/v1`.
 //!
-//! In the Gateway API v1.5.1 standard channel CRD:
+//! In the Gateway API v1.7.0 standard channel CRD:
 //!
 //! - served: yes
 //! - storage: yes
@@ -70,11 +70,30 @@ pub struct GrpcRouteSpec {
     /// the implementation. The implementation MUST raise an 'Accepted' Condition
     /// with a status of `False` in the corresponding RouteParentStatus.
     ///
+    /// In the event that multiple GRPCRoutes specify intersecting hostnames (e.g.
+    /// overlapping wildcard matching and exact matching hostnames), precedence must
+    /// be given to rules from the GRPCRoute with the largest number of:
+    ///
+    /// * Characters in a matching non-wildcard hostname.
+    /// * Characters in a matching hostname.
+    ///
+    /// When multiple GRPCRoutes attach to the same Listener and yield identical
+    /// Listener/Route intersected hostnames, implementations SHOULD evaluate
+    /// precedence using the original hostnames configured on the Route, not the
+    /// calculated Listener/Route hostname intersection.
+    ///
+    /// Resolving Route precedence using original Route hostname specificity is an
+    /// Extended feature. Implementations that support this behavior SHOULD claim
+    /// support for the `GatewayRouteHostnameIntersectionPrecedence` feature.
+    /// Implementations that do not support this feature MAY evaluate precedence
+    /// using the calculated Listener/Route hostname intersection.
+    ///
     /// If a Route (A) of type HTTPRoute or GRPCRoute is attached to a
     /// Listener and that listener already has another Route (B) of the other
     /// type attached and the intersection of the hostnames of A and B is
-    /// non-empty, then the implementation MUST accept exactly one of these two
-    /// routes, determined by the following criteria, in order:
+    /// non-empty, then the implementation MAY reject one of the two routes.
+    /// An implementation that does so MUST accept exactly one of them,
+    /// determined by the following criteria, in order:
     ///
     /// * The oldest Route based on creation timestamp.
     /// * The Route appearing first in alphabetical order by
@@ -652,6 +671,10 @@ pub struct GrpcRouteRulesBackendRefsFiltersRequestMirror {
     /// Support: Extended for Kubernetes Service
     ///
     /// Support: Implementation-specific for any other resource
+    ///
+    /// If the backend service requires TLS, use BackendTLSPolicy to tell the
+    /// implementation to supply the TLS details to be used to connect to that
+    /// backend.
     #[serde(rename = "backendRef")]
     pub backend_ref: GrpcRouteRulesBackendRefsFiltersRequestMirrorBackendRef,
     /// Fraction represents the fraction of requests that should be
@@ -694,6 +717,10 @@ pub struct GrpcRouteRulesBackendRefsFiltersRequestMirror {
 /// Support: Extended for Kubernetes Service
 ///
 /// Support: Implementation-specific for any other resource
+///
+/// If the backend service requires TLS, use BackendTLSPolicy to tell the
+/// implementation to supply the TLS details to be used to connect to that
+/// backend.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GrpcRouteRulesBackendRefsFiltersRequestMirrorBackendRef {
     /// Group is the group of the referent. For example, "gateway.networking.k8s.io".
@@ -1074,6 +1101,10 @@ pub struct GrpcRouteRulesFiltersRequestMirror {
     /// Support: Extended for Kubernetes Service
     ///
     /// Support: Implementation-specific for any other resource
+    ///
+    /// If the backend service requires TLS, use BackendTLSPolicy to tell the
+    /// implementation to supply the TLS details to be used to connect to that
+    /// backend.
     #[serde(rename = "backendRef")]
     pub backend_ref: GrpcRouteRulesFiltersRequestMirrorBackendRef,
     /// Fraction represents the fraction of requests that should be
@@ -1116,6 +1147,10 @@ pub struct GrpcRouteRulesFiltersRequestMirror {
 /// Support: Extended for Kubernetes Service
 ///
 /// Support: Implementation-specific for any other resource
+///
+/// If the backend service requires TLS, use BackendTLSPolicy to tell the
+/// implementation to supply the TLS details to be used to connect to that
+/// backend.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GrpcRouteRulesFiltersRequestMirrorBackendRef {
     /// Group is the group of the referent. For example, "gateway.networking.k8s.io".

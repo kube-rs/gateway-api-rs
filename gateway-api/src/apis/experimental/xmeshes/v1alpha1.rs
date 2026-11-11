@@ -1,6 +1,6 @@
 //! `XMesh` API version `gateway.networking.x-k8s.io/v1alpha1`.
 //!
-//! In the Gateway API v1.5.1 experimental channel CRD:
+//! In the Gateway API v1.7.0 experimental channel CRD:
 //!
 //! - served: yes
 //! - storage: yes

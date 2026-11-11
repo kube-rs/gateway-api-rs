@@ -1,6 +1,6 @@
 //! `BackendTLSPolicy` API version `gateway.networking.k8s.io/v1alpha3`.
 //!
-//! In the Gateway API v1.5.1 standard channel CRD:
+//! In the Gateway API v1.7.0 standard channel CRD:
 //!
 //! - served: no
 //! - storage: no
@@ -85,12 +85,12 @@ pub struct BackendTlsPolicySpec {
     ///
     /// Support Levels:
     ///
-    /// * Extended: Kubernetes Service referenced by HTTPRoute backendRefs.
+    /// * Extended: Kubernetes Service referenced by backendRefs used on a Route.
+    ///   - HTTPRoute, GRPCRoute, TLSRoute with termination
+    ///   - Filters that needs a backend of type Service, like Mirror and External Authorization
     ///
-    /// * Implementation-Specific: Services not connected via HTTPRoute, and any
-    ///   other kind of backend. Implementations MAY use BackendTLSPolicy for:
+    /// * Implementation-Specific: Implementations MAY use BackendTLSPolicy for:
     ///   - Services not referenced by any Route (e.g., infrastructure services)
-    ///   - Gateway feature backends (e.g., ExternalAuth, rate-limiting services)
     ///   - Service mesh workload-to-service communication
     ///   - Other resource types beyond Service
     ///
@@ -133,6 +133,7 @@ pub struct BackendTlsPolicyTargetRefs {
     /// resources, SectionName is interpreted as the following:
     ///
     /// * Gateway: Listener name
+    /// * ListenerSet: Listener name
     /// * HTTPRoute: HTTPRouteRule name
     /// * Service: Port name
     ///

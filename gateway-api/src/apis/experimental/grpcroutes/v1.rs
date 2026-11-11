@@ -1,6 +1,6 @@
 //! `GRPCRoute` API version `gateway.networking.k8s.io/v1`.
 //!
-//! In the Gateway API v1.5.1 experimental channel CRD:
+//! In the Gateway API v1.7.0 experimental channel CRD:
 //!
 //! - served: yes
 //! - storage: yes
@@ -70,11 +70,30 @@ pub struct GrpcRouteSpec {
     /// the implementation. The implementation MUST raise an 'Accepted' Condition
     /// with a status of `False` in the corresponding RouteParentStatus.
     ///
+    /// In the event that multiple GRPCRoutes specify intersecting hostnames (e.g.
+    /// overlapping wildcard matching and exact matching hostnames), precedence must
+    /// be given to rules from the GRPCRoute with the largest number of:
+    ///
+    /// * Characters in a matching non-wildcard hostname.
+    /// * Characters in a matching hostname.
+    ///
+    /// When multiple GRPCRoutes attach to the same Listener and yield identical
+    /// Listener/Route intersected hostnames, implementations SHOULD evaluate
+    /// precedence using the original hostnames configured on the Route, not the
+    /// calculated Listener/Route hostname intersection.
+    ///
+    /// Resolving Route precedence using original Route hostname specificity is an
+    /// Extended feature. Implementations that support this behavior SHOULD claim
+    /// support for the `GatewayRouteHostnameIntersectionPrecedence` feature.
+    /// Implementations that do not support this feature MAY evaluate precedence
+    /// using the calculated Listener/Route hostname intersection.
+    ///
     /// If a Route (A) of type HTTPRoute or GRPCRoute is attached to a
     /// Listener and that listener already has another Route (B) of the other
     /// type attached and the intersection of the hostnames of A and B is
-    /// non-empty, then the implementation MUST accept exactly one of these two
-    /// routes, determined by the following criteria, in order:
+    /// non-empty, then the implementation MAY reject one of the two routes.
+    /// An implementation that does so MUST accept exactly one of them,
+    /// determined by the following criteria, in order:
     ///
     /// * The oldest Route based on creation timestamp.
     /// * The Route appearing first in alphabetical order by
@@ -405,6 +424,8 @@ pub struct GrpcRouteRules {
     /// Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+    /// Deprecated: use the Backend resource for session persistence (GEP-4894).
+    ///
     /// SessionPersistence defines and configures session persistence
     /// for the route rule.
     ///
@@ -722,6 +743,10 @@ pub struct GrpcRouteRulesBackendRefsFiltersRequestMirror {
     /// Support: Extended for Kubernetes Service
     ///
     /// Support: Implementation-specific for any other resource
+    ///
+    /// If the backend service requires TLS, use BackendTLSPolicy to tell the
+    /// implementation to supply the TLS details to be used to connect to that
+    /// backend.
     #[serde(rename = "backendRef")]
     pub backend_ref: GrpcRouteRulesBackendRefsFiltersRequestMirrorBackendRef,
     /// Fraction represents the fraction of requests that should be
@@ -764,6 +789,10 @@ pub struct GrpcRouteRulesBackendRefsFiltersRequestMirror {
 /// Support: Extended for Kubernetes Service
 ///
 /// Support: Implementation-specific for any other resource
+///
+/// If the backend service requires TLS, use BackendTLSPolicy to tell the
+/// implementation to supply the TLS details to be used to connect to that
+/// backend.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GrpcRouteRulesBackendRefsFiltersRequestMirrorBackendRef {
     /// Group is the group of the referent. For example, "gateway.networking.k8s.io".
@@ -1156,6 +1185,10 @@ pub struct GrpcRouteRulesFiltersRequestMirror {
     /// Support: Extended for Kubernetes Service
     ///
     /// Support: Implementation-specific for any other resource
+    ///
+    /// If the backend service requires TLS, use BackendTLSPolicy to tell the
+    /// implementation to supply the TLS details to be used to connect to that
+    /// backend.
     #[serde(rename = "backendRef")]
     pub backend_ref: GrpcRouteRulesFiltersRequestMirrorBackendRef,
     /// Fraction represents the fraction of requests that should be
@@ -1198,6 +1231,10 @@ pub struct GrpcRouteRulesFiltersRequestMirror {
 /// Support: Extended for Kubernetes Service
 ///
 /// Support: Implementation-specific for any other resource
+///
+/// If the backend service requires TLS, use BackendTLSPolicy to tell the
+/// implementation to supply the TLS details to be used to connect to that
+/// backend.
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
 pub struct GrpcRouteRulesFiltersRequestMirrorBackendRef {
     /// Group is the group of the referent. For example, "gateway.networking.k8s.io".
@@ -1458,6 +1495,8 @@ pub enum GrpcRouteRulesMatchesMethodType {
     RegularExpression,
 }
 
+/// Deprecated: use the Backend resource for session persistence (GEP-4894).
+///
 /// SessionPersistence defines and configures session persistence
 /// for the route rule.
 ///
@@ -1471,27 +1510,18 @@ pub struct GrpcRouteRulesSessionPersistence {
     /// Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "absoluteTimeout")]
     pub absolute_timeout: Option<String>,
-    /// CookieConfig provides configuration settings that are specific
+    /// Cookie provides configuration settings that are specific
     /// to cookie-based session persistence.
     ///
     /// Support: Core
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "cookieConfig")]
-    pub cookie_config: Option<GrpcRouteRulesSessionPersistenceCookieConfig>,
-    /// IdleTimeout defines the idle timeout of the persistent session.
-    /// Once the session has been idle for more than the specified
-    /// IdleTimeout duration, the session becomes invalid.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cookie: Option<GrpcRouteRulesSessionPersistenceCookie>,
+    /// Header provides configuration settings that are specific
+    /// to header-based session persistence.
     ///
     /// Support: Extended
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "idleTimeout")]
-    pub idle_timeout: Option<String>,
-    /// SessionName defines the name of the persistent session token
-    /// which may be reflected in the cookie or the header. Users
-    /// should avoid reusing session names to prevent unintended
-    /// consequences, such as rejection or unpredictable behavior.
-    ///
-    /// Support: Implementation-specific
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sessionName")]
-    pub session_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub header: Option<GrpcRouteRulesSessionPersistenceHeader>,
     /// Type defines the type of session persistence such as through
     /// the use of a header or cookie. Defaults to cookie based session
     /// persistence.
@@ -1503,12 +1533,12 @@ pub struct GrpcRouteRulesSessionPersistence {
     pub r#type: Option<GrpcRouteRulesSessionPersistenceType>,
 }
 
-/// CookieConfig provides configuration settings that are specific
+/// Cookie provides configuration settings that are specific
 /// to cookie-based session persistence.
 ///
 /// Support: Core
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct GrpcRouteRulesSessionPersistenceCookieConfig {
+pub struct GrpcRouteRulesSessionPersistenceCookie {
     /// LifetimeType specifies whether the cookie has a permanent or
     /// session-based lifetime. A permanent cookie persists until its
     /// specified expiry time, defined by the Expires or Max-Age cookie
@@ -1529,19 +1559,51 @@ pub struct GrpcRouteRulesSessionPersistenceCookieConfig {
     ///
     /// Support: Extended for "Permanent" type
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "lifetimeType")]
-    pub lifetime_type: Option<GrpcRouteRulesSessionPersistenceCookieConfigLifetimeType>,
+    pub lifetime_type: Option<GrpcRouteRulesSessionPersistenceCookieLifetimeType>,
+    /// Name defines the name of the cookie used for session persistence.
+    /// If not specified, a unique cookie name SHOULD be generated.
+    /// Users should avoid reusing cookie names to prevent unintended
+    /// consequences, such as rejection or unpredictable behavior.
+    ///
+    ///
+    /// Support: Extended
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Path defines the cookie Path attribute. When not specified,
+    /// implementations MUST default the cookie path to "/".
+    ///
+    ///
+    /// Support: Extended
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
 }
 
-/// CookieConfig provides configuration settings that are specific
+/// Cookie provides configuration settings that are specific
 /// to cookie-based session persistence.
 ///
 /// Support: Core
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum GrpcRouteRulesSessionPersistenceCookieConfigLifetimeType {
+pub enum GrpcRouteRulesSessionPersistenceCookieLifetimeType {
     Permanent,
     Session,
 }
 
+/// Header provides configuration settings that are specific
+/// to header-based session persistence.
+///
+/// Support: Extended
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct GrpcRouteRulesSessionPersistenceHeader {
+    /// Name defines the name of the header used for session persistence.
+    /// The client must include this header in subsequent requests to
+    /// maintain the session.
+    ///
+    /// Support: Core
+    pub name: String,
+}
+
+/// Deprecated: use the Backend resource for session persistence (GEP-4894).
+///
 /// SessionPersistence defines and configures session persistence
 /// for the route rule.
 ///

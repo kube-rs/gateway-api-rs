@@ -1,6 +1,6 @@
 //! `Gateway` API version `gateway.networking.k8s.io/v1`.
 //!
-//! In the Gateway API v1.5.1 standard channel CRD:
+//! In the Gateway API v1.7.0 standard channel CRD:
 //!
 //! - served: yes
 //! - storage: yes
@@ -198,6 +198,12 @@ pub struct GatewaySpec {
     /// For example, if Listeners are defined for "foo.example.com" and "*.example.com", a
     /// request to "foo.example.com" SHOULD only be routed using routes attached
     /// to the "foo.example.com" Listener (and not the "*.example.com" Listener).
+    ///
+    /// If traffic to a Gateway does not match any Listener's hostname (or if
+    /// the Listener does not specify a hostname and the request does not match
+    /// any attached Route), the request MUST be rejected. The specific mechanism
+    /// for rejection depends on the protocol: HTTP returns a 404 status code,
+    /// while gRPC returns an Unimplemented status code.
     ///
     /// This concept is known as "Listener Isolation", and it is an Extended feature
     /// of Gateway API. Implementations that do not support Listener Isolation MUST
@@ -1208,6 +1214,7 @@ pub struct GatewayStatus {
     /// * "Accepted"
     /// * "Programmed"
     /// * "Ready"
+    /// * "AddressesAssigned"
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub conditions: Option<Vec<Condition>>,
     /// Listeners provide status for each unique listener port defined in the Spec.

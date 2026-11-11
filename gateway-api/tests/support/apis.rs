@@ -17,7 +17,9 @@ macro_rules! apis {
             httproutes: HttpRoute [v1, v1beta1]
             listenersets: ListenerSet [v1]
             referencegrants: ReferenceGrant [v1, v1beta1]
+            tcproutes: TcpRoute [v1, v1alpha2]
             tlsroutes: TlsRoute [v1, v1alpha2, v1alpha3]
+            udproutes: UdpRoute [v1, v1alpha2]
         });
         $callback!(#[cfg(feature = "experimental")] experimental {
             backendtlspolicies: BackendTlsPolicy [v1, v1alpha3]
@@ -27,11 +29,13 @@ macro_rules! apis {
             httproutes: HttpRoute [v1, v1beta1]
             listenersets: ListenerSet [v1]
             referencegrants: ReferenceGrant [v1, v1beta1]
-            tcproutes: TcpRoute [v1alpha2]
+            tcproutes: TcpRoute [v1, v1alpha2]
             tlsroutes: TlsRoute [v1, v1alpha2, v1alpha3]
-            udproutes: UdpRoute [v1alpha2]
+            udproutes: UdpRoute [v1, v1alpha2]
+            xbackends: XBackend [v1alpha1]
             xbackendtrafficpolicies: XBackendTrafficPolicy [v1alpha1]
             xmeshes: XMesh [v1alpha1]
+            xtelemetrypolicies: XTelemetryPolicy [v1alpha1]
         });
     };
 }

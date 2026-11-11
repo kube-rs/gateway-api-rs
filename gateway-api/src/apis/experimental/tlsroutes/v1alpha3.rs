@@ -1,6 +1,6 @@
 //! `TLSRoute` API version `gateway.networking.k8s.io/v1alpha3`.
 //!
-//! In the Gateway API v1.5.1 experimental channel CRD:
+//! In the Gateway API v1.7.0 experimental channel CRD:
 //!
 //! - served: yes
 //! - storage: no
@@ -41,6 +41,25 @@ pub struct TlsRouteSpec {
     /// 1. IPs are not allowed in SNI hostnames per RFC 6066.
     /// 2. A hostname may be prefixed with a wildcard label (`*.`). The wildcard
     ///    label must appear by itself as the first label.
+    ///
+    ///
+    /// In the event that multiple TLSRoutes specify intersecting hostnames (e.g.
+    /// overlapping wildcard matching and exact matching hostnames), precedence must
+    /// be given to rules from the TLSRoute with the largest number of:
+    ///
+    /// * Characters in a matching non-wildcard hostname.
+    /// * Characters in a matching hostname.
+    ///
+    /// When multiple TLSRoutes attach to the same Listener and yield identical
+    /// Listener/Route intersected hostnames, implementations SHOULD evaluate
+    /// precedence using the original hostnames configured on the Route, not the
+    /// calculated Listener/Route hostname intersection.
+    ///
+    /// Resolving Route precedence using original Route hostname specificity is an
+    /// Extended feature. Implementations that support this behavior SHOULD claim
+    /// support for the `GatewayRouteHostnameIntersectionPrecedence` feature.
+    /// Implementations that do not support this feature MAY evaluate precedence
+    /// using the calculated Listener/Route hostname intersection.
     pub hostnames: Vec<String>,
     /// ParentRefs references the resources (usually Gateways) that a Route wants
     /// to be attached to. Note that the referenced parent resource needs to
@@ -255,6 +274,9 @@ pub struct TlsRouteRules {
     /// weight; if an invalid backend is requested to have 80% of requests, then
     /// 80% of requests must be rejected instead.
     ///
+    /// When a TLSRoute is attached to a listener in Terminate mode, a BackendTLSPolicy
+    /// can be used to enable re-encryption of the traffic to the backends.
+    ///
     /// Support: Core for Kubernetes Service
     ///
     /// Support: Extended for Kubernetes ServiceImport
@@ -262,6 +284,8 @@ pub struct TlsRouteRules {
     /// Support: Implementation-specific for any other resource
     ///
     /// Support for weight: Extended
+    ///
+    /// Support for BackendTLSPolicy: Extended
     #[serde(rename = "backendRefs")]
     pub backend_refs: Vec<TlsRouteRulesBackendRefs>,
     /// Name is the name of the route rule. This name MUST be unique within a Route if it is set.

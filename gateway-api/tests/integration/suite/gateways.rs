@@ -60,10 +60,14 @@ async fn status() {
         status: "True".into(),
         type_,
     };
+    // The experimental channel's `GatewayStatusAddresses` has more fields
+    // than the standard channel's, where the update is needless.
+    #[allow(clippy::needless_update)]
     let status = GatewayStatus {
         addresses: Some(vec![GatewayStatusAddresses {
             r#type: Some("IPAddress".into()),
             value: "192.0.2.1".into(),
+            ..Default::default()
         }]),
         listeners: Some(vec![GatewayStatusListeners {
             name: "http".into(),

@@ -1,6 +1,6 @@
 //! `GatewayClass` API version `gateway.networking.k8s.io/v1beta1`.
 //!
-//! In the Gateway API v1.5.1 standard channel CRD:
+//! In the Gateway API v1.7.0 standard channel CRD:
 //!
 //! - served: yes
 //! - storage: no

@@ -1,4 +1,4 @@
-GATEWAY_API_VERSION ?= v1.5.1
+GATEWAY_API_VERSION ?= v1.7.0
 KIND_CLUSTER_NAME ?= gateway-api-test
 KIND_KUBECONFIG := /tmp/$(KIND_CLUSTER_NAME)-kubeconfig
 

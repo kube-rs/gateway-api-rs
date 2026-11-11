@@ -158,15 +158,6 @@ const ALLOWED: &[Allowed] = &[
         ours: "[]",
         reason: "kopium doesn't generate an enum for array items, so the items are plain strings",
     },
-    Allowed {
-        channels: &Channel::ALL,
-        kind: "ReferenceGrant",
-        path: "",
-        attribute: SchemaAttribute::Required,
-        upstream: "[]",
-        ours: "[spec]",
-        reason: "kube's `CustomResource` derive always requires `spec`; upstream makes it optional",
-    },
 ];
 
 impl Allowed {

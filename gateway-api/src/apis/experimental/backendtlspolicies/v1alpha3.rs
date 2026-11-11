@@ -1,6 +1,6 @@
 //! `BackendTLSPolicy` API version `gateway.networking.k8s.io/v1alpha3`.
 //!
-//! In the Gateway API v1.5.1 experimental channel CRD:
+//! In the Gateway API v1.7.0 experimental channel CRD:
 //!
 //! - served: yes
 //! - storage: no
@@ -85,12 +85,12 @@ pub struct BackendTlsPolicySpec {
     ///
     /// Support Levels:
     ///
-    /// * Extended: Kubernetes Service referenced by HTTPRoute backendRefs.
+    /// * Extended: Kubernetes Service referenced by backendRefs used on a Route.
+    ///   - HTTPRoute, GRPCRoute, TLSRoute with termination
+    ///   - Filters that needs a backend of type Service, like Mirror and External Authorization
     ///
-    /// * Implementation-Specific: Services not connected via HTTPRoute, and any
-    ///   other kind of backend. Implementations MAY use BackendTLSPolicy for:
+    /// * Implementation-Specific: Implementations MAY use BackendTLSPolicy for:
     ///   - Services not referenced by any Route (e.g., infrastructure services)
-    ///   - Gateway feature backends (e.g., ExternalAuth, rate-limiting services)
     ///   - Service mesh workload-to-service communication
     ///   - Other resource types beyond Service
     ///
@@ -133,6 +133,7 @@ pub struct BackendTlsPolicyTargetRefs {
     /// resources, SectionName is interpreted as the following:
     ///
     /// * Gateway: Listener name
+    /// * ListenerSet: Listener name
     /// * HTTPRoute: HTTPRouteRule name
     /// * Service: Port name
     ///
@@ -181,12 +182,24 @@ pub struct BackendTlsPolicyValidation {
     /// ensure the `Accepted` Condition on the BackendTLSPolicy is set to
     /// `status: False`, with a Reason `NoValidCACertificate`.
     ///
+    ///
+    /// References to cluster-scoped resources (such as ClusterTrustBundle)
+    /// are supported: the implementation resolves the scope based on the kind.
+    /// A single CACertificateRef to a ClusterTrustBundle uses the cluster-scoped
+    /// resource by name. A reference to a namespaced resource (such as ConfigMap
+    /// or Secret) uses the local namespace.
+    ///
+    ///
     /// A single CACertificateRef to a Kubernetes ConfigMap kind has "Core" support.
     /// Implementations MAY choose to support attaching multiple certificates to
     /// a backend, but this behavior is implementation-specific.
     ///
     /// Support: Core - An optional single reference to a Kubernetes ConfigMap,
     /// with the CA certificate in a key named `ca.crt`.
+    ///
+    ///
+    /// Support: Extended - A single reference to a ClusterTrustBundle (certificates.k8s.io).
+    ///
     ///
     /// Support: Implementation-specific - More than one reference, other kinds
     /// of resources, or a single reference that includes multiple certificates.

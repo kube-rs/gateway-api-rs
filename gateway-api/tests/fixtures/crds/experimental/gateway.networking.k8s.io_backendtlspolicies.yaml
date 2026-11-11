@@ -1,13 +1,13 @@
 # WARNING: generated file — do not edit
-# Gateway API v1.5.1 upstream CRD, vendored unchanged below this header by
-# `cargo xtask generate v1.5.1` for the integration tests. Source:
-# https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.5.1/config/crd/experimental/gateway.networking.k8s.io_backendtlspolicies.yaml
+# Gateway API v1.7.0 upstream CRD, vendored unchanged below this header by
+# `cargo xtask generate v1.7.0` for the integration tests. Source:
+# https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.7.0/config/crd/experimental/gateway.networking.k8s.io_backendtlspolicies.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    api-approved.kubernetes.io: https://github.com/kubernetes-sigs/gateway-api/pull/4530
-    gateway.networking.k8s.io/bundle-version: v1.5.1
+    api-approved.kubernetes.io: https://github.com/kubernetes-sigs/gateway-api/pull/5371
+    gateway.networking.k8s.io/bundle-version: v1.7.0
     gateway.networking.k8s.io/channel: experimental
   labels:
     gateway.networking.k8s.io/policy: Direct
@@ -118,12 +118,12 @@ spec:
 
                   Support Levels:
 
-                  * Extended: Kubernetes Service referenced by HTTPRoute backendRefs.
+                  * Extended: Kubernetes Service referenced by backendRefs used on a Route.
+                    - HTTPRoute, GRPCRoute, TLSRoute with termination
+                    - Filters that needs a backend of type Service, like Mirror and External Authorization
 
-                  * Implementation-Specific: Services not connected via HTTPRoute, and any
-                    other kind of backend. Implementations MAY use BackendTLSPolicy for:
+                  * Implementation-Specific: Implementations MAY use BackendTLSPolicy for:
                     - Services not referenced by any Route (e.g., infrastructure services)
-                    - Gateway feature backends (e.g., ExternalAuth, rate-limiting services)
                     - Service mesh workload-to-service communication
                     - Other resource types beyond Service
 
@@ -173,6 +173,7 @@ spec:
                         resources, SectionName is interpreted as the following:
 
                         * Gateway: Listener name
+                        * ListenerSet: Listener name
                         * HTTPRoute: HTTPRouteRule name
                         * Service: Port name
 
@@ -246,12 +247,24 @@ spec:
                       ensure the `Accepted` Condition on the BackendTLSPolicy is set to
                       `status: False`, with a Reason `NoValidCACertificate`.
 
+
+                      References to cluster-scoped resources (such as ClusterTrustBundle)
+                      are supported: the implementation resolves the scope based on the kind.
+                      A single CACertificateRef to a ClusterTrustBundle uses the cluster-scoped
+                      resource by name. A reference to a namespaced resource (such as ConfigMap
+                      or Secret) uses the local namespace.
+
+
                       A single CACertificateRef to a Kubernetes ConfigMap kind has "Core" support.
                       Implementations MAY choose to support attaching multiple certificates to
                       a backend, but this behavior is implementation-specific.
 
                       Support: Core - An optional single reference to a Kubernetes ConfigMap,
                       with the CA certificate in a key named `ca.crt`.
+
+
+                      Support: Extended - A single reference to a ClusterTrustBundle (certificates.k8s.io).
+
 
                       Support: Implementation-specific - More than one reference, other kinds
                       of resources, or a single reference that includes multiple certificates.
@@ -291,6 +304,7 @@ spec:
                       - name
                       type: object
                     maxItems: 8
+                    minItems: 1
                     type: array
                     x-kubernetes-list-type: atomic
                   hostname:
@@ -403,14 +417,10 @@ spec:
                 - hostname
                 type: object
                 x-kubernetes-validations:
-                - message: must not contain both CACertificateRefs and WellKnownCACertificates
-                  rule: '!(has(self.caCertificateRefs) && size(self.caCertificateRefs)
-                    > 0 && has(self.wellKnownCACertificates) && self.wellKnownCACertificates
-                    != "")'
-                - message: must specify either CACertificateRefs or WellKnownCACertificates
-                  rule: (has(self.caCertificateRefs) && size(self.caCertificateRefs)
-                    > 0 || has(self.wellKnownCACertificates) && self.wellKnownCACertificates
-                    != "")
+                - message: exactly one of the fields in [caCertificateRefs wellKnownCACertificates]
+                    must be set
+                  rule: (has(self.caCertificateRefs)?1:0)+(has(self.wellKnownCACertificates)?1:0)
+                    == 1
             required:
             - targetRefs
             - validation
@@ -812,12 +822,12 @@ spec:
 
                   Support Levels:
 
-                  * Extended: Kubernetes Service referenced by HTTPRoute backendRefs.
+                  * Extended: Kubernetes Service referenced by backendRefs used on a Route.
+                    - HTTPRoute, GRPCRoute, TLSRoute with termination
+                    - Filters that needs a backend of type Service, like Mirror and External Authorization
 
-                  * Implementation-Specific: Services not connected via HTTPRoute, and any
-                    other kind of backend. Implementations MAY use BackendTLSPolicy for:
+                  * Implementation-Specific: Implementations MAY use BackendTLSPolicy for:
                     - Services not referenced by any Route (e.g., infrastructure services)
-                    - Gateway feature backends (e.g., ExternalAuth, rate-limiting services)
                     - Service mesh workload-to-service communication
                     - Other resource types beyond Service
 
@@ -867,6 +877,7 @@ spec:
                         resources, SectionName is interpreted as the following:
 
                         * Gateway: Listener name
+                        * ListenerSet: Listener name
                         * HTTPRoute: HTTPRouteRule name
                         * Service: Port name
 
@@ -940,12 +951,24 @@ spec:
                       ensure the `Accepted` Condition on the BackendTLSPolicy is set to
                       `status: False`, with a Reason `NoValidCACertificate`.
 
+
+                      References to cluster-scoped resources (such as ClusterTrustBundle)
+                      are supported: the implementation resolves the scope based on the kind.
+                      A single CACertificateRef to a ClusterTrustBundle uses the cluster-scoped
+                      resource by name. A reference to a namespaced resource (such as ConfigMap
+                      or Secret) uses the local namespace.
+
+
                       A single CACertificateRef to a Kubernetes ConfigMap kind has "Core" support.
                       Implementations MAY choose to support attaching multiple certificates to
                       a backend, but this behavior is implementation-specific.
 
                       Support: Core - An optional single reference to a Kubernetes ConfigMap,
                       with the CA certificate in a key named `ca.crt`.
+
+
+                      Support: Extended - A single reference to a ClusterTrustBundle (certificates.k8s.io).
+
 
                       Support: Implementation-specific - More than one reference, other kinds
                       of resources, or a single reference that includes multiple certificates.
@@ -985,6 +1008,7 @@ spec:
                       - name
                       type: object
                     maxItems: 8
+                    minItems: 1
                     type: array
                     x-kubernetes-list-type: atomic
                   hostname:
@@ -1097,14 +1121,10 @@ spec:
                 - hostname
                 type: object
                 x-kubernetes-validations:
-                - message: must not contain both CACertificateRefs and WellKnownCACertificates
-                  rule: '!(has(self.caCertificateRefs) && size(self.caCertificateRefs)
-                    > 0 && has(self.wellKnownCACertificates) && self.wellKnownCACertificates
-                    != "")'
-                - message: must specify either CACertificateRefs or WellKnownCACertificates
-                  rule: (has(self.caCertificateRefs) && size(self.caCertificateRefs)
-                    > 0 || has(self.wellKnownCACertificates) && self.wellKnownCACertificates
-                    != "")
+                - message: exactly one of the fields in [caCertificateRefs wellKnownCACertificates]
+                    must be set
+                  rule: (has(self.caCertificateRefs)?1:0)+(has(self.wellKnownCACertificates)?1:0)
+                    == 1
             required:
             - targetRefs
             - validation
@@ -1414,9 +1434,3 @@ spec:
     storage: false
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: null
-  storedVersions: null

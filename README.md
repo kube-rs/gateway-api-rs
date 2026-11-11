@@ -6,9 +6,9 @@
 
 [Kubernetes] [Gateway API] support for [Rust].
 
-> **Note**: Currently supports [Gateway API version v1.5.1][gwv]
+> **Note**: Currently supports [Gateway API version v1.7.0][gwv]
 
-[gwv]:https://github.com/kubernetes-sigs/gateway-api/releases/tag/v1.5.1
+[gwv]:https://github.com/kubernetes-sigs/gateway-api/releases/tag/v1.7.0
 [Rust]:https://rust-lang.org
 [Kubernetes]:https://kubernetes.io/
 [Gateway API]:https://gateway-api.sigs.k8s.io/

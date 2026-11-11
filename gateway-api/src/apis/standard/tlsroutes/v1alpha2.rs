@@ -1,6 +1,6 @@
 //! `TLSRoute` API version `gateway.networking.k8s.io/v1alpha2`.
 //!
-//! In the Gateway API v1.5.1 standard channel CRD:
+//! In the Gateway API v1.7.0 standard channel CRD:
 //!
 //! - served: no
 //! - storage: no
@@ -239,6 +239,9 @@ pub struct TlsRouteRules {
     /// weight; if an invalid backend is requested to have 80% of requests, then
     /// 80% of requests must be rejected instead.
     ///
+    /// When a TLSRoute is attached to a listener in Terminate mode, a BackendTLSPolicy
+    /// can be used to enable re-encryption of the traffic to the backends.
+    ///
     /// Support: Core for Kubernetes Service
     ///
     /// Support: Extended for Kubernetes ServiceImport
@@ -246,6 +249,8 @@ pub struct TlsRouteRules {
     /// Support: Implementation-specific for any other resource
     ///
     /// Support for weight: Extended
+    ///
+    /// Support for BackendTLSPolicy: Extended
     #[serde(rename = "backendRefs")]
     pub backend_refs: Vec<TlsRouteRulesBackendRefs>,
     /// Name is the name of the route rule. This name MUST be unique within a Route if it is set.

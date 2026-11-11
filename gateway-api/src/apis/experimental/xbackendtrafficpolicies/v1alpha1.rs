@@ -1,6 +1,6 @@
 //! `XBackendTrafficPolicy` API version `gateway.networking.x-k8s.io/v1alpha1`.
 //!
-//! In the Gateway API v1.5.1 experimental channel CRD:
+//! In the Gateway API v1.7.0 experimental channel CRD:
 //!
 //! - served: yes
 //! - storage: yes
@@ -64,6 +64,8 @@ pub struct XBackendTrafficPolicySpec {
     /// Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "retryConstraint")]
     pub retry_constraint: Option<XBackendTrafficPolicyRetryConstraint>,
+    /// Deprecated: use the Backend resource for session persistence (GEP-4894).
+    ///
     /// SessionPersistence defines and configures session persistence
     /// for the backend.
     ///
@@ -175,6 +177,8 @@ pub struct XBackendTrafficPolicyRetryConstraintMinRetryRate {
     pub interval: Option<String>,
 }
 
+/// Deprecated: use the Backend resource for session persistence (GEP-4894).
+///
 /// SessionPersistence defines and configures session persistence
 /// for the backend.
 ///
@@ -188,27 +192,18 @@ pub struct XBackendTrafficPolicySessionPersistence {
     /// Support: Extended
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "absoluteTimeout")]
     pub absolute_timeout: Option<String>,
-    /// CookieConfig provides configuration settings that are specific
+    /// Cookie provides configuration settings that are specific
     /// to cookie-based session persistence.
     ///
     /// Support: Core
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "cookieConfig")]
-    pub cookie_config: Option<XBackendTrafficPolicySessionPersistenceCookieConfig>,
-    /// IdleTimeout defines the idle timeout of the persistent session.
-    /// Once the session has been idle for more than the specified
-    /// IdleTimeout duration, the session becomes invalid.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cookie: Option<XBackendTrafficPolicySessionPersistenceCookie>,
+    /// Header provides configuration settings that are specific
+    /// to header-based session persistence.
     ///
     /// Support: Extended
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "idleTimeout")]
-    pub idle_timeout: Option<String>,
-    /// SessionName defines the name of the persistent session token
-    /// which may be reflected in the cookie or the header. Users
-    /// should avoid reusing session names to prevent unintended
-    /// consequences, such as rejection or unpredictable behavior.
-    ///
-    /// Support: Implementation-specific
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sessionName")]
-    pub session_name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub header: Option<XBackendTrafficPolicySessionPersistenceHeader>,
     /// Type defines the type of session persistence such as through
     /// the use of a header or cookie. Defaults to cookie based session
     /// persistence.
@@ -220,12 +215,12 @@ pub struct XBackendTrafficPolicySessionPersistence {
     pub r#type: Option<XBackendTrafficPolicySessionPersistenceType>,
 }
 
-/// CookieConfig provides configuration settings that are specific
+/// Cookie provides configuration settings that are specific
 /// to cookie-based session persistence.
 ///
 /// Support: Core
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
-pub struct XBackendTrafficPolicySessionPersistenceCookieConfig {
+pub struct XBackendTrafficPolicySessionPersistenceCookie {
     /// LifetimeType specifies whether the cookie has a permanent or
     /// session-based lifetime. A permanent cookie persists until its
     /// specified expiry time, defined by the Expires or Max-Age cookie
@@ -246,19 +241,51 @@ pub struct XBackendTrafficPolicySessionPersistenceCookieConfig {
     ///
     /// Support: Extended for "Permanent" type
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "lifetimeType")]
-    pub lifetime_type: Option<XBackendTrafficPolicySessionPersistenceCookieConfigLifetimeType>,
+    pub lifetime_type: Option<XBackendTrafficPolicySessionPersistenceCookieLifetimeType>,
+    /// Name defines the name of the cookie used for session persistence.
+    /// If not specified, a unique cookie name SHOULD be generated.
+    /// Users should avoid reusing cookie names to prevent unintended
+    /// consequences, such as rejection or unpredictable behavior.
+    ///
+    ///
+    /// Support: Extended
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// Path defines the cookie Path attribute. When not specified,
+    /// implementations MUST default the cookie path to "/".
+    ///
+    ///
+    /// Support: Extended
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
 }
 
-/// CookieConfig provides configuration settings that are specific
+/// Cookie provides configuration settings that are specific
 /// to cookie-based session persistence.
 ///
 /// Support: Core
 #[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, PartialEq)]
-pub enum XBackendTrafficPolicySessionPersistenceCookieConfigLifetimeType {
+pub enum XBackendTrafficPolicySessionPersistenceCookieLifetimeType {
     Permanent,
     Session,
 }
 
+/// Header provides configuration settings that are specific
+/// to header-based session persistence.
+///
+/// Support: Extended
+#[derive(Serialize, Deserialize, Clone, Debug, JsonSchema, Default, PartialEq)]
+pub struct XBackendTrafficPolicySessionPersistenceHeader {
+    /// Name defines the name of the header used for session persistence.
+    /// The client must include this header in subsequent requests to
+    /// maintain the session.
+    ///
+    /// Support: Core
+    pub name: String,
+}
+
+/// Deprecated: use the Backend resource for session persistence (GEP-4894).
+///
 /// SessionPersistence defines and configures session persistence
 /// for the backend.
 ///

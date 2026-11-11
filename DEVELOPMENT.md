@@ -19,7 +19,7 @@ $ make generate
 Or with a specific version:
 
 ```console
-$ make generate GATEWAY_API_VERSION=v1.5.1
+$ make generate GATEWAY_API_VERSION=v1.7.0
 ```
 
 Generated code lives in `gateway-api/src/apis/` — do not edit it by hand.
