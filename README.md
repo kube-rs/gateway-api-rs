@@ -55,7 +55,7 @@ gateway-api = { version = "*", features = ["experimental"] }
 ```
 
 ```rust
-use gateway_api::experimental::tcproutes::TcpRoute;
+use gateway_api::experimental::xbackends::XBackend;
 use gateway_api::experimental::httproutes::HttpRoute;
 ```
 
