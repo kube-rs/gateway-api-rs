@@ -4,52 +4,28 @@
 
 ### Breaking changes
 
-- **Gateway API v1.7.0** (was v1.5.1). Types with breaking changes:
-  - `HttpRouteRules`
-  - Experimental: `GatewayListeners`, `ListenerSetListeners`,
-    `GatewayAddresses`, `GatewayStatusAddresses`, `...SessionPersistence`,
-    `...SessionPersistenceCookieConfig` (now `...SessionPersistenceCookie`),
-    `...ExternalAuthForwardBody`
-- **Experimental TCPRoute and UDPRoute re-export `v1`** (was `v1alpha2`).
-- **Condition enums gain variants**: `GatewayConditionType`,
-  `GatewayConditionReason`, `ListenerConditionType`,
-  `ListenerConditionReason`.
+- **Gateway API v1.7.0** (was v1.5.1). See the [upstream release notes] for
+  v1.6.0 and v1.7.0 changes.
+- **Condition enums gain variants**: `GatewayConditionType`/`Reason` and
+  `ListenerConditionType`/`Reason`.
+- **Experimental:** `TcpRoute` and `UdpRoute` are now API version `v1` (was
+  `v1alpha2`).
 
 ### Features
 
-- **New modules**: `tcproutes` and `udproutes` (standard),
-  `experimental::xbackends`, `experimental::xtelemetrypolicies`.
-- **New condition enums**: `RouteConditionType`/`Reason`,
-  `ListenerSetConditionType`/`Reason`, `ListenerEntryConditionType`/`Reason`,
-  `PolicyConditionType`/`Reason`, and in experimental
-  `MeshConditionType`/`Reason`, `BackendConditionType`/`Reason`.
-- **Bindings for every CRD API version** ([#246]). Each API version a CRD
-  defines is now a submodule of its resource module, e.g.
-  `gateway_api::httproutes::v1beta1::HttpRoute`.
-  - Existing paths still resolve to the same types. For example,
-    `gateway_api::httproutes::HttpRoute` is now a re-export of
-    `gateway_api::httproutes::v1::HttpRoute`.
-  - New modules for v1.5.1, in both `standard` and `experimental` channels:
-    - `backendtlspolicies::v1alpha3`
-    - `gatewayclasses::v1beta1`
-    - `gateways::v1beta1`
-    - `httproutes::v1beta1`
-    - `referencegrants::v1beta1` (the storage version)
-    - `tlsroutes::v1alpha2`, `tlsroutes::v1alpha3`
-- **Experimental BackendTLSPolicy** ([#246]).
-  `gateway_api::experimental::backendtlspolicies` was missing.
+- **New modules**: `tcproutes`, `udproutes`; experimental: `xbackends`,
+  `xtelemetrypolicies`, and `backendtlspolicies` ([#247]).
+- **Bindings for every CRD API version** ([#247]). Submodules for each
+  CRD API version, e.g. `gateway_api::httproutes::v1beta1::HttpRoute`.
+- **New condition enums**: Route, ListenerSet, ListenerEntry and Policy, plus
+  Mesh and Backend in the experimental channel.
 
-### Upgrade notes
+### Fixes
 
-- Resource modules now export public version submodules (`v1`, `v1beta1`,
-  ...). Code that glob-imports a resource module alongside another glob that
-  also brings a `v1` module into scope, e.g.
-  `use gateway_api::httproutes::*;` with
-  `use k8s_openapi::apimachinery::pkg::apis::meta::*;`, can now fail with
-  error E0659 (`v1` is ambiguous). Import the conflicting `v1` path
-  explicitly instead.
+- The published crate includes the `LICENSE` file.
 
-[#246]: https://github.com/kube-rs/gateway-api-rs/issues/246
+[upstream release notes]: https://github.com/kubernetes-sigs/gateway-api/releases
+[#247]: https://github.com/kube-rs/gateway-api-rs/pull/247
 
 ## 0.22.0 (since v0.21.0)
 
