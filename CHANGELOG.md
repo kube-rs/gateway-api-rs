@@ -10,6 +10,9 @@
   `ListenerConditionType`/`Reason`.
 - **Experimental:** `TcpRoute` and `UdpRoute` are now API version `v1` (was
   `v1alpha2`).
+- **Dependency bumps:**
+  - `kube` 4.2 → 5.0
+  - `k8s-openapi` 0.28 → 0.29
 
 ### Features
 
