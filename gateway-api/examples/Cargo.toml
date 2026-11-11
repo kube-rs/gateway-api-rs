@@ -15,7 +15,7 @@ gateway-api = { path = "../" }
 k8s-openapi.workspace = true
 
 [features]
-default = ["k8s-openapi/v1_33"]
+default = ["k8s-openapi/latest"]
 
 [[bin]]
 name = "gep2257"

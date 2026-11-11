@@ -26,7 +26,7 @@ serde_json.workspace = true
 serde.workspace = true
 
 [dev-dependencies]
-k8s-openapi = { workspace = true, features = ["v1_33", "schemars"] }
+k8s-openapi = { workspace = true, features = ["latest", "schemars"] }
 kube = { workspace = true, features = ["derive", "client", "rustls-tls", "ring"] }
 
 anyhow.workspace = true
@@ -36,7 +36,7 @@ tokio.workspace = true
 tower.workspace = true
 
 [package.metadata.docs.rs]
-features = ["experimental", "k8s-openapi/v1_33"]
+features = ["experimental", "k8s-openapi/latest"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
