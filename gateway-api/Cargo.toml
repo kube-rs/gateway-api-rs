@@ -17,7 +17,6 @@ rust-version.workspace = true
 version.workspace = true
 
 [dependencies]
-delegate.workspace = true
 k8s-openapi = { workspace = true, features = ["schemars"] }
 kube = { workspace = true, features = ["derive"] }
 regex.workspace = true
