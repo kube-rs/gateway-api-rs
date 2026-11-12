@@ -17,15 +17,11 @@
 ### Features
 
 - **New modules**: `tcproutes`, `udproutes`; experimental: `xbackends`,
-  `xtelemetrypolicies`, and `backendtlspolicies` ([#247]).
+  `xtelemetrypolicies`, and `backendtlspolicies`.
 - **Bindings for every CRD API version** ([#247]). Submodules for each
   CRD API version, e.g. `gateway_api::httproutes::v1beta1::HttpRoute`.
 - **New condition enums**: Route, ListenerSet, ListenerEntry and Policy, plus
   Mesh and Backend in the experimental channel.
-
-### Fixes
-
-- The published crate includes the `LICENSE` file.
 
 [upstream release notes]: https://github.com/kubernetes-sigs/gateway-api/releases
 [#247]: https://github.com/kube-rs/gateway-api-rs/pull/247
