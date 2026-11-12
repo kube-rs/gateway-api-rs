@@ -351,7 +351,7 @@ dependencies = [
 
 [[package]]
 name = "gateway-api"
-version = "0.22.0"
+version = "0.23.0"
 dependencies = [
  "anyhow",
  "delegate",
@@ -369,7 +369,7 @@ dependencies = [
 
 [[package]]
 name = "gateway-api-examples"
-version = "0.22.0"
+version = "0.23.0"
 dependencies = [
  "gateway-api",
  "k8s-openapi",
@@ -1762,7 +1762,7 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "xtask"
-version = "0.22.0"
+version = "0.23.0"
 dependencies = [
  "anyhow",
  "serde",
